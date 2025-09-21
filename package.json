@@ -22,6 +22,7 @@
   "workspaces": ["packages/*"],
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
-    "@ffmpeg/util": "^0.12.2"
+    "@ffmpeg/util": "^0.12.2",
+    "lucide-static": "^0.544.0"
   }
 }

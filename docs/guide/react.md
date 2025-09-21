@@ -314,7 +314,7 @@ export function AdvancedPlayer({ src }: AdvancedPlayerProps) {
             {formatTime(state.currentTime)} / {formatTime(state.duration)}
           </span>
 
-          <button onClick={takeScreenshot}>📷 Screenshot</button>
+          <button onClick={takeScreenshot}>Screenshot</button>
         </div>
 
         {/* Progress bar */}
@@ -420,7 +420,7 @@ function VolumeSlider({ player, volume, muted }: VolumeSliderProps) {
   return (
     <div className="volume-control">
       <button onClick={() => player.muted = !player.muted}>
-        {muted ? '🔇' : '🔊'}
+        {muted ? 'Mute' : 'Unmute'}
       </button>
       <input
         type="range"
@@ -682,4 +682,4 @@ const handlePlay = useCallback(async () => {
 
 - [Vue Integration](/guide/vue) - Using XiaoMei with Vue
 - [API Reference](/api/player) - Complete API documentation
-- [Examples](https://github.com/wiedymi/xiaomei/tree/main/examples/react) - More React examples
+- [Live Demo](/) - Interactive demo on the home page

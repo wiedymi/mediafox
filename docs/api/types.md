@@ -9,45 +9,114 @@ XiaoMei provides comprehensive TypeScript support with detailed type definitions
 ```typescript
 interface PlayerOptions {
   /** Canvas element for video rendering */
-  canvas: HTMLCanvasElement;
+  renderTarget?: HTMLCanvasElement | OffscreenCanvas;
 
-  /** Auto-start playback when media is loaded */
-  autoplay?: boolean;
-
-  /** Start with audio muted */
-  muted?: boolean;
+  /** Audio context for audio playback */
+  audioContext?: AudioContext;
 
   /** Initial volume level (0-1) */
   volume?: number;
 
-  /** Initial playback rate */
+  /** Initial mute state */
+  muted?: boolean;
+
+  /** Initial playback speed (0.25-4) */
   playbackRate?: number;
 
-  /** Number of frames to buffer for smooth playback */
-  frameBufferSize?: number;
+  /** Auto-play when media loads */
+  autoplay?: boolean;
 
-  /** Maximum memory usage in bytes */
-  maxMemoryUsage?: number;
+  /** Preloading strategy */
+  preload?: 'none' | 'metadata' | 'auto';
 
-  /** Custom canvas pool for memory management */
-  canvasPool?: CanvasPool;
+  /** CORS setting for cross-origin content */
+  crossOrigin?: string;
 
-  /** Enable debug logging */
-  debug?: boolean;
+  /** Maximum cache size for buffering */
+  maxCacheSize?: number;
+
+  /** Decoder for unsupported codecs */
+  fallbackDecoder?: MediaConverterDecoder;
 }
 ```
 
-### PlayerState
+### PlayerStateData
 
 ```typescript
-interface PlayerState {
-  /** Current playback state */
+interface PlayerStateData {
+  /** Overall player state */
+  state: PlayerState;
+
+  /** Current playback time in seconds */
+  currentTime: number;
+
+  /** Total duration in seconds */
+  duration: number;
+
+  /** Buffered time ranges */
+  buffered: TimeRange[];
+
+  /** Volume level (0-1) */
+  volume: number;
+
+  /** Mute state */
+  muted: boolean;
+
+  /** Playback speed */
+  playbackRate: number;
+
+  /** Whether media is actively playing */
   playing: boolean;
+
+  /** Whether playback is paused */
   paused: boolean;
+
+  /** Whether playback has ended */
   ended: boolean;
 
-  /** Time-related properties */
-  currentTime: number;
+  /** Whether seeking is in progress */
+  seeking: boolean;
+
+  /** Current error, if any */
+  error: Error | null;
+
+  /** Media information */
+  mediaInfo: MediaInfo | null;
+
+  /** Available video tracks */
+  videoTracks: VideoTrackInfo[];
+
+  /** Available audio tracks */
+  audioTracks: AudioTrackInfo[];
+
+  /** Available subtitle tracks */
+  subtitleTracks: SubtitleTrackInfo[];
+
+  /** Currently selected video track ID */
+  selectedVideoTrack: string | null;
+
+  /** Currently selected audio track ID */
+  selectedAudioTrack: string | null;
+
+  /** Currently selected subtitle track ID */
+  selectedSubtitleTrack: string | null;
+
+  /** Whether playback can start */
+  canPlay: boolean;
+
+  /** Whether playback can continue without buffering */
+  canPlayThrough: boolean;
+
+  /** Whether this is a live stream */
+  isLive: boolean;
+}
+```
+
+### PlayerState Enum
+
+```typescript
+type PlayerState = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
+```
   duration: number;
   buffered: TimeRanges | null;
   seekable: TimeRanges | null;

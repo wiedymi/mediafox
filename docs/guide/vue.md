@@ -272,7 +272,7 @@ onUnmounted(() => {
         </button>
         <button @click="stop">⏹</button>
         <button @click="toggleMute">
-          {{ muted ? '🔇' : '🔊' }}
+          {{ muted ? 'Mute' : 'Unmute' }}
         </button>
 
         <!-- Volume slider -->
@@ -301,8 +301,8 @@ onUnmounted(() => {
           <option :value="2">2x</option>
         </select>
 
-        <button @click="takeScreenshot">📷</button>
-        <button @click="toggleFullscreen">⛶</button>
+        <button @click="takeScreenshot">Screenshot</button>
+        <button @click="toggleFullscreen">Fullscreen</button>
       </div>
 
       <!-- Progress bar -->
@@ -938,4 +938,4 @@ const player = shallowRef<XiaoMei>();
 
 - [React Integration](/guide/react) - Using XiaoMei with React
 - [API Reference](/api/player) - Complete API documentation
-- [Examples](https://github.com/wiedymi/xiaomei/tree/main/examples/vue) - More Vue examples
+- [Live Demo](/) - Interactive demo on the home page

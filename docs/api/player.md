@@ -19,14 +19,15 @@ constructor(options?: PlayerOptions)
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `renderTarget` | `HTMLCanvasElement \| OffscreenCanvas` | `undefined` | Canvas element for video rendering |
-| `audioContext` | `AudioContext` | `new AudioContext()` | Audio context for audio playback |
+| `audioContext` | `AudioContext` | `undefined` | Audio context for audio playback |
 | `volume` | `number` | `1` | Initial volume level (0-1) |
 | `muted` | `boolean` | `false` | Initial mute state |
 | `playbackRate` | `number` | `1` | Initial playback speed (0.25-4) |
 | `autoplay` | `boolean` | `false` | Auto-play when media loads |
 | `preload` | `'none' \| 'metadata' \| 'auto'` | `'metadata'` | Preloading strategy |
 | `crossOrigin` | `string` | `undefined` | CORS setting for cross-origin content |
-| `maxCacheSize` | `number` | `100MB` | Maximum cache size for buffering |
+| `maxCacheSize` | `number` | `undefined` | Maximum cache size for buffering |
+| `fallbackDecoder` | `MediaConverterDecoder` | `undefined` | Decoder for unsupported codecs |
 
 #### Example
 
@@ -81,7 +82,7 @@ Try the player with different configurations:
   </div>
 </div>
 
-<script>
+<!-- <script>
 let demoPlayer;
 let demoAnimationId;
 
@@ -181,7 +182,7 @@ document['getElementById']('demo-volume').oninput = (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   initDemoPlayer();
 });
-</script>
+</script> -->
 
 <style>
 .demo-container {
@@ -289,8 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
 | `paused` | `boolean` | R | Whether playback is paused |
 | `ended` | `boolean` | R | Whether playback has ended |
 | `seeking` | `boolean` | R | Whether seeking is in progress |
-| `playing` | `boolean` | R | Whether media is actively playing |
-| `buffering` | `boolean` | R | Whether buffering is in progress |
 
 ### Audio Properties
 
@@ -438,7 +437,7 @@ Stops playback and resets to the beginning.
 <div class="method-signature">
 
 ```typescript
-stop(): void
+async stop(): Promise<void>
 ```
 
 </div>
@@ -446,7 +445,7 @@ stop(): void
 **Example:**
 
 ```typescript
-player.stop();
+await player.stop();
 ```
 
 #### `seek(time, options?)`
@@ -466,7 +465,8 @@ async seek(
 
 **Parameters:**
 - `time`: Target time in seconds
-- `options.accurate`: Whether to seek to exact frame (slower but precise)
+- `options.precise`: Whether to seek to exact frame (slower but precise)
+- `options.keyframe`: Whether to seek to keyframes only (faster but less precise)
 
 **Example:**
 
@@ -474,8 +474,11 @@ async seek(
 // Quick seek
 await player.seek(30);
 
-// Accurate seek to exact frame
-await player.seek(30, { accurate: true });
+// Precise seek to exact frame
+await player.seek(30, { precise: true });
+
+// Keyframe-only seek (fastest)
+await player.seek(30, { keyframe: true });
 ```
 
 ### Track Management
@@ -533,13 +536,13 @@ Selects a specific video track.
 <div class="method-signature">
 
 ```typescript
-async selectVideoTrack(trackId: string): Promise<void>
+async selectVideoTrack(trackId: string | null): Promise<void>
 ```
 
 </div>
 
 **Parameters:**
-- `trackId`: ID of the video track to select
+- `trackId`: ID of the video track to select (or null to disable video)
 
 **Example:**
 
@@ -555,19 +558,160 @@ Selects a specific audio track.
 <div class="method-signature">
 
 ```typescript
-async selectAudioTrack(trackId: string): Promise<void>
+async selectAudioTrack(trackId: string | null): Promise<void>
 ```
 
 </div>
 
 **Parameters:**
-- `trackId`: ID of the audio track to select
+- `trackId`: ID of the audio track to select (or null to disable audio)
 
 **Example:**
 
 ```typescript
 const tracks = player.getAudioTracks();
 await player.selectAudioTrack(tracks[1].id);
+```
+
+#### `getSubtitleTracks()`
+
+Returns all available subtitle tracks.
+
+<div class="method-signature">
+
+```typescript
+getSubtitleTracks(): SubtitleTrackInfo[]
+```
+
+</div>
+
+**Returns:** Array of subtitle track information objects
+
+**Example:**
+
+```typescript
+const subtitleTracks = player.getSubtitleTracks();
+subtitleTracks.forEach(track => {
+  console.log(`${track.language}: ${track.name || 'Subtitle'}`);
+});
+```
+
+#### `selectSubtitleTrack(trackId)`
+
+Selects a specific subtitle track.
+
+<div class="method-signature">
+
+```typescript
+selectSubtitleTrack(trackId: string | null): void
+```
+
+</div>
+
+**Parameters:**
+- `trackId`: ID of the subtitle track to select (or null to disable subtitles)
+
+**Example:**
+
+```typescript
+const tracks = player.getSubtitleTracks();
+player.selectSubtitleTrack(tracks[0].id);
+
+// Disable subtitles
+player.selectSubtitleTrack(null);
+```
+
+#### `registerSubtitleTracks(sourceId, registrations)`
+
+Registers external subtitle tracks.
+
+<div class="method-signature">
+
+```typescript
+registerSubtitleTracks(
+  sourceId: string,
+  registrations: SubtitleTrackRegistration[]
+): void
+```
+
+</div>
+
+**Parameters:**
+- `sourceId`: Unique identifier for this subtitle source
+- `registrations`: Array of subtitle track registrations
+
+**Example:**
+
+```typescript
+player.registerSubtitleTracks('external-subs', [
+  {
+    info: {
+      id: 'en-subs',
+      codec: null,
+      language: 'en',
+      name: 'English Subtitles',
+      selected: false
+    },
+    resolver: async () => ({
+      format: 'srt',
+      content: await fetch('/subtitles/en.srt').then(r => r.text())
+    })
+  }
+]);
+```
+
+#### `unregisterSubtitleTracks(sourceId)`
+
+Removes previously registered subtitle tracks.
+
+<div class="method-signature">
+
+```typescript
+unregisterSubtitleTracks(sourceId: string): void
+```
+
+</div>
+
+**Parameters:**
+- `sourceId`: ID of the subtitle source to remove
+
+**Example:**
+
+```typescript
+player.unregisterSubtitleTracks('external-subs');
+```
+
+#### `getSubtitleTrackResource(trackId)`
+
+Gets the resource data for a subtitle track.
+
+<div class="method-signature">
+
+```typescript
+async getSubtitleTrackResource(
+  trackId: string | null
+): Promise<SubtitleTrackResource | null>
+```
+
+</div>
+
+**Parameters:**
+- `trackId`: ID of the subtitle track
+
+**Returns:** Subtitle resource data or null
+
+**Example:**
+
+```typescript
+const resource = await player.getSubtitleTrackResource('en-subs');
+if (resource) {
+  console.log('Format:', resource.format);
+  if (resource.content) {
+    console.log('Content loaded');
+  } else if (resource.url) {
+    console.log('URL:', resource.url);
+  }
+}
 ```
 
 ### Advanced Features
@@ -579,7 +723,7 @@ Takes a screenshot of the current video frame.
 <div class="method-signature">
 
 ```typescript
-async screenshot(options?: ScreenshotOptions): Promise<Blob>
+async screenshot(options?: ScreenshotOptions): Promise<Blob | null>
 ```
 
 </div>
@@ -689,6 +833,9 @@ getState(): PlayerStateData
 ```typescript
 const state = player.getState();
 console.log(`Current time: ${state.currentTime}`);
+console.log(`Duration: ${state.duration}`);
+console.log(`Playing: ${state.playing}`);
+console.log(`Volume: ${state.volume}`);
 ```
 
 ### Event Handling
@@ -787,59 +934,6 @@ player.off('play', playHandler);
 player.off('play');
 ```
 
-### Plugin Management
-
-#### `use(plugin)`
-
-Installs a plugin.
-
-<div class="method-signature">
-
-```typescript
-use(plugin: Plugin): void
-```
-
-</div>
-
-**Parameters:**
-- `plugin`: Plugin object with `install` method
-
-**Example:**
-
-```typescript
-const myPlugin = {
-  name: 'my-plugin',
-  version: '1.0.0',
-  install(player) {
-    player.on('play', () => {
-      console.log('Plugin: playback started');
-    });
-  }
-};
-
-player.use(myPlugin);
-```
-
-#### `unuse(pluginName)`
-
-Uninstalls a plugin.
-
-<div class="method-signature">
-
-```typescript
-unuse(pluginName: string): void
-```
-
-</div>
-
-**Parameters:**
-- `pluginName`: Name of the plugin to remove
-
-**Example:**
-
-```typescript
-player.unuse('my-plugin');
-```
 
 ### Cleanup
 
@@ -903,8 +997,8 @@ XiaoMei emits various events during playback. All events are strongly typed.
 | `pause` | `void` | Playback has been paused |
 | `playing` | `void` | Playback has resumed |
 | `ended` | `void` | Playback has ended |
-| `seeking` | `{ time: number }` | Seeking has started |
-| `seeked` | `{ time: number }` | Seeking has completed |
+| `seeking` | `{ currentTime: number }` | Seeking has started |
+| `seeked` | `{ currentTime: number }` | Seeking has completed |
 | `waiting` | `void` | Waiting for data |
 
 ### State Change Events
@@ -921,8 +1015,23 @@ XiaoMei emits various events during playback. All events are strongly typed.
 
 | Event | Data Type | Description |
 |-------|-----------|-------------|
-| `trackchange` | `{ type: 'video' \| 'audio', trackId: string }` | Track selection has changed |
+| `trackchange` | `{ type: 'video' \| 'audio' \| 'subtitle', trackId: string \| null }` | Track selection has changed |
 | `resize` | `{ width: number, height: number }` | Video dimensions have changed |
+
+### Conversion Events
+
+| Event | Data Type | Description |
+|-------|-----------|-------------|
+| `conversionstart` | `{ type: 'audio' \| 'video', trackId: string, reason: 'unsupported-codec' \| 'decode-error' }` | Track conversion has started |
+| `conversionprogress` | `{ type: 'audio' \| 'video', trackId: string, progress: number, stage: 'extracting' \| 'converting' \| 'finalizing' }` | Track conversion progress |
+| `conversioncomplete` | `{ type: 'audio' \| 'video', trackId: string, duration: number }` | Track conversion completed |
+| `conversionerror` | `{ type: 'audio' \| 'video', trackId: string, error: Error }` | Track conversion failed |
+
+### Warning Events
+
+| Event | Data Type | Description |
+|-------|-----------|-------------|
+| `warning` | `{ type: string, message: string, error?: Error }` | Non-fatal warning occurred |
 
 ### Error Events
 
@@ -971,7 +1080,6 @@ interface PlayerStateData {
   paused: boolean;
   ended: boolean;
   seeking: boolean;
-  buffering: boolean;
 
   // Time
   currentTime: number;
@@ -984,13 +1092,19 @@ interface PlayerStateData {
   playbackRate: number;
 
   // Media info
-  hasVideo: boolean;
-  hasAudio: boolean;
-  videoWidth: number;
-  videoHeight: number;
+  mediaInfo: MediaInfo | null;
+  videoTracks: VideoTrackInfo[];
+  audioTracks: AudioTrackInfo[];
+  subtitleTracks: SubtitleTrackInfo[];
+  selectedVideoTrack: string | null;
+  selectedAudioTrack: string | null;
+  selectedSubtitleTrack: string | null;
+  canPlay: boolean;
+  canPlayThrough: boolean;
+  isLive: boolean;
 
   // Error state
-  error: XiaoMeiError | null;
+  error: Error | null;
 }
 ```
 
@@ -1000,14 +1114,13 @@ Information about loaded media.
 
 ```typescript
 interface MediaInfo {
-  format: string;
   duration: number;
+  format: string;
+  mimeType: string;
+  metadata: MetadataTags;
   hasVideo: boolean;
   hasAudio: boolean;
   hasSubtitles: boolean;
-  metadata?: MetadataTags;
-  chapters?: ChapterInfo[];
-  attachedImages?: AttachedImage[];
 }
 ```
 
@@ -1018,12 +1131,17 @@ Video track information.
 ```typescript
 interface VideoTrackInfo {
   id: string;
-  codec: string;
+  codec: VideoCodec | null;
+  language: string;
+  name: string | null;
   width: number;
   height: number;
-  frameRate?: number;
-  bitrate?: number;
+  frameRate: number;
+  bitrate: number;
+  rotation: 0 | 90 | 180 | 270;
   selected: boolean;
+  decodable: boolean;
+  converted?: boolean;
 }
 ```
 
@@ -1034,11 +1152,14 @@ Audio track information.
 ```typescript
 interface AudioTrackInfo {
   id: string;
-  codec: string;
+  codec: AudioCodec | null;
+  language: string;
+  name: string | null;
   channels: number;
   sampleRate: number;
-  bitrate?: number;
-  language?: string;
+  bitrate: number;
   selected: boolean;
+  decodable: boolean;
+  converted?: boolean;
 }
 ```

@@ -297,7 +297,7 @@ import { XiaoMei, VideoTrackInfo, AudioTrackInfo, formatTime } from 'xiaomei';
 
             <div class="controls-right">
               <button (click)="toggleMute()">
-                {{ muted ? '🔇' : '🔊' }}
+                {{ muted ? 'Mute' : 'Unmute' }}
               </button>
               <input
                 type="range"
@@ -327,8 +327,8 @@ import { XiaoMei, VideoTrackInfo, AudioTrackInfo, formatTime } from 'xiaomei';
                 </option>
               </select>
 
-              <button (click)="toggleFullscreen()">⛶</button>
-              <button (click)="screenshot()">📷</button>
+              <button (click)="toggleFullscreen()">Fullscreen</button>
+              <button (click)="screenshot()">Screenshot</button>
             </div>
           </div>
         </div>

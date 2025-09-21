@@ -2,15 +2,14 @@
 
 Welcome to XiaoMei! Let's get you up and running with a powerful video player in just a few minutes.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Try It Now!
 
-Before diving into the code, **try the interactive demos** to see XiaoMei in action:
+Before diving into the code, **try the interactive demo** to see XiaoMei in action:
 
-- **[Basic Player Example](/examples/basic)** - Simple video player with all essential features
-- **[Advanced Player Example](/examples/advanced)** - Full-featured player with analytics, quality selection, and more
-- **[Player API Demo](/api/player)** - Interactive API testing and property manipulation
+- **Live Player Demo** - Interactive video player on the home page with all essential features
+- **[Player API Reference](/api/player)** - Complete API documentation with examples
 
 ### Installation
 
@@ -53,7 +52,7 @@ Firefox users need to enable WebCodecs by setting `dom.media.webcodecs.enabled` 
 
 ## Basic Usage
 
-### 🎯 Quick Setup (Copy & Run)
+### Quick Setup (Copy & Run)
 
 Here's the fastest way to get started:
 
@@ -86,7 +85,7 @@ Here's the fastest way to get started:
 </html>
 ```
 
-### 📋 Step-by-Step Guide
+### Step-by-Step Guide
 
 #### 1. Create Canvas Element
 
@@ -156,7 +155,7 @@ player.stop();
 const subscription = player.subscribe(state => {
   console.log(`Time: ${state.currentTime}/${state.duration}`);
   console.log(`Playing: ${state.playing}`);
-  console.log(`Buffering: ${state.buffering}`);
+  console.log(`Paused: ${state.paused}`);
 });
 
 // Unsubscribe when done
@@ -164,26 +163,21 @@ subscription.unsubscribe();
 ```
 
 ::: tip Interactive Learning
-Want to see these features in action? Check out the **[Basic Player Example](/examples/basic)** for a complete working demo you can interact with!
+Want to see these features in action? Check out the **live demo on the home page** for a complete working player you can interact with!
 :::
 
-## 🎬 Complete Interactive Example
+## Interactive Demo
 
-Instead of a static example, try the **fully interactive demos**:
+Try the **live player demo on the home page**:
 
-### **[Basic Player Example](/examples/basic)**
-- ✅ **Complete working player** you can interact with
-- ✅ **File upload and URL loading**
-- ✅ **Real-time progress tracking**
-- ✅ **Volume and playback controls**
-- ✅ **Keyboard shortcuts**
-- ✅ **Mobile responsive design**
-
-### **[Advanced Player Example](/examples/advanced)**
-- ✅ **All advanced features** (PiP, fullscreen, quality selection)
-- ✅ **Real-time analytics** and performance monitoring
-- ✅ **Debug information** and settings
-- ✅ **Professional UI** with sidebar controls
+- **Complete working player** you can interact with
+- **File upload and URL loading**
+- **Real-time progress tracking**
+- **Volume and playback controls**
+- **Keyboard shortcuts**
+- **Mobile responsive design**
+- **Multi-track support**
+- **Screenshot functionality**
 
 ### Quick Start Code
 
@@ -213,7 +207,7 @@ For a minimal working example, copy this HTML:
 ```
 
 ::: tip Want More Features?
-The **[Basic Player Example](/examples/basic)** includes all the essential controls and features you'll need for most applications. The **[Advanced Player Example](/examples/advanced)** shows everything XiaoMei can do!
+The **live demo on the home page** includes all the essential controls and features you'll need for most applications, plus advanced features like multi-track support and screenshot capture!
 :::
 
 ## Browser Requirements
@@ -263,12 +257,11 @@ player.subscribe((state: PlayerStateData) => {
 });
 ```
 
-## 🎯 Next Steps
+## Next Steps
 
-### Try the Interactive Demos
-- **[Basic Player Example](/examples/basic)** - Perfect starting point with all essential features
-- **[Advanced Player Example](/examples/advanced)** - See all capabilities in action
-- **[Player API Demo](/api/player)** - Experiment with the API interactively
+### Try the Interactive Demo
+- **Live Player Demo** - Perfect starting point with all essential features (on home page)
+- **[Player API Reference](/api/player)** - Complete API documentation with examples
 
 ### Learn More
 - **[API Reference](/api/player)** - Complete documentation with live examples
@@ -276,7 +269,7 @@ player.subscribe((state: PlayerStateData) => {
 - **[Vue Integration](/guide/vue)** - Use XiaoMei in Vue applications
 - **[Angular Integration](/guide/angular)** - Use XiaoMei in Angular applications
 
-## 🔧 Common Issues & Solutions
+## Common Issues & Solutions
 
 ### CORS Errors
 When loading videos from a different domain:
@@ -324,14 +317,13 @@ player.destroy(); // Cannot be used after this
 3. **Manage buffering** - Set appropriate `maxCacheSize`
 4. **Dispose unused players** - Prevent memory leaks
 
-## 🚀 Ready to Build?
+## Ready to Build?
 
 You've got everything you need to start building with XiaoMei:
 
 ### **Start Here:**
-1. **[Try the Basic Player Example](/examples/basic)** - Get hands-on experience
-2. **[Explore the Advanced Player](/examples/advanced)** - See all features
-3. **[Experiment with the API](/api/player)** - Interactive testing
+1. **Try the Live Demo** - Get hands-on experience with the interactive player on the home page
+2. **[Explore the API](/api/player)** - Complete API reference with examples
 
 ### **Need Help?**
 - **[GitHub Issues](https://github.com/wiedymi/xiaomei/issues)** - Report bugs or request features
@@ -344,4 +336,4 @@ You've got everything you need to start building with XiaoMei:
 - **[Angular Guide](/guide/angular)** - Use XiaoMei in Angular apps
 - **[Vanilla JS Guide](/guide/vanilla)** - Use XiaoMei in vanilla JavaScript
 
-Happy coding! 🎬✨
+Happy coding!

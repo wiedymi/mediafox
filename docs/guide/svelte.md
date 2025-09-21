@@ -7,11 +7,11 @@ This guide shows how to integrate XiaoMei with Svelte applications for a reactiv
 First, install XiaoMei in your Svelte project:
 
 ```bash
+bun add xiaomei
+# or
 npm install xiaomei
 # or
 yarn add xiaomei
-# or
-bun add xiaomei
 ```
 
 ## Basic Svelte Component

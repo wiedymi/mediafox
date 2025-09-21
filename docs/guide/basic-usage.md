@@ -1,8 +1,8 @@
 # Basic Usage
 
-This guide covers the fundamental concepts and basic usage patterns of XiaoMei. For hands-on learning, check out the **[interactive demos](/examples/basic)** first!
+This guide covers the fundamental concepts and basic usage patterns of XiaoMei. For hands-on learning, check out the **interactive demo on the home page** first!
 
-## 🎯 Core Concepts
+## Core Concepts
 
 ### 1. The Player Instance
 
@@ -22,7 +22,7 @@ Each instance manages its own:
 - Audio/video tracks
 
 ::: tip Try It Now!
-See this in action in the **[Basic Player Example](/examples/basic)** - load your own videos and experiment with the controls!
+See this in action in the **live demo on the home page** - load your own videos and experiment with the controls!
 :::
 
 ### 2. Media Sources
@@ -52,7 +52,7 @@ await player.load(stream);
 ```
 
 ::: tip Interactive Demo
-The **[Basic Player Example](/examples/basic)** lets you try loading videos from files, URLs, and more. Upload your own videos to test compatibility!
+The **live demo on the home page** lets you try loading videos from files, URLs, and more. Upload your own videos to test compatibility!
 :::
 
 ### 3. Canvas Rendering
@@ -71,16 +71,16 @@ const player = new XiaoMei({
 ```
 
 **Benefits of canvas rendering:**
-- **🚀 Hardware acceleration** - GPU-powered video decoding and rendering
-- **🎨 Custom overlays** - Draw text, controls, and effects on top of video
-- **⚡ Pixel-level control** - Access individual frames for processing
-- **🔧 Cross-platform consistency** - Same rendering behavior across browsers
+- **Hardware acceleration** - GPU-powered video decoding and rendering
+- **Custom overlays** - Draw text, controls, and effects on top of video
+- **Pixel-level control** - Access individual frames for processing
+- **Cross-platform consistency** - Same rendering behavior across browsers
 
 ::: tip See It In Action!
-The **[Basic Player Example](/examples/basic)** shows canvas rendering with smooth playback, progress bars, and custom controls overlaid on the video.
+The **live demo on the home page** shows canvas rendering with smooth playback, progress bars, and custom controls overlaid on the video.
 :::
 
-## 🎮 Basic Operations
+## Basic Operations
 
 ### Loading Media
 
@@ -94,7 +94,7 @@ try {
 ```
 
 ::: tip Interactive Demo
-Try loading different videos in the **[Basic Player Example](/examples/basic)** to see how media loading works with real-time feedback!
+Try loading different videos in the **live demo on the home page** to see how media loading works with real-time feedback!
 :::
 
 ### Playback Control
@@ -118,7 +118,7 @@ if (player.paused) {
 ```
 
 ::: tip Try It Now!
-The **[Basic Player Example](/examples/basic)** has play/pause buttons, progress bars, and all these controls you can interact with!
+The **live demo on the home page** has play/pause buttons, progress bars, and all these controls you can interact with!
 :::
 
 ### Seeking
@@ -136,7 +136,7 @@ player.currentTime = player.duration * percentage;
 ```
 
 ::: tip Interactive Demo
-Click and drag on the progress bar in the **[Basic Player Example](/examples/basic)** to see seeking in action with smooth visual feedback!
+Click and drag on the progress bar in the **live demo on the home page** to see seeking in action with smooth visual feedback!
 :::
 
 ### Volume Control
@@ -341,15 +341,16 @@ player.on('ended', () => {
 });
 ```
 
-### Buffering Indicator
+### Loading Indicator
 
 ```javascript
-player.subscribe(state => {
-  if (state.buffering) {
-    showLoadingSpinner();
-  } else {
-    hideLoadingSpinner();
-  }
+// Listen for waiting events to show loading
+player.on('waiting', () => {
+  showLoadingSpinner();
+});
+
+player.on('canplay', () => {
+  hideLoadingSpinner();
 });
 ```
 

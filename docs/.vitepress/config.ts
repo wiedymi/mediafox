@@ -6,6 +6,7 @@ export default defineConfig({
   description:
     "Framework-agnostic, TypeScript-first video player library powered by MediaBunny. Full control over rendering and UI.",
 
+
   head: [
     ["meta", { name: "theme-color", content: "#3b82f6" }],
     ["meta", { name: "og:type", content: "website" }],
@@ -21,11 +22,29 @@ export default defineConfig({
           "Framework-agnostic, TypeScript-first video player library powered by MediaBunny",
       },
     ],
+    [
+      "style",
+      {},
+      `
+        .VPNavBarTitle .VPImage {
+          margin-right: 8px;
+        }
+        .logo {
+          object-fit: cover !important;
+          border-radius: 1000% !important;
+          overflow: hidden !important;
+          width: 28px !important;
+          height: 28px !important;
+        }
+      `
+    ]
   ],
+
+  appearance: 'dark',
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: "/logo.svg",
+    logo: "/logo.png",
 
     nav: [
       { text: "Home", link: "/" },
@@ -35,16 +54,6 @@ export default defineConfig({
         items: [
           { text: "Player API", link: "/api/player" },
           { text: "Utilities", link: "/api/utilities" },
-        ],
-      },
-      {
-        text: "Examples",
-        items: [
-          { text: "Basic Player", link: "/examples/basic" },
-          { text: "Advanced Features", link: "/examples/advanced" },
-          { text: "Custom UI", link: "/examples/custom-ui" },
-          { text: "Multi-Track", link: "/examples/multi-track" },
-          { text: "Live Streaming", link: "/examples/streaming" },
         ],
       },
       { text: "GitHub", link: "https://github.com/wiedymi/xiaomei" },
@@ -76,6 +85,7 @@ export default defineConfig({
             { text: "State Management", link: "/guide/state-management" },
             { text: "Event Handling", link: "/guide/events" },
             { text: "Track Management", link: "/guide/tracks" },
+            { text: "Fallback Decoder", link: "/guide/fallback-decoder" },
             { text: "Performance", link: "/guide/performance" },
           ],
         },
@@ -102,18 +112,6 @@ export default defineConfig({
           ],
         },
       ],
-      "/examples/": [
-        {
-          text: "Examples",
-          items: [
-            { text: "Basic Player", link: "/examples/basic" },
-            { text: "Advanced Features", link: "/examples/advanced" },
-            { text: "Custom UI", link: "/examples/custom-ui" },
-            { text: "Multi-Track", link: "/examples/multi-track" },
-            { text: "Live Streaming", link: "/examples/streaming" },
-          ],
-        },
-      ],
     },
 
     search: {
@@ -121,8 +119,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: "Released under the MIT License.",
-      copyright: "Copyright © 2024-present",
+      message: "MIT License",
     },
 
     editLink: {
