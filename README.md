@@ -60,7 +60,7 @@ bun run test
 
 ## Documentation
 
-Visit the [documentation site](https://xiaomei.dev) for detailed guides and API references.
+Visit the [documentation site](https://xiaomei.vivysub.com) for detailed guides and API references.
 
 To run the documentation locally:
 

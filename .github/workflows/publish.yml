@@ -11,6 +11,9 @@ on:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: write  # allow committing and pushing version bumps
+
 jobs:
   publish:
     name: Build and Publish Packages
@@ -22,6 +25,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
