@@ -37,7 +37,7 @@ pnpm add @vivysub/xiaomei
 When you install XiaoMei, you get:
 
 - **Core Player** - The main XiaoMei class
-- **MediaBunny** - Automatically included as a dependency for media processing
+- **Mediabunny** - Automatically included as a dependency for media processing
 - **TypeScript Definitions** - Complete type definitions for TypeScript users
 - **Utilities** - Helper functions for time formatting, error handling, etc.
 
@@ -104,7 +104,7 @@ console.log('Player created successfully!');
 XiaoMei is designed to be lightweight:
 
 - **Core Player**: ~50KB minified
-- **With MediaBunny**: ~250KB minified
+- **With Mediabunny**: ~250KB minified
 - **Gzipped**: ~80KB total
 
 The library is tree-shakable, so you only include what you use.

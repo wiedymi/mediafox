@@ -4,8 +4,7 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "XiaoMei 小美",
   description:
-    "Framework-agnostic, TypeScript-first video player library powered by MediaBunny. Full control over rendering and UI.",
-
+    "Framework-agnostic, TypeScript-first video player library powered by Mediabunny. Full control over rendering and UI.",
 
   head: [
     ["meta", { name: "theme-color", content: "#3b82f6" }],
@@ -19,7 +18,7 @@ export default defineConfig({
       {
         name: "og:description",
         content:
-          "Framework-agnostic, TypeScript-first video player library powered by MediaBunny",
+          "Framework-agnostic, TypeScript-first video player library powered by Mediabunny",
       },
     ],
     [
@@ -36,11 +35,11 @@ export default defineConfig({
           width: 28px !important;
           height: 28px !important;
         }
-      `
-    ]
+      `,
+    ],
   ],
 
-  appearance: 'dark',
+  appearance: "dark",
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config

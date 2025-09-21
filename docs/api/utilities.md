@@ -499,7 +499,7 @@ unsub();
 
 ### Quality Levels
 
-Pre-defined quality constants from MediaBunny:
+Pre-defined quality constants from Mediabunny:
 
 ```typescript
 import {

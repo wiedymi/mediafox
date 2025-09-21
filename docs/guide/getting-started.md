@@ -13,7 +13,7 @@ Before diving into the code, **try the interactive demo** to see XiaoMei in acti
 
 ### Installation
 
-Install XiaoMei (MediaBunny is included as a dependency):
+Install XiaoMei (Mediabunny is included as a dependency):
 
 ::: code-group
 

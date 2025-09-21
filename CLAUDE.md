@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-XiaoMei is a framework-agnostic video player library that wraps MediaBunny functionality with an ergonomic TypeScript API. It provides complete control over media playback while allowing developers to build their own UI.
+XiaoMei is a framework-agnostic video player library that wraps Mediabunny functionality with an ergonomic TypeScript API. It provides complete control over media playback while allowing developers to build their own UI.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ XiaoMei includes automatic codec registration for formats not natively supported
 
 4. **Source Management** (`src/sources/`)
    - Handles different media sources (File, Blob, URL, Stream)
-   - Creates MediaBunny Input instances
+   - Creates Mediabunny Input instances
    - Manages source lifecycle
 
 5. **Playback Controller** (`src/playback/controller.ts`)
@@ -105,7 +105,7 @@ bun run lint
 
 ### Unit Tests
 - Test each component in isolation
-- Mock MediaBunny dependencies
+- Mock Mediabunny dependencies
 - Focus on state management and event handling
 
 ### Integration Tests
@@ -156,7 +156,7 @@ bun run lint
 ## Browser Compatibility
 
 ### Required APIs
-- WebCodecs API (for MediaBunny)
+- WebCodecs API (for Mediabunny)
 - Web Audio API
 - Canvas API
 - ES2022+ features
@@ -247,7 +247,7 @@ Tips
 
 ## Resources
 
-- [MediaBunny Documentation](https://github.com/Vanilagy/mediabunny)
+- [Mediabunny Documentation](https://github.com/Vanilagy/mediabunny)
 - [WebCodecs API](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API)
 - [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 - [Canvas API](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)

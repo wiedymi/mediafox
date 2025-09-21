@@ -1,6 +1,6 @@
 # XiaoMei 小美
 
-A framework-agnostic, TypeScript-first video player library powered by [MediaBunny](https://github.com/Vanilagy/mediabunny). XiaoMei provides an ergonomic API for media playback with complete control over rendering and UI.
+A framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny). XiaoMei provides an ergonomic API for media playback with complete control over rendering and UI.
 
 ## Features
 
@@ -299,4 +299,4 @@ MIT
 
 ## Credits
 
-Powered by [MediaBunny](https://github.com/Vanilagy/mediabunny) - the powerful media processing library for the web.
+Powered by [Mediabunny](https://github.com/Vanilagy/mediabunny) - the powerful media processing library for the web.

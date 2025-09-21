@@ -21,9 +21,11 @@ interface CommonDeps {
 }
 
 export async function ensureVideoTrackPlayable(track: InputVideoTrack, deps: CommonDeps): Promise<boolean> {
+  // Try native decode path first in a non-throwing way
   if (track.codec !== null && (await track.canDecode())) {
-    await deps.playbackController.setVideoTrack(track);
-    return true;
+    const ok = await deps.playbackController.trySetVideoTrack(track);
+    if (ok) return true;
+    // continue to fallback if setup failed
   }
 
   if (!deps.fallbackDecoder?.canDecodeVideo()) return false;
@@ -109,10 +111,12 @@ export async function ensureVideoTrackPlayable(track: InputVideoTrack, deps: Com
 }
 
 export async function ensureAudioTrackPlayable(track: InputAudioTrack, deps: CommonDeps): Promise<boolean> {
+  // Try native decode path first in a non-throwing way
   const canDecode = await track.canDecode();
   if (track.codec !== null && canDecode) {
-    await deps.playbackController.setAudioTrack(track);
-    return true;
+    const ok = await deps.playbackController.trySetAudioTrack(track);
+    if (ok) return true;
+    // continue to fallback if setup failed
   }
 
   if (!deps.fallbackDecoder?.canDecodeAudio()) return false;

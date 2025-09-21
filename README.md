@@ -1,6 +1,6 @@
 # XiaoMei 小美 - Monorepo
 
-A monorepo for XiaoMei, a framework-agnostic, TypeScript-first video player library powered by [MediaBunny](https://github.com/Vanilagy/mediabunny).
+A monorepo for XiaoMei, a framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny).
 
 ## Packages
 
@@ -74,4 +74,4 @@ MIT
 
 ## Credits
 
-Powered by [MediaBunny](https://github.com/Vanilagy/mediabunny) - the powerful media processing library for the web.
+Powered by [Mediabunny](https://github.com/Vanilagy/mediabunny) - the powerful media processing library for the web.

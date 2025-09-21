@@ -53,6 +53,18 @@ export class PlaybackController {
     this.duration = Math.max(this.duration, duration);
   }
 
+  /**
+   * Attempt to set video track without throwing. Returns true on success.
+   */
+  async trySetVideoTrack(track: InputVideoTrack | null): Promise<boolean> {
+    try {
+      await this.setVideoTrack(track);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async setAudioTrack(track: InputAudioTrack | null): Promise<void> {
     const resumePlayback = this.playing;
     const resumeTime = this.getCurrentTime();
@@ -74,6 +86,18 @@ export class PlaybackController {
 
     this.currentTime = clampedResumeTime;
     this.duration = Math.max(this.duration, trackDuration);
+  }
+
+  /**
+   * Attempt to set audio track without throwing. Returns true on success.
+   */
+  async trySetAudioTrack(track: InputAudioTrack | null): Promise<boolean> {
+    try {
+      await this.setAudioTrack(track);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas): void {

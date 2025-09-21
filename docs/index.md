@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "XiaoMei 小美"
   text: "Framework-Agnostic Video Player"
-  tagline: A TypeScript-first video player library powered by MediaBunny. Full control over rendering and UI, zero opinions.
+  tagline: A TypeScript-first video player library powered by Mediabunny. Full control over rendering and UI, zero opinions.
   image:
     src: /logo.png
     alt: XiaoMei
@@ -226,7 +226,7 @@ player.subscribe((state: PlayerStateData) => {
 </div>
 <div>
 <h1 style="background: -webkit-linear-gradient(-30deg, #3b82f6, #06b6d4); -webkit-background-clip: text; color: transparent; display: inline-block;">TypeScript native</h1>
-<p style="font-size: 18px; line-height: 1.6;">Built from scratch in TypeScript with complete type definitions. Tree-shakable architecture means you only include what you use. Zero dependencies beyond MediaBunny.</p>
+<p style="font-size: 18px; line-height: 1.6;">Built from scratch in TypeScript with complete type definitions. Tree-shakable architecture means you only include what you use. Zero dependencies beyond Mediabunny.</p>
 <a href="/api/types" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: var(--vp-c-brand);">
     Type reference
     <span style="margin-left: 4px;">→</span>

@@ -1,6 +1,6 @@
 // Main player class
 
-// Re-export useful MediaBunny types
+// Re-export useful Mediabunny types
 export type {
   AttachedImage,
   AudioCodec,
@@ -14,7 +14,7 @@ export type {
   VideoCodec,
   VideoSample,
 } from 'mediabunny';
-// Re-export MediaBunny quality constants
+// Re-export Mediabunny quality constants
 export {
   QUALITY_HIGH,
   QUALITY_LOW,
