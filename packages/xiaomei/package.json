@@ -1,6 +1,6 @@
 {
   "name": "@vivysub/xiaomei",
-  "version": "0.9.1",
+  "version": "0.9.3",
   "description": "Framework-agnostic video player library powered by MediaBunny",
   "type": "module",
   "main": "./dist/index.js",
