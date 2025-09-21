@@ -2,6 +2,10 @@
 
 A monorepo for XiaoMei, a framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny).
 
+```bash
+bun add @vivysub/xiaomei
+```
+
 ## Packages
 
 - **[xiaomei](./packages/xiaomei)** - Core video player library
