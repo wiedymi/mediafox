@@ -1,0 +1,106 @@
+name: Publish @wiedymi Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.1). Do NOT include "v" prefix.'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  publish:
+    name: Build and Publish Packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Set up Node.js for Public NPM
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org/'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Get version from tag or input
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            # Extract version from tag (remove 'v' prefix)
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update all packages versions
+        run: |
+          echo "Updating all packages to version ${{ steps.get_version.outputs.VERSION }}"
+          for package_dir in packages/*/; do
+            if [ -f "$package_dir/package.json" ]; then
+              echo "Updating version in $package_dir"
+              cd "$package_dir"
+              npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version --allow-same-version
+              cd ../..
+            fi
+          done
+
+      - name: Check npm user authentication
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm whoami
+
+      - name: Build XiaoMei Packages
+        run: bun run build
+
+      - name: Publish all packages to NPM Registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for package_dir in packages/*/; do
+            if [ -f "$package_dir/package.json" ]; then
+              # Check if package is private
+              IS_PRIVATE=$(cd "$package_dir" && node -p "require('./package.json').private || false")
+              if [ "$IS_PRIVATE" != "true" ]; then
+                echo "Publishing package in $package_dir"
+                cd "$package_dir"
+                npm publish --access public
+                cd ../..
+              else
+                echo "Skipping private package in $package_dir"
+              fi
+            fi
+          done
+
+      - name: Commit version changes
+        if: success()
+        run: |
+          git add packages/*/package.json
+          git commit -m "chore: bump version to ${{ steps.get_version.outputs.VERSION }}" || echo "No changes to commit"
+
+      - name: Push changes to main
+        if: success()
+        run: |
+          git push origin HEAD:main || echo "No changes to push"

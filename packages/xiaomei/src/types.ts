@@ -1,0 +1,218 @@
+import type { AudioCodec, MetadataTags, SubtitleCodec, VideoCodec } from 'mediabunny';
+
+export type MediaSource = File | Blob | string | URL | ArrayBuffer | Uint8Array | ReadableStream<Uint8Array>;
+
+export type PlayerState = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
+
+export type PlaybackMode = 'normal' | 'loop' | 'loop-one';
+
+import type { MediaConverterDecoder } from './decoders/media-converter-decoder';
+
+export interface PlayerOptions {
+  renderTarget?: HTMLCanvasElement | OffscreenCanvas;
+  audioContext?: AudioContext;
+  volume?: number;
+  muted?: boolean;
+  playbackRate?: number;
+  autoplay?: boolean;
+  preload?: 'none' | 'metadata' | 'auto';
+  crossOrigin?: string;
+  maxCacheSize?: number;
+  fallbackDecoder?: MediaConverterDecoder;
+}
+
+export interface MediaInfo {
+  duration: number;
+  format: string;
+  mimeType: string;
+  metadata: MetadataTags;
+  hasVideo: boolean;
+  hasAudio: boolean;
+  hasSubtitles: boolean;
+}
+
+export interface VideoTrackInfo {
+  id: string;
+  codec: VideoCodec | null;
+  language: string;
+  name: string | null;
+  width: number;
+  height: number;
+  frameRate: number;
+  bitrate: number;
+  rotation: 0 | 90 | 180 | 270;
+  selected: boolean;
+  decodable: boolean;
+  converted?: boolean;
+}
+
+export interface AudioTrackInfo {
+  id: string;
+  codec: AudioCodec | null;
+  language: string;
+  name: string | null;
+  channels: number;
+  sampleRate: number;
+  bitrate: number;
+  selected: boolean;
+  decodable: boolean;
+  converted?: boolean;
+}
+
+export interface SubtitleTrackInfo {
+  id: string;
+  codec: SubtitleCodec | null;
+  language: string;
+  name: string | null;
+  selected: boolean;
+}
+
+export interface PlayerStateData {
+  state: PlayerState;
+  currentTime: number;
+  duration: number;
+  buffered: TimeRange[];
+  volume: number;
+  muted: boolean;
+  playbackRate: number;
+  playing: boolean;
+  paused: boolean;
+  ended: boolean;
+  seeking: boolean;
+  error: Error | null;
+  mediaInfo: MediaInfo | null;
+  videoTracks: VideoTrackInfo[];
+  audioTracks: AudioTrackInfo[];
+  subtitleTracks: SubtitleTrackInfo[];
+  selectedVideoTrack: string | null;
+  selectedAudioTrack: string | null;
+  selectedSubtitleTrack: string | null;
+  canPlay: boolean;
+  canPlayThrough: boolean;
+  isLive: boolean;
+}
+
+export interface TimeRange {
+  start: number;
+  end: number;
+}
+
+export interface SeekOptions {
+  precise?: boolean;
+  keyframe?: boolean;
+}
+
+export interface LoadOptions {
+  autoplay?: boolean;
+  startTime?: number;
+}
+
+export interface ScreenshotOptions {
+  format?: 'png' | 'jpeg' | 'webp';
+  quality?: number;
+  width?: number;
+  height?: number;
+  fit?: 'fill' | 'contain' | 'cover';
+}
+
+export interface QualityLevel {
+  id: string;
+  label: string;
+  width?: number;
+  height?: number;
+  bitrate?: number;
+  codec?: VideoCodec;
+  auto?: boolean;
+}
+
+export type PlayerEventMap = {
+  statechange: PlayerStateData;
+  loadstart: undefined;
+  loadedmetadata: MediaInfo;
+  loadeddata: undefined;
+  canplay: undefined;
+  canplaythrough: undefined;
+  play: undefined;
+  pause: undefined;
+  playing: undefined;
+  ended: undefined;
+  timeupdate: { currentTime: number };
+  durationchange: { duration: number };
+  volumechange: { volume: number; muted: boolean };
+  ratechange: { playbackRate: number };
+  seeking: { currentTime: number };
+  seeked: { currentTime: number };
+  waiting: undefined;
+  progress: { buffered: TimeRange[] };
+  error: Error;
+  warning: {
+    type: string;
+    message: string;
+    error?: Error;
+  };
+  trackchange: {
+    type: 'video' | 'audio' | 'subtitle';
+    trackId: string | null;
+  };
+  qualitychange: {
+    qualityId: string;
+    auto: boolean;
+  };
+  resize: {
+    width: number;
+    height: number;
+  };
+  conversionstart: {
+    type: 'audio' | 'video';
+    trackId: string;
+    reason: 'unsupported-codec' | 'decode-error';
+  };
+  conversionprogress: {
+    type: 'audio' | 'video';
+    trackId: string;
+    progress: number; // 0-100
+    stage: 'extracting' | 'converting' | 'finalizing';
+  };
+  conversioncomplete: {
+    type: 'audio' | 'video';
+    trackId: string;
+    duration: number; // conversion time in ms
+  };
+  conversionerror: {
+    type: 'audio' | 'video';
+    trackId: string;
+    error: Error;
+  };
+};
+
+export type PlayerEventListener<K extends keyof PlayerEventMap> = (event: PlayerEventMap[K]) => void;
+
+export interface Subscription {
+  unsubscribe(): void;
+}
+
+export interface PerformanceMetrics {
+  droppedFrames: number;
+  totalFrames: number;
+  decodedFrames: number;
+  currentFPS: number;
+  averageFPS: number;
+  bufferHealth: number;
+  latency: number;
+  bandwidth: number;
+}
+
+export interface ChapterInfo {
+  id: string;
+  title: string;
+  startTime: number;
+  endTime: number;
+  thumbnail?: string;
+}
+
+export interface CuePoint {
+  id: string;
+  time: number;
+  type: string;
+  data?: unknown;
+}

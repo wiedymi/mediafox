@@ -1,0 +1,149 @@
+/**
+ * Customize default theme styling by overriding CSS variables:
+ * https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/vars.css
+ */
+
+:root {
+    --vp-c-brand-1: #3b82f6;
+    --vp-c-brand-2: #2563eb;
+    --vp-c-brand-3: #1d4ed8;
+    --vp-c-brand-soft: rgba(59, 130, 246, 0.14);
+}
+
+.dark {
+    --vp-c-brand-1: #60a5fa;
+    --vp-c-brand-2: #3b82f6;
+    --vp-c-brand-3: #2563eb;
+    --vp-c-brand-soft: rgba(59, 130, 246, 0.16);
+}
+
+/**
+ * Component: Custom Block
+ */
+.custom-block.tip {
+    border-color: var(--vp-c-brand-1);
+}
+
+/**
+ * Component: Home
+ */
+:root {
+    --vp-home-hero-name-color: transparent;
+    --vp-home-hero-name-background: -webkit-linear-gradient(
+        120deg,
+        #3b82f6 30%,
+        #8b5cf6
+    );
+
+    --vp-home-hero-image-background-image: linear-gradient(
+        -45deg,
+        #3b82f6 30%,
+        #8b5cf6 70%
+    );
+    --vp-home-hero-image-filter: blur(72px);
+}
+
+.dark {
+    --vp-home-hero-name-background: -webkit-linear-gradient(
+        120deg,
+        #60a5fa 30%,
+        #a78bfa
+    );
+    --vp-home-hero-image-background-image: linear-gradient(
+        -45deg,
+        #60a5fa 30%,
+        #a78bfa 70%
+    );
+}
+
+/**
+ * Component: Code
+ */
+.vp-doc [class*="language-"] > button.copy {
+    background-color: var(--vp-c-bg-soft);
+}
+
+/**
+ * Custom styles
+ */
+.vp-doc h1 {
+    font-weight: 700;
+}
+
+.vp-doc h2 {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--vp-c-divider);
+}
+
+.vp-doc h2:first-child {
+    margin-top: 0;
+    border-top: none;
+}
+
+/* API Reference tables */
+.api-table {
+    width: 100%;
+    margin: 1rem 0;
+    border-collapse: collapse;
+}
+
+.api-table th {
+    text-align: left;
+    padding: 0.5rem;
+    border-bottom: 2px solid var(--vp-c-divider);
+    font-weight: 600;
+}
+
+.api-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.api-table code {
+    background: var(--vp-c-bg-soft);
+    padding: 0.125rem 0.25rem;
+    border-radius: 3px;
+    font-size: 0.875em;
+}
+
+/* Type badges */
+.type-badge {
+    display: inline-block;
+    padding: 0.125rem 0.375rem;
+    background: var(--vp-c-brand-soft);
+    color: var(--vp-c-brand-1);
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+}
+
+/* Method signatures */
+.method-signature {
+    background: var(--vp-c-bg-soft);
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+    overflow-x: auto;
+}
+
+.method-signature code {
+    background: none;
+    padding: 0;
+}
+
+img.VPImage.image-src {
+    width: 256px !important;
+    height: 256px !important;
+    min-width: 256px !important;
+    min-height: 256px !important;
+    max-width: 256px !important;
+    max-height: 256px !important;
+    object-fit: cover;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 100%;
+    overflow: hidden;
+}
