@@ -49,7 +49,7 @@ interface PlayerState {
 ### Basic Subscription
 
 ```typescript
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 const player = new XiaoMei({ canvas: canvasElement });
 
@@ -173,7 +173,7 @@ function formatTime(seconds) {
 
 ```typescript
 import { useState, useEffect } from 'react';
-import { XiaoMei, type PlayerState } from 'xiaomei';
+import { XiaoMei, type PlayerState } from '@vivysub/xiaomei';
 
 function usePlayerState(player: XiaoMei | null): PlayerState | null {
   const [state, setState] = useState<PlayerState | null>(null);
@@ -220,7 +220,7 @@ function VideoPlayer({ src }: { src: string }) {
 
 ```typescript
 import { ref, onMounted, onUnmounted } from 'vue';
-import { XiaoMei, type PlayerState } from 'xiaomei';
+import { XiaoMei, type PlayerState } from '@vivysub/xiaomei';
 
 export function usePlayerState(player: Ref<XiaoMei | null>) {
   const state = ref<PlayerState | null>(null);
@@ -252,7 +252,7 @@ export function usePlayerState(player: Ref<XiaoMei | null>) {
 
 ```typescript
 import { writable } from 'svelte/store';
-import { XiaoMei, type PlayerState } from 'xiaomei';
+import { XiaoMei, type PlayerState } from '@vivysub/xiaomei';
 
 export function createPlayerStore() {
   const { subscribe, set } = writable<PlayerState | null>(null);

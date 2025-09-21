@@ -16,17 +16,17 @@ A framework-agnostic, TypeScript-first video player library powered by [MediaBun
 ## Installation
 
 ```bash
-bun add xiaomei
+bun add @vivysub/xiaomei
 # or
-npm install xiaomei
+npm install @vivysub/xiaomei
 # or
-yarn add xiaomei
+yarn add @vivysub/xiaomei
 ```
 
 ## Quick Start
 
 ```typescript
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 // Create player instance
 const player = new XiaoMei({
@@ -63,7 +63,7 @@ player.on('timeupdate', ({ currentTime }) => {
 
 ```tsx
 import { useEffect, useRef, useState } from 'react';
-import { XiaoMei, type PlayerStateData } from 'xiaomei';
+import { XiaoMei, type PlayerStateData } from '@vivysub/xiaomei';
 
 function VideoPlayer({ src }: { src: File | string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -118,7 +118,7 @@ function VideoPlayer({ src }: { src: File | string }) {
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 const props = defineProps<{ src: File | string }>();
 

@@ -227,7 +227,7 @@ enum PlayerErrorCode {
 ### Basic Error Handling
 
 ```typescript
-import { XiaoMei, PlayerError, NetworkError, MediaError } from 'xiaomei';
+import { XiaoMei, PlayerError, NetworkError, MediaError } from '@vivysub/xiaomei';
 
 const player = new XiaoMei({ canvas: canvasElement });
 

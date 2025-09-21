@@ -10,7 +10,7 @@ Create a service to manage the player instance:
 // xiaomei.service.ts
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { XiaoMei, PlayerStateData, PlayerOptions } from 'xiaomei';
+import { XiaoMei, PlayerStateData, PlayerOptions } from '@vivysub/xiaomei';
 
 @Injectable({
   providedIn: 'root'
@@ -95,7 +95,7 @@ import { Component, ElementRef, Input, OnInit, OnDestroy, ViewChild } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { XiaoMeiService } from './xiaomei.service';
-import { formatTime } from 'xiaomei';
+import { formatTime } from '@vivysub/xiaomei';
 
 @Component({
   selector: 'app-video-player',
@@ -243,7 +243,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { XiaoMei, VideoTrackInfo, AudioTrackInfo, formatTime } from 'xiaomei';
+import { XiaoMei, VideoTrackInfo, AudioTrackInfo, formatTime } from '@vivysub/xiaomei';
 
 @Component({
   selector: 'app-advanced-player',
@@ -752,7 +752,7 @@ export class PlayerFormComponent {
 ```typescript
 // xiaomei.directive.ts
 import { Directive, ElementRef, Input, OnInit, OnDestroy } from '@angular/core';
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 @Directive({
   selector: '[xiaoMeiPlayer]',

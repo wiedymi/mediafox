@@ -1,5 +1,5 @@
 {
-  "name": "xiaomei",
+  "name": "@vivysub/xiaomei",
   "version": "0.1.0",
   "description": "Framework-agnostic video player library powered by MediaBunny",
   "type": "module",
@@ -26,6 +26,9 @@
     "check": "biome check ./src",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "mediabunny": "^1.17.3"

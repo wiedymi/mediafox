@@ -15,7 +15,7 @@
       },
     },
     "packages/xiaomei": {
-      "name": "xiaomei",
+      "name": "@vivysub/xiaomei",
       "version": "0.1.0",
       "dependencies": {
         "mediabunny": "^1.17.3",
@@ -215,6 +215,8 @@
 
     "@vitejs/plugin-vue": ["@vitejs/plugin-vue@6.0.1", "", { "dependencies": { "@rolldown/pluginutils": "1.0.0-beta.29" }, "peerDependencies": { "vite": "^5.0.0 || ^6.0.0 || ^7.0.0", "vue": "^3.2.25" } }, "sha512-+MaE752hU0wfPFJEUAIxqw18+20euHHdxVtMvbFcOEpjEyfqXH/5DCoTHiVJ0J29EhTJdoTkjEv5YBKU9dnoTw=="],
 
+    "@vivysub/xiaomei": ["@vivysub/xiaomei@workspace:packages/xiaomei"],
+
     "@vue/compiler-core": ["@vue/compiler-core@3.5.21", "", { "dependencies": { "@babel/parser": "^7.28.3", "@vue/shared": "3.5.21", "entities": "^4.5.0", "estree-walker": "^2.0.2", "source-map-js": "^1.2.1" } }, "sha512-8i+LZ0vf6ZgII5Z9XmUvrCyEzocvWT+TeR2VBUVlzIH6Tyv57E20mPZ1bCS+tbejgUgmjrEh7q/0F0bibskAmw=="],
 
     "@vue/compiler-dom": ["@vue/compiler-dom@3.5.21", "", { "dependencies": { "@vue/compiler-core": "3.5.21", "@vue/shared": "3.5.21" } }, "sha512-jNtbu/u97wiyEBJlJ9kmdw7tAr5Vy0Aj5CgQmo+6pxWNQhXZDPsRr1UWPN4v3Zf82s2H3kF51IbzZ4jMWAgPlQ=="],
@@ -380,8 +382,6 @@
     "vitepress": ["vitepress@2.0.0-alpha.12", "", { "dependencies": { "@docsearch/css": "^4.0.0-beta.7", "@docsearch/js": "^4.0.0-beta.7", "@iconify-json/simple-icons": "^1.2.47", "@shikijs/core": "^3.9.2", "@shikijs/transformers": "^3.9.2", "@shikijs/types": "^3.9.2", "@types/markdown-it": "^14.1.2", "@vitejs/plugin-vue": "^6.0.1", "@vue/devtools-api": "^8.0.0", "@vue/shared": "^3.5.18", "@vueuse/core": "^13.6.0", "@vueuse/integrations": "^13.6.0", "focus-trap": "^7.6.5", "mark.js": "8.11.1", "minisearch": "^7.1.2", "shiki": "^3.9.2", "vite": "^7.1.2", "vue": "^3.5.18" }, "peerDependencies": { "markdown-it-mathjax3": "^4", "oxc-minify": "^0.82.1", "postcss": "^8" }, "optionalPeers": ["markdown-it-mathjax3", "oxc-minify", "postcss"], "bin": { "vitepress": "bin/vitepress.js" } }, "sha512-yZwCwRRepcpN5QeAhwSnEJxS3I6zJcVixqL1dnm6km4cnriLpQyy2sXQDsE5Ti3pxGPbhU51nTMwI+XC1KNnJg=="],
 
     "vue": ["vue@3.5.21", "", { "dependencies": { "@vue/compiler-dom": "3.5.21", "@vue/compiler-sfc": "3.5.21", "@vue/runtime-dom": "3.5.21", "@vue/server-renderer": "3.5.21", "@vue/shared": "3.5.21" }, "peerDependencies": { "typescript": "*" }, "optionalPeers": ["typescript"] }, "sha512-xxf9rum9KtOdwdRkiApWL+9hZEMWE90FHh8yS1+KJAiWYh+iGWV1FquPjoO9VUHQ+VIhsCXNNyZ5Sf4++RVZBA=="],
-
-    "xiaomei": ["xiaomei@workspace:packages/xiaomei"],
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
   }

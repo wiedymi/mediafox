@@ -7,11 +7,11 @@ This guide shows how to integrate XiaoMei with Svelte applications for a reactiv
 First, install XiaoMei in your Svelte project:
 
 ```bash
-bun add xiaomei
+bun add @vivysub/xiaomei
 # or
-npm install xiaomei
+npm install @vivysub/xiaomei
 # or
-yarn add xiaomei
+yarn add @vivysub/xiaomei
 ```
 
 ## Basic Svelte Component
@@ -23,7 +23,7 @@ Here's a basic Svelte component that wraps XiaoMei:
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { writable } from 'svelte/store';
-  import { XiaoMei, type PlayerState } from 'xiaomei';
+  import { XiaoMei, type PlayerState } from '@vivysub/xiaomei';
 
   export let src: string;
   export let autoplay = false;
@@ -260,7 +260,7 @@ Create dedicated stores for better state management:
 ```typescript
 // stores/playerStore.ts
 import { writable, derived } from 'svelte/store';
-import { XiaoMei, type PlayerState } from 'xiaomei';
+import { XiaoMei, type PlayerState } from '@vivysub/xiaomei';
 
 export function createPlayerStore() {
   const { subscribe, set, update } = writable({
@@ -473,7 +473,7 @@ Handle player events reactively:
 ```svelte
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { XiaoMei } from 'xiaomei';
+  import { XiaoMei } from '@vivysub/xiaomei';
 
   let player: XiaoMei;
   let events: string[] = [];
@@ -555,7 +555,7 @@ XiaoMei provides full TypeScript support. Create typed components:
 
 ```svelte
 <script lang="ts">
-  import type { XiaoMei, PlayerState, PlayerEvents } from 'xiaomei';
+  import type { XiaoMei, PlayerState, PlayerEvents } from '@vivysub/xiaomei';
 
   interface PlayerProps {
     src: string;

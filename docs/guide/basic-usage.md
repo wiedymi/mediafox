@@ -9,7 +9,7 @@ This guide covers the fundamental concepts and basic usage patterns of XiaoMei. 
 XiaoMei follows an object-oriented approach where you create a player instance:
 
 ```typescript
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 const player = new XiaoMei(options);
 ```
@@ -266,7 +266,7 @@ Here's a minimal but complete video player:
   </div>
 
   <script type="module">
-    import { XiaoMei, formatTime } from 'xiaomei';
+    import { XiaoMei, formatTime } from '@vivysub/xiaomei';
 
     // Initialize player
     const player = new XiaoMei({

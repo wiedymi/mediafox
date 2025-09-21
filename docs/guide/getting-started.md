@@ -18,19 +18,19 @@ Install XiaoMei (MediaBunny is included as a dependency):
 ::: code-group
 
 ```bash [bun]
-bun add xiaomei
+bun add @vivysub/xiaomei
 ```
 
 ```bash [npm]
-npm install xiaomei
+npm install @vivysub/xiaomei
 ```
 
 ```bash [yarn]
-yarn add xiaomei
+yarn add @vivysub/xiaomei
 ```
 
 ```bash [pnpm]
-pnpm add xiaomei
+pnpm add @vivysub/xiaomei
 ```
 
 :::
@@ -66,7 +66,7 @@ Here's the fastest way to get started:
   <canvas id="player" width="1280" height="720"></canvas>
 
   <script type="module">
-    import { XiaoMei } from 'xiaomei';
+    import { XiaoMei } from '@vivysub/xiaomei';
 
     // Create player
     const canvas = document.querySelector('#player');
@@ -98,7 +98,7 @@ XiaoMei renders video to a canvas element for maximum control:
 #### 2. Initialize Player
 
 ```typescript
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 const canvas = document.querySelector('#video-canvas');
 const player = new XiaoMei({
@@ -193,7 +193,7 @@ For a minimal working example, copy this HTML:
   <canvas id="player" width="1280" height="720"></canvas>
 
   <script type="module">
-    import { XiaoMei } from 'xiaomei';
+    import { XiaoMei } from '@vivysub/xiaomei';
 
     const canvas = document.querySelector('#player');
     const player = new XiaoMei({ renderTarget: canvas });
@@ -239,7 +239,7 @@ Check [caniuse.com/webcodecs](https://caniuse.com/webcodecs) for the latest brow
 XiaoMei is written in TypeScript with full type safety:
 
 ```typescript
-import { XiaoMei, PlayerOptions, PlayerStateData } from 'xiaomei';
+import { XiaoMei, PlayerOptions, PlayerStateData } from '@vivysub/xiaomei';
 
 const options: PlayerOptions = {
   renderTarget: canvas,

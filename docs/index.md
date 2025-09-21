@@ -27,7 +27,7 @@ hero:
 <div style="text-align: center; margin: 80px auto; max-width: 800px; font-size: 20px;">
 
 ```bash
-bun add xiaomei
+bun add @vivysub/xiaomei
 ```
 
 </div>
@@ -46,7 +46,7 @@ bun add xiaomei
 <div style="font-size: 14px; position: relative;">
 
 ```typescript
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 const player = new XiaoMei({
   renderTarget: document.querySelector('#canvas'),
@@ -124,7 +124,7 @@ player.on('timeupdate', ({ currentTime }) => {
 <div style="font-size: 14px; position: relative;">
 
 ```typescript
-import { MediaConverterDecoder } from 'xiaomei';
+import { MediaConverterDecoder } from '@vivysub/xiaomei';
 
 const fallbackDecoder = new MediaConverterDecoder({
   decodeAudioTrack: async (data, trackIndex, options) => {
@@ -204,7 +204,7 @@ import {
   VideoTrackInfo,
   AudioTrackInfo,
   MediaConverterDecoder
-} from 'xiaomei';
+} from '@vivysub/xiaomei';
 
 const player = new XiaoMei({
   renderTarget: canvas,

@@ -9,7 +9,7 @@ Create a reusable hook for XiaoMei:
 ```typescript
 // useXiaoMei.ts
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { XiaoMei, PlayerStateData, PlayerOptions } from 'xiaomei';
+import { XiaoMei, PlayerStateData, PlayerOptions } from '@vivysub/xiaomei';
 
 export function useXiaoMei(options?: PlayerOptions) {
   const playerRef = useRef<XiaoMei>();
@@ -72,7 +72,7 @@ export function useXiaoMei(options?: PlayerOptions) {
 // VideoPlayer.tsx
 import React, { useRef, useEffect } from 'react';
 import { useXiaoMei } from './useXiaoMei';
-import { formatTime } from 'xiaomei';
+import { formatTime } from '@vivysub/xiaomei';
 
 interface VideoPlayerProps {
   src: string | File | Blob;
@@ -150,7 +150,7 @@ export function VideoPlayer({ src, autoplay }: VideoPlayerProps) {
 ```tsx
 // AdvancedPlayer.tsx
 import React, { useRef, useEffect, useState } from 'react';
-import { XiaoMei, formatTime, VideoTrackInfo, AudioTrackInfo } from 'xiaomei';
+import { XiaoMei, formatTime, VideoTrackInfo, AudioTrackInfo } from '@vivysub/xiaomei';
 
 interface AdvancedPlayerProps {
   src: string | File | Blob;
@@ -485,7 +485,7 @@ function ProgressBar({ currentTime, duration, buffered, onSeek }: ProgressBarPro
 ```typescript
 // playerSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 let playerInstance: XiaoMei | null = null;
 
@@ -543,7 +543,7 @@ export const playerSlice = createSlice({
 ```typescript
 // usePlayerStore.ts
 import { create } from 'zustand';
-import { XiaoMei, PlayerStateData } from 'xiaomei';
+import { XiaoMei, PlayerStateData } from '@vivysub/xiaomei';
 
 interface PlayerStore extends PlayerStateData {
   player: XiaoMei | null;

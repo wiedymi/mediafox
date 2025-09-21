@@ -9,7 +9,7 @@ Create a reusable composable for XiaoMei:
 ```typescript
 // useXiaoMei.ts
 import { ref, onMounted, onUnmounted, Ref } from 'vue';
-import { XiaoMei, PlayerStateData, PlayerOptions } from 'xiaomei';
+import { XiaoMei, PlayerStateData, PlayerOptions } from '@vivysub/xiaomei';
 
 export function useXiaoMei(options?: PlayerOptions) {
   const player = ref<XiaoMei>();
@@ -107,7 +107,7 @@ export function useXiaoMei(options?: PlayerOptions) {
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { XiaoMei, formatTime } from 'xiaomei';
+import { XiaoMei, formatTime } from '@vivysub/xiaomei';
 
 const props = defineProps<{
   src: string | File | Blob;
@@ -367,7 +367,7 @@ onUnmounted(() => {
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { XiaoMei, formatTime, VideoTrackInfo, AudioTrackInfo } from 'xiaomei';
+import { XiaoMei, formatTime, VideoTrackInfo, AudioTrackInfo } from '@vivysub/xiaomei';
 
 const props = defineProps<{
   src: string | File | Blob;
@@ -702,7 +702,7 @@ label {
 ```typescript
 // stores/player.ts
 import { defineStore } from 'pinia';
-import { XiaoMei, PlayerStateData } from 'xiaomei';
+import { XiaoMei, PlayerStateData } from '@vivysub/xiaomei';
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
@@ -786,7 +786,7 @@ export const usePlayerStore = defineStore('player', {
 ```typescript
 // directives/player.ts
 import { Directive } from 'vue';
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 export const vPlayer: Directive = {
   mounted(el, binding) {
@@ -836,7 +836,7 @@ export const vPlayer: Directive = {
 
 ```typescript
 // plugins/xiaomei.client.ts
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 export default defineNuxtPlugin(() => {
   return {

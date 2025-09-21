@@ -17,7 +17,7 @@ XiaoMei is built with performance in mind, but understanding its internals helps
 ### Frame Management
 
 ```typescript
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 // Configure frame buffer size based on use case
 const player = new XiaoMei({

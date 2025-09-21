@@ -91,7 +91,7 @@ XiaoMei works perfectly with vanilla JavaScript. Here's a simple setup:
 
 ```javascript
 // player.js
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 class VanillaVideoPlayer {
     constructor() {
@@ -355,7 +355,7 @@ For TypeScript projects, here's a more type-safe version:
 
 ```typescript
 // player.ts
-import { XiaoMei, type PlayerState, type PlayerEvents } from 'xiaomei';
+import { XiaoMei, type PlayerState, type PlayerEvents } from '@vivysub/xiaomei';
 
 interface PlayerElements {
     canvas: HTMLCanvasElement;

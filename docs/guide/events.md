@@ -383,7 +383,7 @@ class EventDelegator {
 
 ```typescript
 import { useEffect } from 'react';
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 function usePlayerEvents(
   player: XiaoMei | null,
@@ -427,7 +427,7 @@ function VideoPlayer() {
 
 ```typescript
 import { onMounted, onUnmounted } from 'vue';
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 export function usePlayerEvents(
   player: Ref<XiaoMei | null>,

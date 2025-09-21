@@ -22,7 +22,7 @@ The fallback decoder system allows XiaoMei to handle these scenarios gracefully 
 Configure a fallback decoder when creating a XiaoMei instance:
 
 ```typescript
-import { XiaoMei, MediaConverterDecoder } from 'xiaomei';
+import { XiaoMei, MediaConverterDecoder } from '@vivysub/xiaomei';
 
 const fallbackDecoder = new MediaConverterDecoder({
   decodeAudioTrack: async (data, trackIndex, options) => {
@@ -137,7 +137,7 @@ Here's a comprehensive example showing how to implement and use the fallback dec
 This is the actual implementation used in the XiaoMei live demo:
 
 ```typescript
-import { XiaoMei, MediaConverterDecoder } from 'xiaomei';
+import { XiaoMei, MediaConverterDecoder } from '@vivysub/xiaomei';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 
 async function setupPlayerWithFFmpegDecoder() {
@@ -298,7 +298,7 @@ async function setupPlayerWithFFmpegDecoder() {
 ### Simplified Example
 
 ```typescript
-import { XiaoMei, MediaConverterDecoder } from 'xiaomei';
+import { XiaoMei, MediaConverterDecoder } from '@vivysub/xiaomei';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 
 // Create FFmpeg instance for conversion

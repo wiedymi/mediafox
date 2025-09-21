@@ -25,7 +25,7 @@ formatTime(seconds: number, showMilliseconds?: boolean): string
 **Examples:**
 
 ```typescript
-import { formatTime } from 'xiaomei';
+import { formatTime } from '@vivysub/xiaomei';
 
 formatTime(65);        // "1:05"
 formatTime(3665);      // "1:01:05"
@@ -53,7 +53,7 @@ parseTime(timeString: string): number
 **Examples:**
 
 ```typescript
-import { parseTime } from 'xiaomei';
+import { parseTime } from '@vivysub/xiaomei';
 
 parseTime("1:30");      // 90
 parseTime("1:01:30");   // 3690
@@ -82,7 +82,7 @@ timeToFrame(time: number, frameRate: number): number
 **Example:**
 
 ```typescript
-import { timeToFrame } from 'xiaomei';
+import { timeToFrame } from '@vivysub/xiaomei';
 
 timeToFrame(1.5, 30);  // 45 (1.5 seconds at 30fps)
 timeToFrame(2, 24);    // 48 (2 seconds at 24fps)
@@ -109,7 +109,7 @@ frameToTime(frame: number, frameRate: number): number
 **Example:**
 
 ```typescript
-import { frameToTime } from 'xiaomei';
+import { frameToTime } from '@vivysub/xiaomei';
 
 frameToTime(45, 30);  // 1.5 (45 frames at 30fps)
 frameToTime(48, 24);  // 2 (48 frames at 24fps)
@@ -139,7 +139,7 @@ clamp(value: number, min: number, max: number): number
 **Example:**
 
 ```typescript
-import { clamp } from 'xiaomei';
+import { clamp } from '@vivysub/xiaomei';
 
 clamp(5, 0, 10);   // 5
 clamp(-5, 0, 10);  // 0
@@ -170,7 +170,7 @@ timeRangesOverlap(
 **Example:**
 
 ```typescript
-import { timeRangesOverlap } from 'xiaomei';
+import { timeRangesOverlap } from '@vivysub/xiaomei';
 
 const range1 = { start: 0, end: 10 };
 const range2 = { start: 5, end: 15 };
@@ -202,7 +202,7 @@ mergeTimeRanges(
 **Example:**
 
 ```typescript
-import { mergeTimeRanges } from 'xiaomei';
+import { mergeTimeRanges } from '@vivysub/xiaomei';
 
 const ranges = [
   { start: 0, end: 10 },
@@ -236,7 +236,7 @@ totalBufferedDuration(
 **Example:**
 
 ```typescript
-import { totalBufferedDuration } from 'xiaomei';
+import { totalBufferedDuration } from '@vivysub/xiaomei';
 
 const buffered = [
   { start: 0, end: 10 },
@@ -271,7 +271,7 @@ findBufferedRange(
 **Example:**
 
 ```typescript
-import { findBufferedRange } from 'xiaomei';
+import { findBufferedRange } from '@vivysub/xiaomei';
 
 const buffered = [
   { start: 0, end: 10 },
@@ -320,7 +320,7 @@ XiaoMeiError.unknownError(message?, details?);
 **Example:**
 
 ```typescript
-import { XiaoMeiError, ErrorCode } from 'xiaomei';
+import { XiaoMeiError, ErrorCode } from '@vivysub/xiaomei';
 
 // Handle player errors
 player.on('error', (error) => {
@@ -381,7 +381,7 @@ wrapError(error: unknown, context: string): XiaoMeiError
 **Example:**
 
 ```typescript
-import { wrapError } from 'xiaomei';
+import { wrapError } from '@vivysub/xiaomei';
 
 try {
   await loadMedia();
@@ -427,7 +427,7 @@ class EventEmitter<EventMap extends Record&lt;string, any&gt;> {
 **Example:**
 
 ```typescript
-import { EventEmitter } from 'xiaomei';
+import { EventEmitter } from '@vivysub/xiaomei';
 
 // Define event map
 type MyEvents = {
@@ -471,7 +471,7 @@ class Store<T> {
 **Example:**
 
 ```typescript
-import { Store } from 'xiaomei';
+import { Store } from '@vivysub/xiaomei';
 
 // Create store
 const store = new Store({
@@ -508,7 +508,7 @@ import {
   QUALITY_MEDIUM,
   QUALITY_HIGH,
   QUALITY_VERY_HIGH
-} from 'xiaomei';
+} from '@vivysub/xiaomei';
 
 // Use for screenshot quality
 player.screenshot({
@@ -522,7 +522,7 @@ player.screenshot({
 Library version string:
 
 ```typescript
-import { VERSION } from 'xiaomei';
+import { VERSION } from '@vivysub/xiaomei';
 
 console.log(`XiaoMei version: ${VERSION}`);
 ```
@@ -532,7 +532,7 @@ console.log(`XiaoMei version: ${VERSION}`);
 ### Progress Bar Implementation
 
 ```typescript
-import { formatTime, clamp } from 'xiaomei';
+import { formatTime, clamp } from '@vivysub/xiaomei';
 
 // Update progress bar
 player.subscribe(state => {
@@ -553,7 +553,7 @@ progressBar.addEventListener('click', (e) => {
 ### Buffering Display
 
 ```typescript
-import { totalBufferedDuration, mergeTimeRanges } from 'xiaomei';
+import { totalBufferedDuration, mergeTimeRanges } from '@vivysub/xiaomei';
 
 player.subscribe(state => {
   const buffered = mergeTimeRanges(state.buffered);
@@ -574,7 +574,7 @@ player.subscribe(state => {
 ### Frame-Accurate Navigation
 
 ```typescript
-import { timeToFrame, frameToTime } from 'xiaomei';
+import { timeToFrame, frameToTime } from '@vivysub/xiaomei';
 
 const frameRate = 24; // Get from video track
 

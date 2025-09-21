@@ -15,19 +15,19 @@ XiaoMei can be installed using any popular package manager:
 ::: code-group
 
 ```bash [bun]
-bun add xiaomei
+bun add @vivysub/xiaomei
 ```
 
 ```bash [npm]
-npm install xiaomei
+npm install @vivysub/xiaomei
 ```
 
 ```bash [yarn]
-yarn add xiaomei
+yarn add @vivysub/xiaomei
 ```
 
 ```bash [pnpm]
-pnpm add xiaomei
+pnpm add @vivysub/xiaomei
 ```
 
 :::
@@ -47,7 +47,7 @@ For quick prototyping, you can use XiaoMei from a CDN:
 
 ```html
 <script type="module">
-  import { XiaoMei } from 'https://unpkg.com/xiaomei@latest/dist/index.js';
+  import { XiaoMei } from 'https://unpkg.com/@vivysub/xiaomei@latest/dist/index.js';
 
   const player = new XiaoMei({
     renderTarget: document.querySelector('canvas')
@@ -90,7 +90,7 @@ If you're using TypeScript, XiaoMei includes all necessary type definitions. You
 After installation, you can verify XiaoMei is working:
 
 ```javascript
-import { XiaoMei, VERSION } from 'xiaomei';
+import { XiaoMei, VERSION } from '@vivysub/xiaomei';
 
 console.log(`XiaoMei version: ${VERSION}`);
 

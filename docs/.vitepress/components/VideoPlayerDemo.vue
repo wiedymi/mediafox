@@ -50,17 +50,23 @@
             <!-- Empty state when no media -->
             <div class="empty-state" v-if="!ready && !loading">
                 <div class="empty-content">
-                    <svg
-                        width="64"
-                        height="64"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        opacity="0.3"
+                    <div
+                        style="
+                            display: flex;
+                            justify-content: center;
+                            margin-bottom: 24px;
+                        "
                     >
-                        <path
-                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"
-                        />
-                    </svg>
+                        <svg
+                            width="64"
+                            height="64"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            opacity="0.3"
+                        >
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                    </div>
                     <h3>No Media Loaded</h3>
                     <div class="empty-actions">
                         <button @click="loadSample" class="empty-btn primary">
@@ -316,61 +322,150 @@
                                     subtitleTracks.length > 0
                                 "
                             >
-                                <select
+                                <!-- Video quality selector -->
+                                <div
                                     v-if="videoTracks.length > 1"
-                                    @change="selectVideoTrack($event)"
-                                    class="track-select"
-                                    title="Video Track"
+                                    class="track-dropdown"
                                 >
-                                    <option
-                                        v-for="track in videoTracks"
-                                        :key="track.id"
-                                        :value="track.id"
-                                        :selected="track.selected"
+                                    <button
+                                        class="track-btn"
+                                        title="Video Quality"
                                     >
-                                        {{ track.width }}x{{ track.height }}{{ track.converted ? ' (converted)' : '' }}
-                                    </option>
-                                </select>
-                                <select
-                                    v-if="audioTracks.length > 1"
-                                    @change="selectAudioTrack($event)"
-                                    class="track-select"
-                                    title="Audio Track"
-                                >
-                                    <option
-                                        v-for="track in audioTracks"
-                                        :key="track.id"
-                                        :value="track.id"
-                                        :selected="track.selected"
-                                    >
-                                        {{ (track.language || ("Audio " + (audioTracks.indexOf(track) + 1))) + (track.converted ? ' (converted)' : '') }}
-                                    </option>
-                                </select>
-                                <select
-                                    v-if="subtitleTracks.length > 0"
-                                    @change="selectSubtitleTrack($event)"
-                                    class="track-select"
-                                    title="Subtitles"
-                                >
-                                    <option
-                                        value=""
-                                        :selected="!selectedSubtitleTrackId"
-                                    >
-                                        Subtitles Off
-                                    </option>
-                                    <option
-                                        v-for="track in subtitleTracks"
-                                        :key="track.id"
-                                        :value="track.id"
-                                        :selected="track.selected"
-                                    >
+                                        <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"
+                                            />
+                                        </svg>
                                         {{
-                                            track.name ||
-                                            track.language?.toUpperCase() ||
-                                            "Subtitle"
+                                            videoTracks.find((t) => t.selected)
+                                                ?.height || "Auto"
+                                        }}p
+                                    </button>
+                                    <select
+                                        @change="selectVideoTrack($event)"
+                                        class="track-select"
+                                    >
+                                        <option
+                                            v-for="track in videoTracks"
+                                            :key="track.id"
+                                            :value="track.id"
+                                            :selected="track.selected"
+                                        >
+                                            {{ track.width }}x{{ track.height
+                                            }}{{
+                                                track.converted
+                                                    ? " (converted)"
+                                                    : ""
+                                            }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Audio language selector -->
+                                <div
+                                    v-if="audioTracks.length > 1"
+                                    class="track-dropdown"
+                                >
+                                    <button
+                                        class="track-btn"
+                                        title="Audio Track"
+                                    >
+                                        <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"
+                                            />
+                                        </svg>
+                                        {{
+                                            audioTracks
+                                                .find((t) => t.selected)
+                                                ?.language?.toUpperCase() ||
+                                            "Audio"
                                         }}
-                                    </option>
-                                </select>
+                                    </button>
+                                    <select
+                                        @change="selectAudioTrack($event)"
+                                        class="track-select"
+                                    >
+                                        <option
+                                            v-for="track in audioTracks"
+                                            :key="track.id"
+                                            :value="track.id"
+                                            :selected="track.selected"
+                                        >
+                                            {{
+                                                (track.language ||
+                                                    "Audio " +
+                                                        (audioTracks.indexOf(
+                                                            track,
+                                                        ) +
+                                                            1)) +
+                                                (track.converted
+                                                    ? " (converted)"
+                                                    : "")
+                                            }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Subtitle selector -->
+                                <div
+                                    v-if="subtitleTracks.length > 0"
+                                    class="track-dropdown"
+                                >
+                                    <button class="track-btn" title="Subtitles">
+                                        <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM4 12h4v2H4v-2zm10 6H4v-2h10v2zm6 0h-4v-2h4v2zm0-4H10v-2h10v2z"
+                                            />
+                                        </svg>
+                                        {{
+                                            selectedSubtitleTrackId
+                                                ? subtitleTracks
+                                                      .find((t) => t.selected)
+                                                      ?.language?.toUpperCase() ||
+                                                  "CC"
+                                                : "Off"
+                                        }}
+                                    </button>
+                                    <select
+                                        @change="selectSubtitleTrack($event)"
+                                        class="track-select"
+                                    >
+                                        <option
+                                            value=""
+                                            :selected="!selectedSubtitleTrackId"
+                                        >
+                                            Subtitles Off
+                                        </option>
+                                        <option
+                                            v-for="track in subtitleTracks"
+                                            :key="track.id"
+                                            :value="track.id"
+                                            :selected="track.selected"
+                                        >
+                                            {{
+                                                track.name ||
+                                                track.language?.toUpperCase() ||
+                                                "Subtitle"
+                                            }}
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
 
                             <!-- Playback speed -->
@@ -408,7 +503,6 @@
                                     />
                                 </svg>
                             </button>
-
 
                             <!-- Fullscreen -->
                             <button
@@ -500,7 +594,7 @@ import {
     type VideoTrackInfo,
     type AudioTrackInfo,
     type SubtitleTrackInfo,
-} from "xiaomei";
+} from "@vivysub/xiaomei";
 import { withBase } from "vitepress";
 
 // Refs
@@ -632,10 +726,24 @@ const handleFileSelect = async (event: Event) => {
             player.value.getState().selectedSubtitleTrack ?? null;
 
         // Debug track information
-        console.log('📊 Loaded tracks from file:');
-        console.log('🎥 Video tracks:', videoTracks.value.map(t => ({ id: t.id, codec: t.codec, decodable: t.decodable })));
-        console.log('🔊 Audio tracks:', audioTracks.value.map(t => ({ id: t.id, codec: t.codec, decodable: t.decodable })));
-        console.log('📺 Subtitle tracks:', subtitleTracks.value.length);
+        console.log("📊 Loaded tracks from file:");
+        console.log(
+            "🎥 Video tracks:",
+            videoTracks.value.map((t) => ({
+                id: t.id,
+                codec: t.codec,
+                decodable: t.decodable,
+            })),
+        );
+        console.log(
+            "🔊 Audio tracks:",
+            audioTracks.value.map((t) => ({
+                id: t.id,
+                codec: t.codec,
+                decodable: t.decodable,
+            })),
+        );
+        console.log("📺 Subtitle tracks:", subtitleTracks.value.length);
     } catch (error) {
         console.error("Failed to load file:", error);
         loadError = error as Error;
@@ -738,7 +846,6 @@ const takeScreenshot = async () => {
     }
 };
 
-
 const toggleFullscreen = async () => {
     if (!playerContainer.value) return;
 
@@ -763,7 +870,7 @@ const selectAudioTrack = async (event: Event) => {
         audioTracks.value = player.value?.getAudioTracks() || [];
         console.log(`✅ Successfully switched to audio track: ${trackId}`);
     } catch (error) {
-        console.error('❌ Failed to switch audio track:', error);
+        console.error("❌ Failed to switch audio track:", error);
     }
 };
 
@@ -815,8 +922,15 @@ onMounted(async () => {
         });
 
         // Create fallback decoder with FFmpeg
-        const decodeAudioTrack = async (data: Uint8Array, trackIndex: number, options?: { onProgress?: (p: number) => void }) => {
-            console.log('🔄 FFmpeg: Starting audio conversion, input size:', data.length);
+        const decodeAudioTrack = async (
+            data: Uint8Array,
+            trackIndex: number,
+            options?: { onProgress?: (p: number) => void },
+        ) => {
+            console.log(
+                "🔄 FFmpeg: Starting audio conversion, input size:",
+                data.length,
+            );
 
             // Convert to AAC in ADTS (.aac) for broad WebCodecs decode support
             const timestamp = Date.now();
@@ -825,40 +939,53 @@ onMounted(async () => {
 
             try {
                 await ffmpeg.writeFile(inputFile, data);
-                console.log('🔄 FFmpeg: Input file written');
+                console.log("🔄 FFmpeg: Input file written");
 
                 // Convert to AAC LC in ADTS container
                 const args = [
-                    '-i', inputFile,
-                    '-map', `0:a:${trackIndex}`,
-                    '-vn',              // Remove video
-                    '-c:a', 'aac',      // AAC LC encoder
-                    '-b:a', '128k',     // 128 kbps
-                    '-ar', '48000',     // 48 kHz
-                    '-ac', '2',         // Stereo
-                    '-f', 'adts',       // ADTS container
-                    outputFile
+                    "-i",
+                    inputFile,
+                    "-map",
+                    `0:a:${trackIndex}`,
+                    "-vn", // Remove video
+                    "-c:a",
+                    "aac", // AAC LC encoder
+                    "-b:a",
+                    "128k", // 128 kbps
+                    "-ar",
+                    "48000", // 48 kHz
+                    "-ac",
+                    "2", // Stereo
+                    "-f",
+                    "adts", // ADTS container
+                    outputFile,
                 ];
 
-                console.log('🔄 FFmpeg: Running AAC conversion with args:', args);
+                console.log(
+                    "🔄 FFmpeg: Running AAC conversion with args:",
+                    args,
+                );
                 // Hook progress events and scale to 40..80
                 const onProg = ({ progress }: { progress: number }) => {
-                    const p = typeof progress === 'number' ? progress : 0;
+                    const p = typeof progress === "number" ? progress : 0;
                     const scaled = 40 + Math.max(0, Math.min(1, p)) * 40;
                     options?.onProgress?.(Math.round(scaled));
                 };
-                ffmpeg.on('progress', onProg);
+                ffmpeg.on("progress", onProg);
                 try {
                     await ffmpeg.exec(args);
                     options?.onProgress?.(80);
                 } finally {
                     // Detach
-                    ffmpeg.off('progress', onProg);
+                    ffmpeg.off("progress", onProg);
                 }
-                console.log('🔄 FFmpeg: AAC conversion completed');
+                console.log("🔄 FFmpeg: AAC conversion completed");
 
                 const outputData = await ffmpeg.readFile(outputFile);
-                console.log('✅ FFmpeg: AAC output file read, size:', outputData.length);
+                console.log(
+                    "✅ FFmpeg: AAC output file read, size:",
+                    outputData.length,
+                );
 
                 // Cleanup
                 await ffmpeg.deleteFile(inputFile);
@@ -866,7 +993,7 @@ onMounted(async () => {
 
                 return outputData as Uint8Array;
             } catch (error) {
-                console.error('❌ FFmpeg Opus conversion failed:', error);
+                console.error("❌ FFmpeg Opus conversion failed:", error);
                 // Cleanup on error
                 try {
                     await ffmpeg.deleteFile(inputFile);
@@ -878,7 +1005,11 @@ onMounted(async () => {
             }
         };
 
-        const decodeVideoTrack = async (data: Uint8Array, trackIndex: number, options?: { onProgress?: (p: number) => void }) => {
+        const decodeVideoTrack = async (
+            data: Uint8Array,
+            trackIndex: number,
+            options?: { onProgress?: (p: number) => void },
+        ) => {
             // Simple: convert to H.264 MP4 - most compatible format
             const timestamp = Date.now();
             const inputFile = `input_${timestamp}.bin`;
@@ -888,26 +1019,31 @@ onMounted(async () => {
 
             // Simple command: convert to H.264 MP4
             const args = [
-                '-i', inputFile,
-                '-map', `0:v:${trackIndex}`,
-                '-an', // Remove audio
-                '-c:v', 'libx264', // H.264 - universally supported
-                '-preset', 'fast',
-                '-f', 'mp4',
-                outputFile
+                "-i",
+                inputFile,
+                "-map",
+                `0:v:${trackIndex}`,
+                "-an", // Remove audio
+                "-c:v",
+                "libx264", // H.264 - universally supported
+                "-preset",
+                "fast",
+                "-f",
+                "mp4",
+                outputFile,
             ];
 
             const onProg = ({ progress }: { progress: number }) => {
-                const p = typeof progress === 'number' ? progress : 0;
+                const p = typeof progress === "number" ? progress : 0;
                 const scaled = 40 + Math.max(0, Math.min(1, p)) * 40;
                 options?.onProgress?.(Math.round(scaled));
             };
-            ffmpeg.on('progress', onProg);
+            ffmpeg.on("progress", onProg);
             try {
                 await ffmpeg.exec(args);
                 options?.onProgress?.(80);
             } finally {
-                ffmpeg.off('progress', onProg);
+                ffmpeg.off("progress", onProg);
             }
             const outputData = await ffmpeg.readFile(outputFile);
 
@@ -952,7 +1088,6 @@ onMounted(async () => {
         bufferedRanges.value = state.buffered;
         subtitleTracks.value = state.subtitleTracks;
         selectedSubtitleTrackId.value = state.selectedSubtitleTrack;
-
     });
 
     // Event listeners
@@ -982,7 +1117,9 @@ onMounted(async () => {
     });
 
     p.on("conversionprogress", (event) => {
-        console.log(`⏳ Conversion progress: ${event.progress}% (${event.stage})`);
+        console.log(
+            `⏳ Conversion progress: ${event.progress}% (${event.stage})`,
+        );
         warningMessage.value = `Converting ${event.type}: ${event.progress}% - ${event.stage}`;
     });
 
@@ -1421,19 +1558,45 @@ onUnmounted(() => {
     gap: 0.5rem;
 }
 
-.track-select {
-    background: transparent;
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    outline: none;
+.track-dropdown {
+    position: relative;
+    display: inline-block;
 }
 
-.track-select:hover {
-    background: rgba(255, 255, 255, 0.1);
+.track-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+    pointer-events: none;
+}
+
+.track-dropdown:hover .track-btn {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.track-select {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.track-select:hover + .track-btn {
+    background: rgba(0, 0, 0, 0.8);
 }
 
 /* Speed selector */
@@ -1573,10 +1736,12 @@ onUnmounted(() => {
 
     .track-controls {
         flex-direction: column;
+        gap: 0.25rem;
     }
 
-    .track-select {
-        font-size: 12px;
+    .track-btn {
+        font-size: 11px;
+        padding: 4px 8px;
     }
 }
 </style>

@@ -46,7 +46,7 @@ interface TrackList {
 ### Getting Available Tracks
 
 ```typescript
-import { XiaoMei } from 'xiaomei';
+import { XiaoMei } from '@vivysub/xiaomei';
 
 const player = new XiaoMei({ canvas: canvasElement });
 
