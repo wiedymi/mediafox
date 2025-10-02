@@ -1,7 +1,7 @@
 import { CanvasSink, type InputVideoTrack, type VideoSample, VideoSampleSink, type WrappedCanvas } from 'mediabunny';
 
+import { Canvas2DRenderer, RendererFactory } from './renderers';
 import type { IRenderer, RendererType } from './renderers';
-import { RendererFactory } from './renderers';
 
 export interface VideoRendererOptions {
   canvas?: HTMLCanvasElement | OffscreenCanvas;
@@ -39,16 +39,40 @@ export class VideoRenderer {
     this.rendererType = this.options.rendererType ?? 'auto';
 
     if (options.canvas) {
-      this.setCanvas(options.canvas);
+      // Initialize canvas synchronously for immediate rendering
+      this.canvas = options.canvas;
+
+      // Create a Canvas2D renderer synchronously for immediate use
+      // This ensures rendering works immediately, even before async initialization completes
+      this.renderer = new Canvas2DRenderer({ canvas: options.canvas });
+
+      // Then initialize the requested renderer asynchronously
+      // This will replace Canvas2D if a different renderer was requested
+      void this.initializeRenderer(options.canvas, this.rendererType);
+
+      // Configure canvas size if specified
+      if (this.options.width) {
+        options.canvas.width = this.options.width;
+      }
+      if (this.options.height) {
+        options.canvas.height = this.options.height;
+      }
     }
   }
 
-  async setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas): Promise<void> {
-    this.canvas = canvas;
+  private async initializeRenderer(canvas: HTMLCanvasElement | OffscreenCanvas, type: RendererType): Promise<void> {
+    // Skip if requesting Canvas2D (already initialized synchronously)
+    if (type === 'canvas2d') {
+      return;
+    }
 
-    // Initialize renderer with fallback
     const factory = new RendererFactory({ canvas });
-    const result = await factory.createRendererWithFallback(this.rendererType);
+    const result = await factory.createRendererWithFallback(type);
+
+    // Skip if the result is Canvas2D and we already have it
+    if (result.actualType === 'canvas2d' && this.renderer instanceof Canvas2DRenderer) {
+      return;
+    }
 
     // Clean up old renderer
     if (this.renderer) {
@@ -56,17 +80,25 @@ export class VideoRenderer {
     }
 
     this.renderer = result.renderer;
+    this.rendererType = result.actualType;
 
     // Emit events if renderer changed
-    if (result.actualType !== this.rendererType) {
+    if (result.actualType !== type) {
       if (this.onRendererFallback) {
-        this.onRendererFallback(this.rendererType, result.actualType);
-      }
-      this.rendererType = result.actualType;
-      if (this.onRendererChange) {
-        this.onRendererChange(this.rendererType);
+        this.onRendererFallback(type, result.actualType);
       }
     }
+
+    if (this.onRendererChange) {
+      this.onRendererChange(this.rendererType);
+    }
+  }
+
+  async setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas): Promise<void> {
+    this.canvas = canvas;
+
+    // Initialize renderer with fallback
+    await this.initializeRenderer(canvas, this.rendererType);
 
     // Configure canvas size if specified
     if (this.options.width) {
@@ -212,6 +244,7 @@ export class VideoRenderer {
 
   private renderFrame(frame: WrappedCanvas): void {
     if (!this.renderer || !this.canvas) return;
+    if (!this.renderer.isReady()) return;
 
     // Use renderer to draw frame
     // TypeScript has issues with union type inference here, but this is safe
