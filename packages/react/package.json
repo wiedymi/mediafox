@@ -30,10 +30,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@mediafox/core": "workspace:*"
-  },
   "peerDependencies": {
+    "@mediafox/core": "^0.9.9",
     "react": ">=18.0.0"
   },
   "devDependencies": {

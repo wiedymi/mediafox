@@ -1,3 +1,4 @@
+import path from "node:path";
 import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
@@ -132,6 +133,18 @@ export default defineConfig({
   },
 
   vite: {
+    resolve: {
+      alias: {
+        "@mediafox/core": path.resolve(
+          __dirname,
+          "../../packages/mediafox/src/index.ts",
+        ),
+        "@mediafox/react": path.resolve(
+          __dirname,
+          "../../packages/react/src/index.ts",
+        ),
+      },
+    },
     worker: {
       format: "es",
     },
