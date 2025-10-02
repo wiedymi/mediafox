@@ -65,9 +65,24 @@ jobs:
           for package_dir in packages/*/; do
             if [ -f "$package_dir/package.json" ]; then
               echo "Updating version in $package_dir"
-              cd "$package_dir"
-              npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version --allow-same-version
-              cd ../..
+              node -e "
+                const fs = require('fs');
+                const path = require('path');
+                const pkgPath = path.join('$package_dir', 'package.json');
+                const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                pkg.version = '${{ steps.get_version.outputs.VERSION }}';
+
+                // Update peerDependencies versions for @mediafox packages
+                if (pkg.peerDependencies) {
+                  for (const dep of Object.keys(pkg.peerDependencies)) {
+                    if (dep.startsWith('@mediafox/')) {
+                      pkg.peerDependencies[dep] = '^${{ steps.get_version.outputs.VERSION }}';
+                    }
+                  }
+                }
+
+                fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+              "
             fi
           done
 

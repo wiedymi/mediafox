@@ -132,6 +132,12 @@ export default defineConfig({
   },
 
   vite: {
+    resolve: {
+      alias: {
+        "@mediafox/core": "../../packages/mediafox/src/index.ts",
+        "@mediafox/react": "../../packages/react/src/index.ts",
+      },
+    },
     worker: {
       format: "es",
     },
