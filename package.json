@@ -2,6 +2,7 @@
   "name": "mediafox-monorepo",
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
+    "mediabunny": "^1.23.0",
     "typescript": "^5.7.0",
     "vitepress": "^2.0.0-alpha.12"
   },
