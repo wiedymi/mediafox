@@ -1,4 +1,4 @@
-name: Publish AVPlay Packages
+name: Publish MediaFox Packages
 
 on:
   workflow_dispatch:
@@ -76,7 +76,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm whoami
 
-      - name: Build AVPlay Packages
+      - name: Build MediaFox Packages
         run: bun run build
 
       - name: Publish all packages to NPM Registry
