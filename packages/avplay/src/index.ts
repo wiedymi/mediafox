@@ -22,6 +22,7 @@ export {
   QUALITY_VERY_HIGH,
   QUALITY_VERY_LOW,
 } from 'mediabunny';
+export { AVPlay } from './avplay';
 // Event system
 export { EventEmitter } from './events/emitter';
 export type { TypedEventEmitter, UnsubscribeFn } from './events/types';
@@ -79,8 +80,6 @@ export {
   timeToFrame,
   totalBufferedDuration,
 } from './utils/time';
-
-export { AVPlay } from './avplay';
 
 // Version
 export const VERSION = '0.1.0';

@@ -4,14 +4,14 @@ This guide shows how to integrate AVPlay with Svelte applications for a reactive
 
 ## Installation
 
-First, install AVPlay in your Svelte project:
+First, install AVPlay and mediabunny in your Svelte project:
 
 ```bash
-bun add @avplay/core
+bun add @avplay/core mediabunny
 # or
-npm install @avplay/core
+npm install @avplay/core mediabunny
 # or
-yarn add @avplay/core
+yarn add @avplay/core mediabunny
 ```
 
 ## Basic Svelte Component

@@ -27,7 +27,7 @@ hero:
 <div style="text-align: center; margin: 80px auto; max-width: 800px; font-size: 20px;">
 
 ```bash
-bun add @avplay/core
+bun add @avplay/core mediabunny
 ```
 
 </div>

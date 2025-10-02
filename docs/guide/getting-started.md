@@ -13,24 +13,46 @@ Before diving into the code, **try the interactive demo** to see AVPlay in actio
 
 ### Installation
 
-Install AVPlay (Mediabunny is included as a dependency):
+Install AVPlay and its peer dependency mediabunny:
 
 ::: code-group
 
 ```bash [bun]
-bun add @avplay/core
+bun add @avplay/core mediabunny
 ```
 
 ```bash [npm]
-npm install @avplay/core
+npm install @avplay/core mediabunny
 ```
 
 ```bash [yarn]
-yarn add @avplay/core
+yarn add @avplay/core mediabunny
 ```
 
 ```bash [pnpm]
-pnpm add @avplay/core
+pnpm add @avplay/core mediabunny
+```
+
+:::
+
+For React, use the dedicated package:
+
+::: code-group
+
+```bash [bun]
+bun add @avplay/react @avplay/core mediabunny
+```
+
+```bash [npm]
+npm install @avplay/react @avplay/core mediabunny
+```
+
+```bash [yarn]
+yarn add @avplay/react @avplay/core mediabunny
+```
+
+```bash [pnpm]
+pnpm add @avplay/react @avplay/core mediabunny
 ```
 
 :::

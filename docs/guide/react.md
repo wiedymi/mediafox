@@ -1,77 +1,41 @@
 # React Integration
 
-AVPlay works seamlessly with React. This guide shows you how to create a custom video player component.
+AVPlay works seamlessly with React. This guide shows you how to create a custom video player component using the official `@avplay/react` package.
 
-## Basic React Hook
+## Installation
 
-Create a reusable hook for AVPlay:
+```bash
+npm install @avplay/react @avplay/core
+# or
+bun add @avplay/react @avplay/core
+```
+
+## useAVPlay Hook
+
+The `@avplay/react` package provides a `useAVPlay` hook that manages the player lifecycle and provides reactive state updates:
 
 ```typescript
-// useAVPlay.ts
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { AVPlay, PlayerStateData, PlayerOptions } from '@avplay/core';
+import { useAVPlay } from '@avplay/react';
 
-export function useAVPlay(options?: PlayerOptions) {
-  const playerRef = useRef<AVPlay>();
-  const [state, setState] = useState<PlayerStateData | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    // Create player instance
-    const player = new AVPlay(options);
-    playerRef.current = player;
-
-    // Subscribe to state changes
-    const unsubscribe = player.subscribe(setState);
-
-    // Handle errors
-    player.on('error', setError);
-
-    return () => {
-      unsubscribe();
-      player.dispose();
-    };
-  }, []);
-
-  const load = useCallback(async (source: any) => {
-    try {
-      setError(null);
-      await playerRef.current?.load(source);
-    } catch (err) {
-      setError(err as Error);
-    }
-  }, []);
-
-  const play = useCallback(async () => {
-    await playerRef.current?.play();
-  }, []);
-
-  const pause = useCallback(() => {
-    playerRef.current?.pause();
-  }, []);
-
-  const seek = useCallback(async (time: number) => {
-    await playerRef.current?.seek(time);
-  }, []);
-
-  return {
-    player: playerRef.current,
-    state,
-    error,
-    load,
-    play,
-    pause,
-    seek
-  };
-}
+const { player, state, load, play, pause, seek } = useAVPlay({
+  renderTarget: canvasRef.current,
+  volume: 0.8,
+  onError: (error) => console.error(error)
+});
 ```
+
+The hook handles:
+- Player initialization and cleanup
+- Reactive state synchronization (using `useSyncExternalStore`)
+- Event handler setup
+- SSR safety (lazy loads AVPlay)
 
 ## Simple Video Player Component
 
 ```tsx
 // VideoPlayer.tsx
 import React, { useRef, useEffect } from 'react';
-import { useAVPlay } from './useAVPlay';
+import { useAVPlay } from '@avplay/react';
 import { formatTime } from '@avplay/core';
 
 interface VideoPlayerProps {
@@ -84,13 +48,13 @@ export function VideoPlayer({ src, autoplay }: VideoPlayerProps) {
   const {
     player,
     state,
-    error,
     load,
     play,
     pause
   } = useAVPlay({
     renderTarget: canvasRef.current!,
-    autoplay
+    autoplay,
+    onError: (error) => console.error('Player error:', error)
   });
 
   // Load source when it changes
@@ -111,8 +75,8 @@ export function VideoPlayer({ src, autoplay }: VideoPlayerProps) {
     player?.seek(time);
   };
 
-  if (error) {
-    return <div className="error">Error: {error.message}</div>;
+  if (!state) {
+    return <div>Loading...</div>;
   }
 
   return (
@@ -122,24 +86,22 @@ export function VideoPlayer({ src, autoplay }: VideoPlayerProps) {
         className="video-canvas"
       />
 
-      {state && (
-        <div className="controls">
-          <button onClick={state.playing ? pause : play}>
-            {state.playing ? '⏸' : '▶️'}
-          </button>
+      <div className="controls">
+        <button onClick={state.playing ? pause : play}>
+          {state.playing ? '⏸' : '▶️'}
+        </button>
 
-          <div className="progress" onClick={handleSeek}>
-            <div
-              className="progress-bar"
-              style={{ width: `${(state.currentTime / state.duration) * 100}%` }}
-            />
-          </div>
-
-          <span className="time">
-            {formatTime(state.currentTime)} / {formatTime(state.duration)}
-          </span>
+        <div className="progress" onClick={handleSeek}>
+          <div
+            className="progress-bar"
+            style={{ width: `${(state.currentTime / state.duration) * 100}%` }}
+          />
         </div>
-      )}
+
+        <span className="time">
+          {formatTime(state.currentTime)} / {formatTime(state.duration)}
+        </span>
+      </div>
     </div>
   );
 }

@@ -10,24 +10,52 @@ Before installing AVPlay, make sure you have:
 
 ## Package Managers
 
-AVPlay can be installed using any popular package manager:
+AVPlay requires both the core package and mediabunny (peer dependency):
 
 ::: code-group
 
 ```bash [bun]
-bun add @avplay/core
+bun add @avplay/core mediabunny
 ```
 
 ```bash [npm]
-npm install @avplay/core
+npm install @avplay/core mediabunny
 ```
 
 ```bash [yarn]
-yarn add @avplay/core
+yarn add @avplay/core mediabunny
 ```
 
 ```bash [pnpm]
-pnpm add @avplay/core
+pnpm add @avplay/core mediabunny
+```
+
+:::
+
+::: tip Why Peer Dependency?
+Mediabunny is a peer dependency to give you control over the version and avoid duplication if you're using it directly in your project.
+:::
+
+## Framework Packages
+
+For React applications, use the dedicated React package:
+
+::: code-group
+
+```bash [bun]
+bun add @avplay/react @avplay/core mediabunny
+```
+
+```bash [npm]
+npm install @avplay/react @avplay/core mediabunny
+```
+
+```bash [yarn]
+yarn add @avplay/react @avplay/core mediabunny
+```
+
+```bash [pnpm]
+pnpm add @avplay/react @avplay/core mediabunny
 ```
 
 :::
@@ -37,9 +65,13 @@ pnpm add @avplay/core
 When you install AVPlay, you get:
 
 - **Core Player** - The main AVPlay class
-- **Mediabunny** - Automatically included as a dependency for media processing
 - **TypeScript Definitions** - Complete type definitions for TypeScript users
 - **Utilities** - Helper functions for time formatting, error handling, etc.
+
+Mediabunny (installed separately) provides:
+- **Media Processing** - Video/audio decoding and encoding
+- **Format Support** - Wide range of media formats
+- **WebCodecs Integration** - Hardware-accelerated processing
 
 ## CDN Usage
 
@@ -103,9 +135,10 @@ console.log('Player created successfully!');
 
 AVPlay is designed to be lightweight:
 
-- **Core Player**: ~50KB minified
-- **With Mediabunny**: ~250KB minified
-- **Gzipped**: ~80KB total
+- **@avplay/core**: ~38KB minified (mediabunny excluded as peer dependency)
+- **@avplay/react**: ~3KB minified
+- **mediabunny**: ~220KB minified (peer dependency, loaded separately)
+- **Total Gzipped**: ~80KB total
 
 The library is tree-shakable, so you only include what you use.
 
