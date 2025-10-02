@@ -1,5 +1,5 @@
 /**
- * Simple logger utility for XiaoMei
+ * Simple logger utility for AVPlay
  */
 
 export enum LogLevel {
@@ -11,7 +11,7 @@ export enum LogLevel {
 }
 
 let logLevel: LogLevel = LogLevel.WARN;
-const logPrefix = '[XiaoMei]';
+const logPrefix = '[AVPlay]';
 
 export function setLogLevel(level: LogLevel): void {
   logLevel = level;

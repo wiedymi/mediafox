@@ -1,12 +1,12 @@
 # PlaybackController API Documentation
 
-The PlaybackController manages all aspects of media playback in XiaoMei, including play/pause controls, seeking, timing, synchronization, and playback rate management.
+The PlaybackController manages all aspects of media playback in AVPlay, including play/pause controls, seeking, timing, synchronization, and playback rate management.
 
 ## Class Overview
 
 ```typescript
 class PlaybackController {
-  constructor(player: XiaoMei);
+  constructor(player: AVPlay);
 
   // Playback control
   play(): Promise<void>;

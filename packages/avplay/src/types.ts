@@ -6,8 +6,6 @@ export type PlayerState = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 
 
 export type PlaybackMode = 'normal' | 'loop' | 'loop-one';
 
-import type { MediaConverterDecoder } from './decoders/media-converter-decoder';
-
 export interface PlayerOptions {
   renderTarget?: HTMLCanvasElement | OffscreenCanvas;
   audioContext?: AudioContext;
@@ -18,7 +16,6 @@ export interface PlayerOptions {
   preload?: 'none' | 'metadata' | 'auto';
   crossOrigin?: string;
   maxCacheSize?: number;
-  fallbackDecoder?: MediaConverterDecoder;
 }
 
 export interface MediaInfo {
@@ -43,7 +40,6 @@ export interface VideoTrackInfo {
   rotation: 0 | 90 | 180 | 270;
   selected: boolean;
   decodable: boolean;
-  converted?: boolean;
 }
 
 export interface AudioTrackInfo {
@@ -56,7 +52,6 @@ export interface AudioTrackInfo {
   bitrate: number;
   selected: boolean;
   decodable: boolean;
-  converted?: boolean;
 }
 
 export interface SubtitleTrackInfo {
@@ -161,27 +156,6 @@ export type PlayerEventMap = {
   resize: {
     width: number;
     height: number;
-  };
-  conversionstart: {
-    type: 'audio' | 'video';
-    trackId: string;
-    reason: 'unsupported-codec' | 'decode-error';
-  };
-  conversionprogress: {
-    type: 'audio' | 'video';
-    trackId: string;
-    progress: number; // 0-100
-    stage: 'extracting' | 'converting' | 'finalizing';
-  };
-  conversioncomplete: {
-    type: 'audio' | 'video';
-    trackId: string;
-    duration: number; // conversion time in ms
-  };
-  conversionerror: {
-    type: 'audio' | 'video';
-    trackId: string;
-    error: Error;
   };
 };
 

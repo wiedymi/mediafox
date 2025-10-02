@@ -1,10 +1,10 @@
 # Error Handling Documentation
 
-XiaoMei provides comprehensive error handling with detailed error types, codes, and recovery strategies. This document covers all error types and best practices for error handling.
+AVPlay provides comprehensive error handling with detailed error types, codes, and recovery strategies. This document covers all error types and best practices for error handling.
 
 ## Error System Overview
 
-XiaoMei's error handling system includes:
+AVPlay's error handling system includes:
 - **Typed Errors**: Specific error classes for different failure modes
 - **Error Codes**: Standardized error codes for programmatic handling
 - **Error Context**: Additional information for debugging and recovery
@@ -15,7 +15,7 @@ XiaoMei's error handling system includes:
 
 ### PlayerError
 
-Base error class for all XiaoMei-specific errors.
+Base error class for all AVPlay-specific errors.
 
 ```typescript
 class PlayerError extends Error {
@@ -109,7 +109,7 @@ player.on('error', (error) => {
 Error for media-specific issues (extends standard MediaError).
 
 ```typescript
-class XiaoMeiMediaError extends MediaError {
+class AVPlayMediaError extends MediaError {
   readonly playerCode: PlayerErrorCode;
   readonly sourceUrl?: string;
 
@@ -131,7 +131,7 @@ class XiaoMeiMediaError extends MediaError {
 **Usage:**
 ```typescript
 player.on('error', (error) => {
-  if (error instanceof XiaoMeiMediaError) {
+  if (error instanceof AVPlayMediaError) {
     switch (error.code) {
       case MediaError.MEDIA_ERR_ABORTED:
         console.log('Media loading aborted');
@@ -227,9 +227,9 @@ enum PlayerErrorCode {
 ### Basic Error Handling
 
 ```typescript
-import { XiaoMei, PlayerError, NetworkError, MediaError } from '@vivysub/xiaomei';
+import { AVPlay, PlayerError, NetworkError, MediaError } from '@avplay/core';
 
-const player = new XiaoMei({ canvas: canvasElement });
+const player = new AVPlay({ canvas: canvasElement });
 
 player.on('error', (error) => {
   console.error('Player error occurred:', error);
@@ -311,7 +311,7 @@ function waitForOnline() {
 ### Media Error Handling
 
 ```typescript
-function handleMediaError(error: MediaError | XiaoMeiMediaError) {
+function handleMediaError(error: MediaError | AVPlayMediaError) {
   switch (error.code) {
     case MediaError.MEDIA_ERR_ABORTED:
       // User aborted loading - usually not an error to show
@@ -363,7 +363,7 @@ class ErrorRecoveryManager {
   private maxRetries = 3;
   private retryDelay = 1000;
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupErrorHandling();
   }
 
@@ -487,7 +487,7 @@ class CustomErrorHandler {
   private errorQueue: Error[] = [];
   private isProcessing = false;
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupErrorHandler();
   }
 
@@ -634,7 +634,7 @@ class ErrorPrevention {
     }
   }
 
-  static validatePlayerState(player: XiaoMei, operation: string): void {
+  static validatePlayerState(player: AVPlay, operation: string): void {
     if (player.destroyed) {
       throw new PlayerError(
         PlayerErrorCode.INVALID_STATE,
@@ -644,7 +644,7 @@ class ErrorPrevention {
   }
 }
 
-// Usage in XiaoMei methods
+// Usage in AVPlay methods
 async load(source: SourceInput) {
   ErrorPrevention.validatePlayerState(this, 'load');
   ErrorPrevention.validateSource(source);
@@ -669,4 +669,4 @@ async load(source: SourceInput) {
 7. **Graceful Degradation**: Provide fallbacks when features fail
 8. **Report Errors**: Send error reports to monitoring services
 
-Error handling in XiaoMei is designed to be comprehensive, providing both automatic recovery mechanisms and detailed information for custom error handling strategies.
+Error handling in AVPlay is designed to be comprehensive, providing both automatic recovery mechanisms and detailed information for custom error handling strategies.

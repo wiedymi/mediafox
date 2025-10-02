@@ -356,12 +356,7 @@
                                             :value="track.id"
                                             :selected="track.selected"
                                         >
-                                            {{ track.width }}x{{ track.height
-                                            }}{{
-                                                track.converted
-                                                    ? " (converted)"
-                                                    : ""
-                                            }}
+                                            {{ track.width }}x{{ track.height }}
                                         </option>
                                     </select>
                                 </div>
@@ -403,15 +398,12 @@
                                             :selected="track.selected"
                                         >
                                             {{
-                                                (track.language ||
+                                                track.language ||
                                                     "Audio " +
                                                         (audioTracks.indexOf(
                                                             track,
                                                         ) +
-                                                            1)) +
-                                                (track.converted
-                                                    ? " (converted)"
-                                                    : "")
+                                                            1)
                                             }}
                                         </option>
                                     </select>
@@ -587,14 +579,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import {
-    XiaoMei,
-    MediaConverterDecoder,
+    AVPlay,
+    
     formatTime as formatTimeUtil,
     type MediaInfo,
     type VideoTrackInfo,
     type AudioTrackInfo,
     type SubtitleTrackInfo,
-} from "@vivysub/xiaomei";
+} from "@avplay/core";
 import { withBase } from "vitepress";
 
 // Refs
@@ -605,7 +597,7 @@ const hiddenFileInput = ref<HTMLInputElement>();
 const subtitleContainer = ref<HTMLElement>();
 
 // Player instance
-const player = ref<XiaoMei>();
+const player = ref<AVPlay>();
 const lastLoadedFile = ref<File | null>(null);
 
 // State
@@ -904,171 +896,11 @@ const hideControlsOnLeave = () => {
 onMounted(async () => {
     if (!canvasRef.value) return;
 
-    // Create fallback decoder if FFmpeg is available
-    let fallbackDecoder: MediaConverterDecoder | undefined;
-    try {
-        // Try to load FFmpeg for unsupported codec fallback
-        const { FFmpeg } = await import("@ffmpeg/ffmpeg");
-        const ffmpeg = new FFmpeg();
-
-        // Initialize FFmpeg silently
-        ffmpeg.on("log", () => {}); // Suppress logs
-
-        await ffmpeg.load({
-            coreURL:
-                "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js",
-            wasmURL:
-                "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm",
-        });
-
-        // Create fallback decoder with FFmpeg
-        const decodeAudioTrack = async (
-            data: Uint8Array,
-            trackIndex: number,
-            options?: { onProgress?: (p: number) => void },
-        ) => {
-            console.log(
-                "🔄 FFmpeg: Starting audio conversion, input size:",
-                data.length,
-            );
-
-            // Convert to AAC in ADTS (.aac) for broad WebCodecs decode support
-            const timestamp = Date.now();
-            const inputFile = `input_${timestamp}.bin`;
-            const outputFile = `output_${timestamp}.aac`;
-
-            try {
-                await ffmpeg.writeFile(inputFile, data);
-                console.log("🔄 FFmpeg: Input file written");
-
-                // Convert to AAC LC in ADTS container
-                const args = [
-                    "-i",
-                    inputFile,
-                    "-map",
-                    `0:a:${trackIndex}`,
-                    "-vn", // Remove video
-                    "-c:a",
-                    "aac", // AAC LC encoder
-                    "-b:a",
-                    "128k", // 128 kbps
-                    "-ar",
-                    "48000", // 48 kHz
-                    "-ac",
-                    "2", // Stereo
-                    "-f",
-                    "adts", // ADTS container
-                    outputFile,
-                ];
-
-                console.log(
-                    "🔄 FFmpeg: Running AAC conversion with args:",
-                    args,
-                );
-                // Hook progress events and scale to 40..80
-                const onProg = ({ progress }: { progress: number }) => {
-                    const p = typeof progress === "number" ? progress : 0;
-                    const scaled = 40 + Math.max(0, Math.min(1, p)) * 40;
-                    options?.onProgress?.(Math.round(scaled));
-                };
-                ffmpeg.on("progress", onProg);
-                try {
-                    await ffmpeg.exec(args);
-                    options?.onProgress?.(80);
-                } finally {
-                    // Detach
-                    ffmpeg.off("progress", onProg);
-                }
-                console.log("🔄 FFmpeg: AAC conversion completed");
-
-                const outputData = await ffmpeg.readFile(outputFile);
-                console.log(
-                    "✅ FFmpeg: AAC output file read, size:",
-                    outputData.length,
-                );
-
-                // Cleanup
-                await ffmpeg.deleteFile(inputFile);
-                await ffmpeg.deleteFile(outputFile);
-
-                return outputData as Uint8Array;
-            } catch (error) {
-                console.error("❌ FFmpeg Opus conversion failed:", error);
-                // Cleanup on error
-                try {
-                    await ffmpeg.deleteFile(inputFile);
-                    await ffmpeg.deleteFile(outputFile);
-                } catch {
-                    // Ignore cleanup errors
-                }
-                throw error;
-            }
-        };
-
-        const decodeVideoTrack = async (
-            data: Uint8Array,
-            trackIndex: number,
-            options?: { onProgress?: (p: number) => void },
-        ) => {
-            // Simple: convert to H.264 MP4 - most compatible format
-            const timestamp = Date.now();
-            const inputFile = `input_${timestamp}.bin`;
-            const outputFile = `output_${timestamp}.mp4`;
-
-            await ffmpeg.writeFile(inputFile, data);
-
-            // Simple command: convert to H.264 MP4
-            const args = [
-                "-i",
-                inputFile,
-                "-map",
-                `0:v:${trackIndex}`,
-                "-an", // Remove audio
-                "-c:v",
-                "libx264", // H.264 - universally supported
-                "-preset",
-                "fast",
-                "-f",
-                "mp4",
-                outputFile,
-            ];
-
-            const onProg = ({ progress }: { progress: number }) => {
-                const p = typeof progress === "number" ? progress : 0;
-                const scaled = 40 + Math.max(0, Math.min(1, p)) * 40;
-                options?.onProgress?.(Math.round(scaled));
-            };
-            ffmpeg.on("progress", onProg);
-            try {
-                await ffmpeg.exec(args);
-                options?.onProgress?.(80);
-            } finally {
-                ffmpeg.off("progress", onProg);
-            }
-            const outputData = await ffmpeg.readFile(outputFile);
-
-            // Cleanup
-            await ffmpeg.deleteFile(inputFile);
-            await ffmpeg.deleteFile(outputFile);
-
-            return outputData;
-        };
-
-        fallbackDecoder = new MediaConverterDecoder({
-            decodeAudioTrack,
-            decodeVideoTrack,
-        });
-        console.log("Fallback decoder initialized for unsupported codecs");
-    } catch (e) {
-        console.log("FFmpeg not available, fallback decoder disabled");
-    }
-
-    // Create player with optional fallback decoder
-    const p = new XiaoMei({
+    // Create player
+    const p = new AVPlay({
         renderTarget: canvasRef.value,
         volume: volume.value,
         autoplay: false,
-        fallbackDecoder,
     });
 
     player.value = p;
@@ -1108,37 +940,6 @@ onMounted(async () => {
         setTimeout(() => {
             warningMessage.value = "";
         }, 5000);
-    });
-
-    // Add conversion event listeners for debugging
-    p.on("conversionstart", (event) => {
-        console.log(`🔄 Conversion started:`, event);
-        warningMessage.value = `Converting ${event.type} track (${event.reason})...`;
-    });
-
-    p.on("conversionprogress", (event) => {
-        console.log(
-            `⏳ Conversion progress: ${event.progress}% (${event.stage})`,
-        );
-        warningMessage.value = `Converting ${event.type}: ${event.progress}% - ${event.stage}`;
-    });
-
-    p.on("conversioncomplete", (event) => {
-        console.log(`✅ Conversion completed:`, event);
-        warningMessage.value = `${event.type} conversion completed in ${event.duration}ms`;
-        // Clear after shorter time for success message
-        setTimeout(() => {
-            warningMessage.value = "";
-        }, 3000);
-    });
-
-    p.on("conversionerror", (event) => {
-        console.error(`❌ Conversion failed:`, event);
-        warningMessage.value = `${event.type} conversion failed: ${event.error.message}`;
-        // Clear after longer time for error message
-        setTimeout(() => {
-            warningMessage.value = "";
-        }, 8000);
     });
 
     // Keyboard shortcuts

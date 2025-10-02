@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Before installing XiaoMei, make sure you have:
+Before installing AVPlay, make sure you have:
 
 - Node.js 18+ or Bun installed
 - A modern browser that supports WebCodecs API
@@ -10,46 +10,46 @@ Before installing XiaoMei, make sure you have:
 
 ## Package Managers
 
-XiaoMei can be installed using any popular package manager:
+AVPlay can be installed using any popular package manager:
 
 ::: code-group
 
 ```bash [bun]
-bun add @vivysub/xiaomei
+bun add @avplay/core
 ```
 
 ```bash [npm]
-npm install @vivysub/xiaomei
+npm install @avplay/core
 ```
 
 ```bash [yarn]
-yarn add @vivysub/xiaomei
+yarn add @avplay/core
 ```
 
 ```bash [pnpm]
-pnpm add @vivysub/xiaomei
+pnpm add @avplay/core
 ```
 
 :::
 
 ## What's Included
 
-When you install XiaoMei, you get:
+When you install AVPlay, you get:
 
-- **Core Player** - The main XiaoMei class
+- **Core Player** - The main AVPlay class
 - **Mediabunny** - Automatically included as a dependency for media processing
 - **TypeScript Definitions** - Complete type definitions for TypeScript users
 - **Utilities** - Helper functions for time formatting, error handling, etc.
 
 ## CDN Usage
 
-For quick prototyping, you can use XiaoMei from a CDN:
+For quick prototyping, you can use AVPlay from a CDN:
 
 ```html
 <script type="module">
-  import { XiaoMei } from 'https://unpkg.com/@vivysub/xiaomei@latest/dist/index.js';
+  import { AVPlay } from 'https://unpkg.com/@avplay/core@latest/dist/index.js';
 
-  const player = new XiaoMei({
+  const player = new AVPlay({
     renderTarget: document.querySelector('canvas')
   });
 </script>
@@ -61,7 +61,7 @@ CDN usage is not recommended for production as it may impact performance and rel
 
 ## Browser Requirements
 
-XiaoMei requires modern browser features:
+AVPlay requires modern browser features:
 
 | Feature | Required For | Browser Support |
 |---------|-------------|-----------------|
@@ -72,7 +72,7 @@ XiaoMei requires modern browser features:
 
 ## TypeScript Configuration
 
-If you're using TypeScript, XiaoMei includes all necessary type definitions. Your `tsconfig.json` should include:
+If you're using TypeScript, AVPlay includes all necessary type definitions. Your `tsconfig.json` should include:
 
 ```json
 {
@@ -87,21 +87,21 @@ If you're using TypeScript, XiaoMei includes all necessary type definitions. You
 
 ## Verify Installation
 
-After installation, you can verify XiaoMei is working:
+After installation, you can verify AVPlay is working:
 
 ```javascript
-import { XiaoMei, VERSION } from '@vivysub/xiaomei';
+import { AVPlay, VERSION } from '@avplay/core';
 
-console.log(`XiaoMei version: ${VERSION}`);
+console.log(`AVPlay version: ${VERSION}`);
 
 // Create a test instance
-const player = new XiaoMei();
+const player = new AVPlay();
 console.log('Player created successfully!');
 ```
 
 ## Bundle Size
 
-XiaoMei is designed to be lightweight:
+AVPlay is designed to be lightweight:
 
 - **Core Player**: ~50KB minified
 - **With Mediabunny**: ~250KB minified
@@ -114,8 +114,8 @@ The library is tree-shakable, so you only include what you use.
 For development, you might want to clone the repository:
 
 ```bash
-git clone https://github.com/wiedymi/xiaomei.git
-cd xiaomei
+git clone https://github.com/wiedymi/avplay.git
+cd avplay
 bun install
 bun run dev
 ```

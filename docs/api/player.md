@@ -1,8 +1,8 @@
-# XiaoMei Player API
+# AVPlay Player API
 
 ## Constructor
 
-### `new XiaoMei(options?)`
+### `new AVPlay(options?)`
 
 Creates a new player instance with comprehensive media playback capabilities.
 
@@ -27,20 +27,19 @@ constructor(options?: PlayerOptions)
 | `preload` | `'none' \| 'metadata' \| 'auto'` | `'metadata'` | Preloading strategy |
 | `crossOrigin` | `string` | `undefined` | CORS setting for cross-origin content |
 | `maxCacheSize` | `number` | `undefined` | Maximum cache size for buffering |
-| `fallbackDecoder` | `MediaConverterDecoder` | `undefined` | Decoder for unsupported codecs |
 
 #### Example
 
 ```typescript
 // Basic setup
-const player = new XiaoMei({
+const player = new AVPlay({
   renderTarget: document.querySelector('#video-canvas'),
   volume: 0.8,
   autoplay: true
 });
 
 // Advanced configuration
-const advancedPlayer = new XiaoMei({
+const advancedPlayer = new AVPlay({
   renderTarget: canvas,
   audioContext: new AudioContext(),
   volume: 0.7,
@@ -95,7 +94,7 @@ async function initDemoPlayer() {
     demoPlayer.destroy();
   }
 
-  demoPlayer = new XiaoMei({
+  demoPlayer = new AVPlay({
     renderTarget: canvas,
     autoplay,
     volume
@@ -977,7 +976,7 @@ player.destroy();
 
 ## Events
 
-XiaoMei emits various events during playback. All events are strongly typed.
+AVPlay emits various events during playback. All events are strongly typed.
 
 ### Media Events
 
@@ -1018,15 +1017,6 @@ XiaoMei emits various events during playback. All events are strongly typed.
 | `trackchange` | `{ type: 'video' \| 'audio' \| 'subtitle', trackId: string \| null }` | Track selection has changed |
 | `resize` | `{ width: number, height: number }` | Video dimensions have changed |
 
-### Conversion Events
-
-| Event | Data Type | Description |
-|-------|-----------|-------------|
-| `conversionstart` | `{ type: 'audio' \| 'video', trackId: string, reason: 'unsupported-codec' \| 'decode-error' }` | Track conversion has started |
-| `conversionprogress` | `{ type: 'audio' \| 'video', trackId: string, progress: number, stage: 'extracting' \| 'converting' \| 'finalizing' }` | Track conversion progress |
-| `conversioncomplete` | `{ type: 'audio' \| 'video', trackId: string, duration: number }` | Track conversion completed |
-| `conversionerror` | `{ type: 'audio' \| 'video', trackId: string, error: Error }` | Track conversion failed |
-
 ### Warning Events
 
 | Event | Data Type | Description |
@@ -1037,7 +1027,7 @@ XiaoMei emits various events during playback. All events are strongly typed.
 
 | Event | Data Type | Description |
 |-------|-----------|-------------|
-| `error` | `XiaoMeiError` | An error has occurred |
+| `error` | `AVPlayError` | An error has occurred |
 
 ### Event Example
 

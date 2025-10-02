@@ -1,43 +1,43 @@
 # Getting Started
 
-Welcome to XiaoMei! Let's get you up and running with a powerful video player in just a few minutes.
+Welcome to AVPlay! Let's get you up and running with a powerful video player in just a few minutes.
 
 ## Quick Start
 
 ### Try It Now!
 
-Before diving into the code, **try the interactive demo** to see XiaoMei in action:
+Before diving into the code, **try the interactive demo** to see AVPlay in action:
 
 - **Live Player Demo** - Interactive video player on the home page with all essential features
 - **[Player API Reference](/api/player)** - Complete API documentation with examples
 
 ### Installation
 
-Install XiaoMei (Mediabunny is included as a dependency):
+Install AVPlay (Mediabunny is included as a dependency):
 
 ::: code-group
 
 ```bash [bun]
-bun add @vivysub/xiaomei
+bun add @avplay/core
 ```
 
 ```bash [npm]
-npm install @vivysub/xiaomei
+npm install @avplay/core
 ```
 
 ```bash [yarn]
-yarn add @vivysub/xiaomei
+yarn add @avplay/core
 ```
 
 ```bash [pnpm]
-pnpm add @vivysub/xiaomei
+pnpm add @avplay/core
 ```
 
 :::
 
 ### Browser Support
 
-XiaoMei works in all modern browsers:
+AVPlay works in all modern browsers:
 
 | Browser | Minimum Version |
 |---------|----------------|
@@ -60,17 +60,17 @@ Here's the fastest way to get started:
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My First XiaoMei Player</title>
+  <title>My First AVPlay Player</title>
 </head>
 <body>
   <canvas id="player" width="1280" height="720"></canvas>
 
   <script type="module">
-    import { XiaoMei } from '@vivysub/xiaomei';
+    import { AVPlay } from '@avplay/core';
 
     // Create player
     const canvas = document.querySelector('#player');
-    const player = new XiaoMei({
+    const player = new AVPlay({
       renderTarget: canvas,
       volume: 0.8
     });
@@ -89,7 +89,7 @@ Here's the fastest way to get started:
 
 #### 1. Create Canvas Element
 
-XiaoMei renders video to a canvas element for maximum control:
+AVPlay renders video to a canvas element for maximum control:
 
 ```html
 <canvas id="video-canvas" width="1280" height="720"></canvas>
@@ -98,10 +98,10 @@ XiaoMei renders video to a canvas element for maximum control:
 #### 2. Initialize Player
 
 ```typescript
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 const canvas = document.querySelector('#video-canvas');
-const player = new XiaoMei({
+const player = new AVPlay({
   renderTarget: canvas,
   volume: 0.8,
   autoplay: false
@@ -110,7 +110,7 @@ const player = new XiaoMei({
 
 #### 3. Load Media
 
-XiaoMei accepts various media sources:
+AVPlay accepts various media sources:
 
 ```typescript
 // From file input
@@ -187,16 +187,16 @@ For a minimal working example, copy this HTML:
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Quick XiaoMei Player</title>
+  <title>Quick AVPlay Player</title>
 </head>
 <body>
   <canvas id="player" width="1280" height="720"></canvas>
 
   <script type="module">
-    import { XiaoMei } from '@vivysub/xiaomei';
+    import { AVPlay } from '@avplay/core';
 
     const canvas = document.querySelector('#player');
-    const player = new XiaoMei({ renderTarget: canvas });
+    const player = new AVPlay({ renderTarget: canvas });
 
     // Load sample video
     await player.load('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
@@ -212,7 +212,7 @@ The **live demo on the home page** includes all the essential controls and featu
 
 ## Browser Requirements
 
-XiaoMei requires modern browser features:
+AVPlay requires modern browser features:
 
 - **WebCodecs API** - For hardware-accelerated video decoding
 - **Web Audio API** - For audio playback
@@ -236,10 +236,10 @@ Check [caniuse.com/webcodecs](https://caniuse.com/webcodecs) for the latest brow
 
 ## TypeScript Support
 
-XiaoMei is written in TypeScript with full type safety:
+AVPlay is written in TypeScript with full type safety:
 
 ```typescript
-import { XiaoMei, PlayerOptions, PlayerStateData } from '@vivysub/xiaomei';
+import { AVPlay, PlayerOptions, PlayerStateData } from '@avplay/core';
 
 const options: PlayerOptions = {
   renderTarget: canvas,
@@ -247,7 +247,7 @@ const options: PlayerOptions = {
   autoplay: true
 };
 
-const player = new XiaoMei(options);
+const player = new AVPlay(options);
 
 player.subscribe((state: PlayerStateData) => {
   // Full IntelliSense and type checking
@@ -265,9 +265,9 @@ player.subscribe((state: PlayerStateData) => {
 
 ### Learn More
 - **[API Reference](/api/player)** - Complete documentation with live examples
-- **[React Integration](/guide/react)** - Use XiaoMei in React applications
-- **[Vue Integration](/guide/vue)** - Use XiaoMei in Vue applications
-- **[Angular Integration](/guide/angular)** - Use XiaoMei in Angular applications
+- **[React Integration](/guide/react)** - Use AVPlay in React applications
+- **[Vue Integration](/guide/vue)** - Use AVPlay in Vue applications
+- **[Angular Integration](/guide/angular)** - Use AVPlay in Angular applications
 
 ## Common Issues & Solutions
 
@@ -275,7 +275,7 @@ player.subscribe((state: PlayerStateData) => {
 When loading videos from a different domain:
 
 ```typescript
-const player = new XiaoMei({
+const player = new AVPlay({
   crossOrigin: 'anonymous' // or 'use-credentials'
 });
 ```
@@ -294,7 +294,7 @@ document.addEventListener('click', async () => {
 
 2. **Mute for autoplay**:
 ```typescript
-const player = new XiaoMei({
+const player = new AVPlay({
   autoplay: true,
   muted: true // Required for autoplay
 });
@@ -319,21 +319,21 @@ player.destroy(); // Cannot be used after this
 
 ## Ready to Build?
 
-You've got everything you need to start building with XiaoMei:
+You've got everything you need to start building with AVPlay:
 
 ### **Start Here:**
 1. **Try the Live Demo** - Get hands-on experience with the interactive player on the home page
 2. **[Explore the API](/api/player)** - Complete API reference with examples
 
 ### **Need Help?**
-- **[GitHub Issues](https://github.com/wiedymi/xiaomei/issues)** - Report bugs or request features
+- **[GitHub Issues](https://github.com/wiedymi/avplay/issues)** - Report bugs or request features
 - **[API Reference](/api/player)** - Complete documentation with live examples
-- **[Community Discussions](https://github.com/wiedymi/xiaomei/discussions)** - Ask questions and share ideas
+- **[Community Discussions](https://github.com/wiedymi/avplay/discussions)** - Ask questions and share ideas
 
 ### **Framework Integration:**
-- **[React Guide](/guide/react)** - Use XiaoMei in React apps
-- **[Vue Guide](/guide/vue)** - Use XiaoMei in Vue apps
-- **[Angular Guide](/guide/angular)** - Use XiaoMei in Angular apps
-- **[Vanilla JS Guide](/guide/vanilla)** - Use XiaoMei in vanilla JavaScript
+- **[React Guide](/guide/react)** - Use AVPlay in React apps
+- **[Vue Guide](/guide/vue)** - Use AVPlay in Vue apps
+- **[Angular Guide](/guide/angular)** - Use AVPlay in Angular apps
+- **[Vanilla JS Guide](/guide/vanilla)** - Use AVPlay in vanilla JavaScript
 
 Happy coding!

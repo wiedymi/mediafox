@@ -1,4 +1,4 @@
-name: Publish XiaoMei Packages
+name: Publish AVPlay Packages
 
 on:
   workflow_dispatch:
@@ -76,7 +76,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm whoami
 
-      - name: Build XiaoMei Packages
+      - name: Build AVPlay Packages
         run: bun run build
 
       - name: Publish all packages to NPM Registry

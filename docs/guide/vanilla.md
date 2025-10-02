@@ -1,10 +1,10 @@
 # Vanilla JavaScript Guide
 
-This guide demonstrates how to use XiaoMei with vanilla JavaScript/TypeScript without any framework dependencies.
+This guide demonstrates how to use AVPlay with vanilla JavaScript/TypeScript without any framework dependencies.
 
 ## Basic Setup
 
-XiaoMei works perfectly with vanilla JavaScript. Here's a simple setup:
+AVPlay works perfectly with vanilla JavaScript. Here's a simple setup:
 
 ```html
 <!DOCTYPE html>
@@ -12,7 +12,7 @@ XiaoMei works perfectly with vanilla JavaScript. Here's a simple setup:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XiaoMei Vanilla Player</title>
+    <title>AVPlay Vanilla Player</title>
     <style>
         .player-container {
             max-width: 800px;
@@ -63,7 +63,7 @@ XiaoMei works perfectly with vanilla JavaScript. Here's a simple setup:
 </head>
 <body>
     <div class="player-container">
-        <h1>XiaoMei Video Player</h1>
+        <h1>AVPlay Video Player</h1>
         <canvas id="video-canvas"></canvas>
 
         <div class="controls">
@@ -91,7 +91,7 @@ XiaoMei works perfectly with vanilla JavaScript. Here's a simple setup:
 
 ```javascript
 // player.js
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 class VanillaVideoPlayer {
     constructor() {
@@ -118,7 +118,7 @@ class VanillaVideoPlayer {
             this.player.destroy();
         }
 
-        this.player = new XiaoMei({
+        this.player = new AVPlay({
             canvas: this.canvas
         });
 
@@ -355,7 +355,7 @@ For TypeScript projects, here's a more type-safe version:
 
 ```typescript
 // player.ts
-import { XiaoMei, type PlayerState, type PlayerEvents } from '@vivysub/xiaomei';
+import { AVPlay, type PlayerState, type PlayerEvents } from '@avplay/core';
 
 interface PlayerElements {
     canvas: HTMLCanvasElement;
@@ -371,7 +371,7 @@ interface PlayerElements {
 }
 
 class TypedVideoPlayer {
-    private player: XiaoMei | null = null;
+    private player: AVPlay | null = null;
     private elements: PlayerElements;
 
     constructor() {
@@ -408,7 +408,7 @@ class TypedVideoPlayer {
             this.player.destroy();
         }
 
-        this.player = new XiaoMei({
+        this.player = new AVPlay({
             canvas: this.elements.canvas
         });
 
@@ -767,4 +767,4 @@ class ProgressTracker {
 }
 ```
 
-This guide provides a solid foundation for using XiaoMei in vanilla JavaScript environments, with examples ranging from basic setup to advanced features and TypeScript integration.
+This guide provides a solid foundation for using AVPlay in vanilla JavaScript environments, with examples ranging from basic setup to advanced features and TypeScript integration.

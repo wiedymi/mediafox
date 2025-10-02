@@ -1,17 +1,17 @@
 # Basic Usage
 
-This guide covers the fundamental concepts and basic usage patterns of XiaoMei. For hands-on learning, check out the **interactive demo on the home page** first!
+This guide covers the fundamental concepts and basic usage patterns of AVPlay. For hands-on learning, check out the **interactive demo on the home page** first!
 
 ## Core Concepts
 
 ### 1. The Player Instance
 
-XiaoMei follows an object-oriented approach where you create a player instance:
+AVPlay follows an object-oriented approach where you create a player instance:
 
 ```typescript
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
-const player = new XiaoMei(options);
+const player = new AVPlay(options);
 ```
 
 Each instance manages its own:
@@ -27,7 +27,7 @@ See this in action in the **live demo on the home page** - load your own videos 
 
 ### 2. Media Sources
 
-XiaoMei accepts various media sources. **Try them all in the interactive demo!**
+AVPlay accepts various media sources. **Try them all in the interactive demo!**
 
 ```typescript
 // File from input element
@@ -57,7 +57,7 @@ The **live demo on the home page** lets you try loading videos from files, URLs,
 
 ### 3. Canvas Rendering
 
-XiaoMei renders video to a canvas element for maximum performance and control:
+AVPlay renders video to a canvas element for maximum performance and control:
 
 ```html
 <canvas id="video-canvas" width="1280" height="720"></canvas>
@@ -65,7 +65,7 @@ XiaoMei renders video to a canvas element for maximum performance and control:
 
 ```typescript
 const canvas = document.querySelector('#video-canvas');
-const player = new XiaoMei({
+const player = new AVPlay({
   renderTarget: canvas
 });
 ```
@@ -266,10 +266,10 @@ Here's a minimal but complete video player:
   </div>
 
   <script type="module">
-    import { XiaoMei, formatTime } from '@vivysub/xiaomei';
+    import { AVPlay, formatTime } from '@avplay/core';
 
     // Initialize player
-    const player = new XiaoMei({
+    const player = new AVPlay({
       renderTarget: document.getElementById('video')
     });
 
@@ -325,7 +325,7 @@ Here's a minimal but complete video player:
 
 ```javascript
 // Browsers require muted autoplay
-const player = new XiaoMei({
+const player = new AVPlay({
   renderTarget: canvas,
   autoplay: true,
   muted: true

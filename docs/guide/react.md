@@ -1,24 +1,24 @@
 # React Integration
 
-XiaoMei works seamlessly with React. This guide shows you how to create a custom video player component.
+AVPlay works seamlessly with React. This guide shows you how to create a custom video player component.
 
 ## Basic React Hook
 
-Create a reusable hook for XiaoMei:
+Create a reusable hook for AVPlay:
 
 ```typescript
-// useXiaoMei.ts
+// useAVPlay.ts
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { XiaoMei, PlayerStateData, PlayerOptions } from '@vivysub/xiaomei';
+import { AVPlay, PlayerStateData, PlayerOptions } from '@avplay/core';
 
-export function useXiaoMei(options?: PlayerOptions) {
-  const playerRef = useRef<XiaoMei>();
+export function useAVPlay(options?: PlayerOptions) {
+  const playerRef = useRef<AVPlay>();
   const [state, setState] = useState<PlayerStateData | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     // Create player instance
-    const player = new XiaoMei(options);
+    const player = new AVPlay(options);
     playerRef.current = player;
 
     // Subscribe to state changes
@@ -71,8 +71,8 @@ export function useXiaoMei(options?: PlayerOptions) {
 ```tsx
 // VideoPlayer.tsx
 import React, { useRef, useEffect } from 'react';
-import { useXiaoMei } from './useXiaoMei';
-import { formatTime } from '@vivysub/xiaomei';
+import { useAVPlay } from './useAVPlay';
+import { formatTime } from '@avplay/core';
 
 interface VideoPlayerProps {
   src: string | File | Blob;
@@ -88,7 +88,7 @@ export function VideoPlayer({ src, autoplay }: VideoPlayerProps) {
     load,
     play,
     pause
-  } = useXiaoMei({
+  } = useAVPlay({
     renderTarget: canvasRef.current!,
     autoplay
   });
@@ -150,7 +150,7 @@ export function VideoPlayer({ src, autoplay }: VideoPlayerProps) {
 ```tsx
 // AdvancedPlayer.tsx
 import React, { useRef, useEffect, useState } from 'react';
-import { XiaoMei, formatTime, VideoTrackInfo, AudioTrackInfo } from '@vivysub/xiaomei';
+import { AVPlay, formatTime, VideoTrackInfo, AudioTrackInfo } from '@avplay/core';
 
 interface AdvancedPlayerProps {
   src: string | File | Blob;
@@ -158,7 +158,7 @@ interface AdvancedPlayerProps {
 
 export function AdvancedPlayer({ src }: AdvancedPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerRef = useRef<XiaoMei>();
+  const playerRef = useRef<AVPlay>();
   const [state, setState] = useState<any>(null);
   const [videoTracks, setVideoTracks] = useState<VideoTrackInfo[]>([]);
   const [audioTracks, setAudioTracks] = useState<AudioTrackInfo[]>([]);
@@ -170,7 +170,7 @@ export function AdvancedPlayer({ src }: AdvancedPlayerProps) {
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const player = new XiaoMei({
+    const player = new AVPlay({
       renderTarget: canvasRef.current,
       volume
     });
@@ -411,7 +411,7 @@ export function AdvancedPlayer({ src }: AdvancedPlayerProps) {
 
 ```tsx
 interface VolumeSliderProps {
-  player: XiaoMei;
+  player: AVPlay;
   volume: number;
   muted: boolean;
 }
@@ -485,15 +485,15 @@ function ProgressBar({ currentTime, duration, buffered, onSeek }: ProgressBarPro
 ```typescript
 // playerSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
-let playerInstance: XiaoMei | null = null;
+let playerInstance: AVPlay | null = null;
 
 export const loadMedia = createAsyncThunk(
   'player/load',
   async (source: any) => {
     if (!playerInstance) {
-      playerInstance = new XiaoMei();
+      playerInstance = new AVPlay();
     }
     await playerInstance.load(source);
     return playerInstance.getState();
@@ -543,10 +543,10 @@ export const playerSlice = createSlice({
 ```typescript
 // usePlayerStore.ts
 import { create } from 'zustand';
-import { XiaoMei, PlayerStateData } from '@vivysub/xiaomei';
+import { AVPlay, PlayerStateData } from '@avplay/core';
 
 interface PlayerStore extends PlayerStateData {
-  player: XiaoMei | null;
+  player: AVPlay | null;
   initPlayer: (options?: any) => void;
   loadMedia: (source: any) => Promise<void>;
   play: () => Promise<void>;
@@ -568,7 +568,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   player: null,
 
   initPlayer: (options) => {
-    const player = new XiaoMei(options);
+    const player = new AVPlay(options);
 
     // Subscribe to state changes
     player.subscribe((state) => {
@@ -622,7 +622,7 @@ Always dispose of the player when unmounting:
 
 ```tsx
 useEffect(() => {
-  const player = new XiaoMei(options);
+  const player = new AVPlay(options);
 
   return () => {
     player.dispose();
@@ -680,6 +680,6 @@ const handlePlay = useCallback(async () => {
 
 ## Next Steps
 
-- [Vue Integration](/guide/vue) - Using XiaoMei with Vue
+- [Vue Integration](/guide/vue) - Using AVPlay with Vue
 - [API Reference](/api/player) - Complete API documentation
 - [Live Demo](/) - Interactive demo on the home page

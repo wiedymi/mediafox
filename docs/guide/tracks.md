@@ -1,6 +1,6 @@
 # Track Management Guide
 
-XiaoMei provides comprehensive multi-track support for handling videos with multiple video and audio streams. This guide covers track discovery, selection, and management.
+AVPlay provides comprehensive multi-track support for handling videos with multiple video and audio streams. This guide covers track discovery, selection, and management.
 
 ## Understanding Tracks
 
@@ -46,9 +46,9 @@ interface TrackList {
 ### Getting Available Tracks
 
 ```typescript
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
-const player = new XiaoMei({ canvas: canvasElement });
+const player = new AVPlay({ canvas: canvasElement });
 
 // Load media and access tracks
 await player.load('multi-track-video.mp4');
@@ -237,7 +237,7 @@ class TrackSelector {
   private videoSelect: HTMLSelectElement;
   private audioSelect: HTMLSelectElement;
 
-  constructor(private player: XiaoMei, container: HTMLElement) {
+  constructor(private player: AVPlay, container: HTMLElement) {
     this.createSelectors(container);
     this.setupEventListeners();
   }
@@ -375,7 +375,7 @@ class AdvancedTrackManager {
     adaptiveBitrate: boolean;
   };
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.preferences = {
       videoQuality: 'auto',
       audioLanguages: ['en', 'en-US'],
@@ -584,7 +584,7 @@ class OptimizedTrackSwitcher {
   private switchingInProgress = false;
   private pendingSwitches: Array<{type: 'video' | 'audio', index: number}> = [];
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupSwitchQueue();
   }
 
@@ -642,4 +642,4 @@ class OptimizedTrackSwitcher {
 7. **Accessibility**: Label tracks clearly with resolution, language, etc.
 8. **Network Awareness**: Use Network Information API for adaptive streaming
 
-Track management in XiaoMei provides the foundation for building sophisticated video players with multi-language support and adaptive quality features.
+Track management in AVPlay provides the foundation for building sophisticated video players with multi-language support and adaptive quality features.

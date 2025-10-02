@@ -1,5 +1,5 @@
 {
-  "name": "@vivysub/xiaomei",
+  "name": "@avplay/core",
   "version": "0.9.3",
   "description": "Framework-agnostic video player library powered by MediaBunny",
   "type": "module",
@@ -52,10 +52,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wiedymi/xiaomei.git"
+    "url": "https://github.com/wiedymi/avplay.git"
   },
   "bugs": {
-    "url": "https://github.com/wiedymi/xiaomei/issues"
+    "url": "https://github.com/wiedymi/avplay/issues"
   },
-  "homepage": "https://github.com/wiedymi/xiaomei#readme"
+  "homepage": "https://github.com/wiedymi/avplay#readme"
 }

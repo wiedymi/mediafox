@@ -1,21 +1,14 @@
-# XiaoMei Development Guide
+# AVPlay Development Guide
 
 ## Project Overview
 
-XiaoMei is a framework-agnostic video player library that wraps Mediabunny functionality with an ergonomic TypeScript API. It provides complete control over media playback while allowing developers to build their own UI.
+AVPlay is a framework-agnostic video player library that wraps Mediabunny functionality with an ergonomic TypeScript API. It provides complete control over media playback while allowing developers to build their own UI.
 
 ## Architecture
 
-### Codec Support
-
-XiaoMei includes automatic codec registration for formats not natively supported by browsers:
-- **MP3**: Automatically registered via @mediabunny/mp3-encoder for universal MP3 playback support
-- Codec registration happens automatically on first player load via `XiaoMei.initializeCodecs()`
-- Additional codecs can be added via the codec registration system in `src/utils/codecs.ts`
-
 ### Core Components
 
-1. **XiaoMei Class** (`src/xiaomei.ts`)
+1. **AVPlay Class** (`src/avplay.ts`)
    - Main player class that orchestrates all components
    - Manages state, events, and provides public API
    - Integrates with all subsystems
@@ -205,11 +198,11 @@ Use these commands from the repository root to validate changes before merging:
 
 - Typecheck
   - `bun run typecheck` (runs in all workspaces)
-  - Package-only: `bun run --filter xiaomei typecheck`
+  - Package-only: `bun run --filter avplay typecheck`
 
 - Build
   - `bun run build` (builds all workspaces)
-  - Package-only: `bun run --filter xiaomei build`
+  - Package-only: `bun run --filter avplay build`
 
 - Biome (Lint/Format/Check)
   - Lint (auto-fix safe issues): `bun run lint`
@@ -218,7 +211,7 @@ Use these commands from the repository root to validate changes before merging:
   - CI (no writes, reports only): `bun run ci`
 
 Tips
-- If a typecheck fails, narrow scope: `bun run --cwd packages/xiaomei typecheck`
+- If a typecheck fails, narrow scope: `bun run --cwd packages/avplay typecheck`
 - Re-run Biome after edits to keep formatting consistent
 - Ensure no explicit `any` is introduced (enforced during review)
 - [ ] WASM acceleration for video processing
