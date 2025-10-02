@@ -28,14 +28,12 @@
     "packages/react": {
       "name": "@mediafox/react",
       "version": "0.9.9",
-      "dependencies": {
-        "@mediafox/core": "workspace:*",
-      },
       "devDependencies": {
         "@types/bun": "latest",
         "@types/react": "^18.3.18",
       },
       "peerDependencies": {
+        "@mediafox/core": "^0.9.9",
         "react": ">=18.0.0",
       },
     },
