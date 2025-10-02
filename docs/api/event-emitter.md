@@ -1,6 +1,6 @@
 # EventEmitter API Documentation
 
-AVPlay's EventEmitter provides a robust, type-safe event system with memory leak protection and performance optimizations. This document covers the complete EventEmitter API.
+MediaFox's EventEmitter provides a robust, type-safe event system with memory leak protection and performance optimizations. This document covers the complete EventEmitter API.
 
 ## Class Overview
 
@@ -105,7 +105,7 @@ player
 class PlayerComponent {
   private handlers = new Map<string, Function>();
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupEventListeners();
   }
 
@@ -151,7 +151,7 @@ player.once('loadedmetadata', () => {
 });
 
 // Promise-like pattern
-function waitForReady(player: AVPlay): Promise<void> {
+function waitForReady(player: MediaFox): Promise<void> {
   return new Promise((resolve) => {
     player.once('canplay', resolve);
   });
@@ -186,7 +186,7 @@ if (!handled) {
 
 // Custom events in plugins
 class CustomPlugin {
-  init(player: AVPlay) {
+  init(player: MediaFox) {
     // Emit custom events
     player.emit('pluginLoaded', this.name);
 
@@ -404,7 +404,7 @@ player.on('error', (error) => {
 });
 
 // Use case: override default behavior
-class PlayerWithCustomErrorHandling extends AVPlay {
+class PlayerWithCustomErrorHandling extends MediaFox {
   constructor(options: PlayerOptions) {
     super(options);
 
@@ -513,10 +513,10 @@ function EventListener<T extends EventMap>(
 }
 
 class PlayerController {
-  private player: AVPlay;
+  private player: MediaFox;
   private _eventListeners: any[] = [];
 
-  constructor(player: AVPlay) {
+  constructor(player: MediaFox) {
     this.player = player;
     this.bindEventListeners();
   }
@@ -617,4 +617,4 @@ class BatchedEventEmitter<T extends EventMap> extends EventEmitter<T> {
 6. **Naming**: Use consistent event naming conventions
 7. **Documentation**: Document custom events and their parameters
 
-The EventEmitter in AVPlay provides a robust foundation for building event-driven video applications with full TypeScript support and performance optimizations.
+The EventEmitter in MediaFox provides a robust foundation for building event-driven video applications with full TypeScript support and performance optimizations.

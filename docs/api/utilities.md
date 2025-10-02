@@ -1,6 +1,6 @@
 # Utility Functions
 
-AVPlay provides several utility functions for common media-related operations.
+MediaFox provides several utility functions for common media-related operations.
 
 ## Time Utilities
 
@@ -25,7 +25,7 @@ formatTime(seconds: number, showMilliseconds?: boolean): string
 **Examples:**
 
 ```typescript
-import { formatTime } from '@avplay/core';
+import { formatTime } from '@mediafox/core';
 
 formatTime(65);        // "1:05"
 formatTime(3665);      // "1:01:05"
@@ -53,7 +53,7 @@ parseTime(timeString: string): number
 **Examples:**
 
 ```typescript
-import { parseTime } from '@avplay/core';
+import { parseTime } from '@mediafox/core';
 
 parseTime("1:30");      // 90
 parseTime("1:01:30");   // 3690
@@ -82,7 +82,7 @@ timeToFrame(time: number, frameRate: number): number
 **Example:**
 
 ```typescript
-import { timeToFrame } from '@avplay/core';
+import { timeToFrame } from '@mediafox/core';
 
 timeToFrame(1.5, 30);  // 45 (1.5 seconds at 30fps)
 timeToFrame(2, 24);    // 48 (2 seconds at 24fps)
@@ -109,7 +109,7 @@ frameToTime(frame: number, frameRate: number): number
 **Example:**
 
 ```typescript
-import { frameToTime } from '@avplay/core';
+import { frameToTime } from '@mediafox/core';
 
 frameToTime(45, 30);  // 1.5 (45 frames at 30fps)
 frameToTime(48, 24);  // 2 (48 frames at 24fps)
@@ -139,7 +139,7 @@ clamp(value: number, min: number, max: number): number
 **Example:**
 
 ```typescript
-import { clamp } from '@avplay/core';
+import { clamp } from '@mediafox/core';
 
 clamp(5, 0, 10);   // 5
 clamp(-5, 0, 10);  // 0
@@ -170,7 +170,7 @@ timeRangesOverlap(
 **Example:**
 
 ```typescript
-import { timeRangesOverlap } from '@avplay/core';
+import { timeRangesOverlap } from '@mediafox/core';
 
 const range1 = { start: 0, end: 10 };
 const range2 = { start: 5, end: 15 };
@@ -202,7 +202,7 @@ mergeTimeRanges(
 **Example:**
 
 ```typescript
-import { mergeTimeRanges } from '@avplay/core';
+import { mergeTimeRanges } from '@mediafox/core';
 
 const ranges = [
   { start: 0, end: 10 },
@@ -236,7 +236,7 @@ totalBufferedDuration(
 **Example:**
 
 ```typescript
-import { totalBufferedDuration } from '@avplay/core';
+import { totalBufferedDuration } from '@mediafox/core';
 
 const buffered = [
   { start: 0, end: 10 },
@@ -271,7 +271,7 @@ findBufferedRange(
 **Example:**
 
 ```typescript
-import { findBufferedRange } from '@avplay/core';
+import { findBufferedRange } from '@mediafox/core';
 
 const buffered = [
   { start: 0, end: 10 },
@@ -285,14 +285,14 @@ findBufferedRange(buffered, 12);  // null
 
 ## Error Handling
 
-### `AVPlayError`
+### `MediaFoxError`
 
 Custom error class for player errors.
 
 <div class="method-signature">
 
 ```typescript
-class AVPlayError extends Error {
+class MediaFoxError extends Error {
   code: ErrorCode;
   details?: any;
 
@@ -306,21 +306,21 @@ class AVPlayError extends Error {
 
 ```typescript
 // Create specific error types
-AVPlayError.mediaNotSupported(message?, details?);
-AVPlayError.mediaLoadFailed(message?, details?);
-AVPlayError.decodeError(message?, details?);
-AVPlayError.networkError(message?, details?);
-AVPlayError.permissionDenied(message?, details?);
-AVPlayError.playbackError(message?, details?);
-AVPlayError.trackNotFound(message?, details?);
-AVPlayError.invalidState(message?, details?);
-AVPlayError.unknownError(message?, details?);
+MediaFoxError.mediaNotSupported(message?, details?);
+MediaFoxError.mediaLoadFailed(message?, details?);
+MediaFoxError.decodeError(message?, details?);
+MediaFoxError.networkError(message?, details?);
+MediaFoxError.permissionDenied(message?, details?);
+MediaFoxError.playbackError(message?, details?);
+MediaFoxError.trackNotFound(message?, details?);
+MediaFoxError.invalidState(message?, details?);
+MediaFoxError.unknownError(message?, details?);
 ```
 
 **Example:**
 
 ```typescript
-import { AVPlayError, ErrorCode } from '@avplay/core';
+import { MediaFoxError, ErrorCode } from '@mediafox/core';
 
 // Handle player errors
 player.on('error', (error) => {
@@ -337,7 +337,7 @@ player.on('error', (error) => {
 });
 
 // Create custom errors
-throw AVPlayError.mediaNotSupported(
+throw MediaFoxError.mediaNotSupported(
   'WebM format not supported in this browser'
 );
 ```
@@ -367,7 +367,7 @@ Wraps any error with additional context.
 <div class="method-signature">
 
 ```typescript
-wrapError(error: unknown, context: string): AVPlayError
+wrapError(error: unknown, context: string): MediaFoxError
 ```
 
 </div>
@@ -376,12 +376,12 @@ wrapError(error: unknown, context: string): AVPlayError
 - `error`: Original error
 - `context`: Context string for the error
 
-**Returns:** AVPlayError instance
+**Returns:** MediaFoxError instance
 
 **Example:**
 
 ```typescript
-import { wrapError } from '@avplay/core';
+import { wrapError } from '@mediafox/core';
 
 try {
   await loadMedia();
@@ -427,7 +427,7 @@ class EventEmitter<EventMap extends Record&lt;string, any&gt;> {
 **Example:**
 
 ```typescript
-import { EventEmitter } from '@avplay/core';
+import { EventEmitter } from '@mediafox/core';
 
 // Define event map
 type MyEvents = {
@@ -471,7 +471,7 @@ class Store<T> {
 **Example:**
 
 ```typescript
-import { Store } from '@avplay/core';
+import { Store } from '@mediafox/core';
 
 // Create store
 const store = new Store({
@@ -518,7 +518,7 @@ player.screenshot({
 ```
 
 ::: tip
-These quality constants are exported directly from mediabunny. Since mediabunny is a peer dependency, import them from `'mediabunny'` rather than `'@avplay/core'`.
+These quality constants are exported directly from mediabunny. Since mediabunny is a peer dependency, import them from `'mediabunny'` rather than `'@mediafox/core'`.
 :::
 
 ### Version
@@ -526,9 +526,9 @@ These quality constants are exported directly from mediabunny. Since mediabunny 
 Library version string:
 
 ```typescript
-import { VERSION } from '@avplay/core';
+import { VERSION } from '@mediafox/core';
 
-console.log(`AVPlay version: ${VERSION}`);
+console.log(`MediaFox version: ${VERSION}`);
 ```
 
 ## Usage Examples
@@ -536,7 +536,7 @@ console.log(`AVPlay version: ${VERSION}`);
 ### Progress Bar Implementation
 
 ```typescript
-import { formatTime, clamp } from '@avplay/core';
+import { formatTime, clamp } from '@mediafox/core';
 
 // Update progress bar
 player.subscribe(state => {
@@ -557,7 +557,7 @@ progressBar.addEventListener('click', (e) => {
 ### Buffering Display
 
 ```typescript
-import { totalBufferedDuration, mergeTimeRanges } from '@avplay/core';
+import { totalBufferedDuration, mergeTimeRanges } from '@mediafox/core';
 
 player.subscribe(state => {
   const buffered = mergeTimeRanges(state.buffered);
@@ -578,7 +578,7 @@ player.subscribe(state => {
 ### Frame-Accurate Navigation
 
 ```typescript
-import { timeToFrame, frameToTime } from '@avplay/core';
+import { timeToFrame, frameToTime } from '@mediafox/core';
 
 const frameRate = 24; // Get from video track
 

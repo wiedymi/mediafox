@@ -26,7 +26,7 @@ import type {
 } from './types';
 //
 
-export class AVPlay {
+export class MediaFox {
   private emitter: EventEmitter<PlayerEventMap>;
   private store: Store;
   private state: StateFacade;

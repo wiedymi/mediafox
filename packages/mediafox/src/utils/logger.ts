@@ -1,5 +1,5 @@
 /**
- * Simple logger utility for AVPlay
+ * Simple logger utility for MediaFox
  */
 
 export enum LogLevel {
@@ -11,7 +11,7 @@ export enum LogLevel {
 }
 
 let logLevel: LogLevel = LogLevel.WARN;
-const logPrefix = '[AVPlay]';
+const logPrefix = '[MediaFox]';
 
 export function setLogLevel(level: LogLevel): void {
   logLevel = level;

@@ -1,12 +1,12 @@
 # SourceManager API Documentation
 
-The SourceManager handles loading and managing different types of media sources in AVPlay. It provides a unified interface for working with URLs, files, blobs, streams, and other source types.
+The SourceManager handles loading and managing different types of media sources in MediaFox. It provides a unified interface for working with URLs, files, blobs, streams, and other source types.
 
 ## Class Overview
 
 ```typescript
 class SourceManager {
-  constructor(player: AVPlay);
+  constructor(player: MediaFox);
 
   // Source loading
   loadSource(source: SourceInput, options?: SourceOptions): Promise&lt;MediaSource&gt;;
@@ -659,4 +659,4 @@ function handleNetworkError(error: SourceError) {
 6. **Cleanup Resources**: Clear sources when not needed
 7. **Type Detection**: Use automatic type detection when possible
 
-The SourceManager provides a powerful and flexible system for handling all types of media sources in AVPlay, with built-in support for validation, caching, and progressive loading.
+The SourceManager provides a powerful and flexible system for handling all types of media sources in MediaFox, with built-in support for validation, caching, and progressive loading.

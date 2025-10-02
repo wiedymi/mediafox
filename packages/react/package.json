@@ -1,7 +1,7 @@
 {
-  "name": "@avplay/react",
+  "name": "@mediafox/react",
   "version": "0.9.9",
-  "description": "React hooks for AVPlay video player",
+  "description": "React hooks for MediaFox media player",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -18,7 +18,7 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun run build:js && bun run build:types",
-    "build:js": "bun build src/index.ts --outdir=dist --target=browser --format=esm --minify --external react --external @avplay/core",
+    "build:js": "bun build src/index.ts --outdir=dist --target=browser --format=esm --minify --external react --external @mediafox/core",
     "build:types": "tsc --emitDeclarationOnly",
     "test": "bun test",
     "lint": "biome lint ./src",
@@ -31,7 +31,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@avplay/core": "workspace:*"
+    "@mediafox/core": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.0.0"
@@ -45,18 +45,18 @@
     "hooks",
     "video",
     "player",
-    "avplay",
+    "mediafox",
     "mediabunny"
   ],
   "author": "",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wiedymi/avplay.git",
+    "url": "https://github.com/wiedymi/mediafox.git",
     "directory": "packages/react"
   },
   "bugs": {
-    "url": "https://github.com/wiedymi/avplay/issues"
+    "url": "https://github.com/wiedymi/mediafox/issues"
   },
-  "homepage": "https://github.com/wiedymi/avplay#readme"
+  "homepage": "https://github.com/wiedymi/mediafox#readme"
 }

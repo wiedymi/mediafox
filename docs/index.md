@@ -2,12 +2,12 @@
 layout: home
 
 hero:
-  name: "AVPlay"
-  text: "Framework-Agnostic Video Player"
-  tagline: A TypeScript-first video player library powered by Mediabunny. Full control over rendering and UI, zero opinions.
+  name: "MediaFox"
+  text: "Framework-Agnostic Media Player"
+  tagline: A TypeScript-first Media Player library powered by Mediabunny. Full control over rendering and UI, zero opinions.
   image:
     src: /logo.png
-    alt: AVPlay
+    alt: MediaFox
   actions:
     - theme: brand
       text: Get Started
@@ -17,7 +17,7 @@ hero:
       link: /api/player
     - theme: alt
       text: View on GitHub
-      link: https://github.com/wiedymi/avplay
+      link: https://github.com/wiedymi/mediafox
 ---
 
 <ClientOnly>
@@ -27,7 +27,7 @@ hero:
 <div style="text-align: center; margin: 80px auto; max-width: 800px; font-size: 20px;">
 
 ```bash
-bun add @avplay/core mediabunny
+bun add @mediafox/core mediabunny
 ```
 
 </div>
@@ -37,7 +37,7 @@ bun add @avplay/core mediabunny
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;">
 <div>
 <h1 style="background: -webkit-linear-gradient(-30deg, #3b82f6, #06b6d4); -webkit-background-clip: text; color: transparent; display: inline-block;">Complete media playback control</h1>
-<p style="font-size: 18px; line-height: 1.6;">AVPlay gives you full control over video playback without imposing any UI constraints. Handle multi-track media files with video, audio, and subtitle tracks. Perfect canvas-based rendering with hardware acceleration.</p>
+<p style="font-size: 18px; line-height: 1.6;">MediaFox gives you full control over video playback without imposing any UI constraints. Handle multi-track media files with video, audio, and subtitle tracks. Perfect canvas-based rendering with hardware acceleration.</p>
 <a href="/guide/basic-usage" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: var(--vp-c-brand);">
     Learn more
     <span style="margin-left: 4px;">→</span>
@@ -46,9 +46,9 @@ bun add @avplay/core mediabunny
 <div style="font-size: 14px; position: relative;">
 
 ```typescript
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: document.querySelector('#canvas'),
   volume: 0.8,
   autoplay: false
@@ -132,7 +132,7 @@ function VideoPlayer({ src }) {
   const [state, setState] = useState(null);
 
   useEffect(() => {
-    const player = new AVPlay({ renderTarget: canvasRef.current });
+    const player = new MediaFox({ renderTarget: canvasRef.current });
     const { unsubscribe } = player.subscribe(setState);
 
     playerRef.current = player;
@@ -143,12 +143,12 @@ function VideoPlayer({ src }) {
 }
 
 // Vue
-const player = new AVPlay({ renderTarget: canvasRef.value });
+const player = new MediaFox({ renderTarget: canvasRef.value });
 const state = ref(null);
 player.subscribe(newState => state.value = newState);
 
 // Vanilla
-const player = new AVPlay({ renderTarget: canvas });
+const player = new MediaFox({ renderTarget: canvas });
 player.subscribe(state => updateUI(state));
 ```
 
@@ -160,13 +160,13 @@ player.subscribe(state => updateUI(state));
 
 ```typescript
 import {
-  AVPlay,
+  MediaFox,
   PlayerStateData,
   VideoTrackInfo,
   AudioTrackInfo
-} from '@avplay/core';
+} from '@mediafox/core';
 
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: canvas,
   volume: 0.8
 });
@@ -206,13 +206,13 @@ player.subscribe((state: PlayerStateData) => {
 
 ```typescript
 // Auto-detect best renderer
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: canvas
   // Automatically uses WebGPU, WebGL, or Canvas2D
 });
 
 // Check available renderers
-const supported = AVPlay.getSupportedRenderers();
+const supported = MediaFox.getSupportedRenderers();
 console.log('Available:', supported);
 // Output: ['webgpu', 'webgl', 'canvas2d']
 

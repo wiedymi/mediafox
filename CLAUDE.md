@@ -1,14 +1,14 @@
-# AVPlay Development Guide
+# MediaFox Development Guide
 
 ## Project Overview
 
-AVPlay is a framework-agnostic video player library that wraps Mediabunny functionality with an ergonomic TypeScript API. It provides complete control over media playback while allowing developers to build their own UI.
+MediaFox is a framework-agnostic Media Player library that wraps Mediabunny functionality with an ergonomic TypeScript API. It provides complete control over media playback while allowing developers to build their own UI.
 
 ## Architecture
 
 ### Core Components
 
-1. **AVPlay Class** (`src/avplay.ts`)
+1. **MediaFox Class** (`src/mediafox.ts`)
    - Main player class that orchestrates all components
    - Manages state, events, and provides public API
    - Integrates with all subsystems
@@ -198,11 +198,11 @@ Use these commands from the repository root to validate changes before merging:
 
 - Typecheck
   - `bun run typecheck` (runs in all workspaces)
-  - Package-only: `bun run --filter avplay typecheck`
+  - Package-only: `bun run --filter mediafox typecheck`
 
 - Build
   - `bun run build` (builds all workspaces)
-  - Package-only: `bun run --filter avplay build`
+  - Package-only: `bun run --filter mediafox build`
 
 - Biome (Lint/Format/Check)
   - Lint (auto-fix safe issues): `bun run lint`
@@ -211,7 +211,7 @@ Use these commands from the repository root to validate changes before merging:
   - CI (no writes, reports only): `bun run ci`
 
 Tips
-- If a typecheck fails, narrow scope: `bun run --cwd packages/avplay typecheck`
+- If a typecheck fails, narrow scope: `bun run --cwd packages/mediafox typecheck`
 - Re-run Biome after edits to keep formatting consistent
 - Ensure no explicit `any` is introduced (enforced during review)
 - [ ] WASM acceleration for video processing

@@ -1,8 +1,8 @@
-# AVPlay Player API
+# MediaFox Player API
 
 ## Constructor
 
-### `new AVPlay(options?)`
+### `new MediaFox(options?)`
 
 Creates a new player instance with comprehensive media playback capabilities.
 
@@ -33,14 +33,14 @@ constructor(options?: PlayerOptions)
 
 ```typescript
 // Basic setup
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: document.querySelector('#video-canvas'),
   volume: 0.8,
   autoplay: true
 });
 
 // Advanced configuration
-const advancedPlayer = new AVPlay({
+const advancedPlayer = new MediaFox({
   renderTarget: canvas,
   audioContext: new AudioContext(),
   volume: 0.7,
@@ -96,7 +96,7 @@ async function initDemoPlayer() {
     demoPlayer.destroy();
   }
 
-  demoPlayer = new AVPlay({
+  demoPlayer = new MediaFox({
     renderTarget: canvas,
     autoplay,
     volume
@@ -850,12 +850,12 @@ static getSupportedRenderers(): RendererType[]
 **Example:**
 
 ```typescript
-const supported = AVPlay.getSupportedRenderers();
+const supported = MediaFox.getSupportedRenderers();
 console.log('Supported renderers:', supported);
 // Output: ['webgpu', 'webgl', 'canvas2d'] or ['webgl', 'canvas2d'] etc.
 
 // Use best available renderer
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: canvas,
   renderer: supported[0] // Use best available
 });
@@ -1056,7 +1056,7 @@ player.destroy();
 
 ## Events
 
-AVPlay emits various events during playback. All events are strongly typed.
+MediaFox emits various events during playback. All events are strongly typed.
 
 ### Media Events
 
@@ -1114,7 +1114,7 @@ AVPlay emits various events during playback. All events are strongly typed.
 
 | Event | Data Type | Description |
 |-------|-----------|-------------|
-| `error` | `AVPlayError` | An error has occurred |
+| `error` | `MediaFoxError` | An error has occurred |
 
 ### Event Example
 

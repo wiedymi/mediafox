@@ -1,17 +1,17 @@
 # Basic Usage
 
-This guide covers the fundamental concepts and basic usage patterns of AVPlay. For hands-on learning, check out the **interactive demo on the home page** first!
+This guide covers the fundamental concepts and basic usage patterns of MediaFox. For hands-on learning, check out the **interactive demo on the home page** first!
 
 ## Core Concepts
 
 ### 1. The Player Instance
 
-AVPlay follows an object-oriented approach where you create a player instance:
+MediaFox follows an object-oriented approach where you create a player instance:
 
 ```typescript
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
-const player = new AVPlay(options);
+const player = new MediaFox(options);
 ```
 
 Each instance manages its own:
@@ -27,7 +27,7 @@ See this in action in the **live demo on the home page** - load your own videos 
 
 ### 2. Media Sources
 
-AVPlay accepts various media sources. **Try them all in the interactive demo!**
+MediaFox accepts various media sources. **Try them all in the interactive demo!**
 
 ```typescript
 // File from input element
@@ -57,7 +57,7 @@ The **live demo on the home page** lets you try loading videos from files, URLs,
 
 ### 3. Canvas Rendering
 
-AVPlay renders video to a canvas element for maximum performance and control:
+MediaFox renders video to a canvas element for maximum performance and control:
 
 ```html
 <canvas id="video-canvas" width="1280" height="720"></canvas>
@@ -65,7 +65,7 @@ AVPlay renders video to a canvas element for maximum performance and control:
 
 ```typescript
 const canvas = document.querySelector('#video-canvas');
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: canvas
 });
 ```
@@ -217,7 +217,7 @@ player.on('error', (error) => {
 
 ## Complete Example
 
-Here's a minimal but complete video player:
+Here's a minimal but complete Media Player:
 
 ```html
 <!DOCTYPE html>
@@ -266,10 +266,10 @@ Here's a minimal but complete video player:
   </div>
 
   <script type="module">
-    import { AVPlay, formatTime } from '@avplay/core';
+    import { MediaFox, formatTime } from '@mediafox/core';
 
     // Initialize player
-    const player = new AVPlay({
+    const player = new MediaFox({
       renderTarget: document.getElementById('video')
     });
 
@@ -325,7 +325,7 @@ Here's a minimal but complete video player:
 
 ```javascript
 // Browsers require muted autoplay
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: canvas,
   autoplay: true,
   muted: true

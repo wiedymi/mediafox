@@ -2,23 +2,23 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "AVPlay",
+  title: "MediaFox",
   description:
-    "Framework-agnostic, TypeScript-first video player library powered by Mediabunny. Full control over rendering and UI.",
+    "Framework-agnostic, TypeScript-first media player library powered by Mediabunny. Full control over rendering and UI.",
 
   head: [
     ["meta", { name: "theme-color", content: "#3b82f6" }],
     ["meta", { name: "og:type", content: "website" }],
     [
       "meta",
-      { name: "og:title", content: "AVPlay - Modern Video Player Library" },
+      { name: "og:title", content: "MediaFox - Modern Media Player Library" },
     ],
     [
       "meta",
       {
         name: "og:description",
         content:
-          "Framework-agnostic, TypeScript-first video player library powered by Mediabunny",
+          "Framework-agnostic, TypeScript-first media player library powered by Mediabunny",
       },
     ],
     [
@@ -55,7 +55,7 @@ export default defineConfig({
           { text: "Utilities", link: "/api/utilities" },
         ],
       },
-      { text: "GitHub", link: "https://github.com/wiedymi/avplay" },
+      { text: "GitHub", link: "https://github.com/wiedymi/mediafox" },
     ],
 
     sidebar: {
@@ -121,13 +121,13 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: "https://github.com/wiedymi/avplay/edit/main/docs/:path",
+      pattern: "https://github.com/wiedymi/mediafox/edit/main/docs/:path",
       text: "Edit this page on GitHub",
     },
 
     socialLinks: [
-      { icon: "github", link: "https://github.com/wiedymi/avplay" },
-      { icon: "npm", link: "https://www.npmjs.com/package/@avplay/core" },
+      { icon: "github", link: "https://github.com/wiedymi/mediafox" },
+      { icon: "npm", link: "https://www.npmjs.com/package/@mediafox/core" },
     ],
   },
 

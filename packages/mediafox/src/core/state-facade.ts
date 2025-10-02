@@ -22,7 +22,7 @@ export class StateFacade {
     this.store.setState({ volume, muted, playbackRate });
   }
 
-  // Updates used by AVPlay
+  // Updates used by MediaFox
   updateLoadingState(): void {
     this.store.updateLoadingState();
   }

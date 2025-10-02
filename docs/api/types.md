@@ -1,6 +1,6 @@
 # TypeScript Types Documentation
 
-AVPlay provides comprehensive TypeScript support with detailed type definitions for all APIs. This document covers all the available types and interfaces.
+MediaFox provides comprehensive TypeScript support with detailed type definitions for all APIs. This document covers all the available types and interfaces.
 
 ## Core Player Types
 
@@ -503,7 +503,7 @@ interface Plugin {
   readonly version: string;
 
   /** Initialize the plugin */
-  init(player: AVPlay, options?: any): void | Promise<void>;
+  init(player: MediaFox, options?: any): void | Promise<void>;
 
   /** Cleanup when plugin is destroyed */
   destroy?(): void | Promise<void>;
@@ -680,7 +680,7 @@ type PlayerEventName = typeof PLAYER_EVENTS[number];
 ```typescript
 declare global {
   interface Window {
-    AVPlay: typeof AVPlay;
+    MediaFox: typeof MediaFox;
   }
 }
 ```
@@ -690,9 +690,9 @@ declare global {
 ```typescript
 declare module 'html-canvas-element' {
   interface HTMLCanvasElement {
-    avplayPlayer?: AVPlay;
+    mediafoxPlayer?: MediaFox;
   }
 }
 ```
 
-This comprehensive type system provides full IntelliSense support and compile-time safety when using AVPlay with TypeScript.
+This comprehensive type system provides full IntelliSense support and compile-time safety when using MediaFox with TypeScript.

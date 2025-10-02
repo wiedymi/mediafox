@@ -1,12 +1,12 @@
 # Performance Optimization Guide
 
-This guide covers best practices and techniques for optimizing AVPlay performance in various scenarios and use cases.
+This guide covers best practices and techniques for optimizing MediaFox performance in various scenarios and use cases.
 
 ## Core Performance Concepts
 
-AVPlay is built with performance in mind, but understanding its internals helps you optimize your implementation:
+MediaFox is built with performance in mind, but understanding its internals helps you optimize your implementation:
 
-- **Frame Buffering**: AVPlay buffers video frames for smooth playback
+- **Frame Buffering**: MediaFox buffers video frames for smooth playback
 - **Audio Scheduling**: Audio is scheduled ahead of time using Web Audio API
 - **Canvas Rendering**: Efficient canvas operations with frame pooling
 - **State Management**: Batched state updates to minimize re-renders
@@ -17,10 +17,10 @@ AVPlay is built with performance in mind, but understanding its internals helps 
 ### Frame Management
 
 ```typescript
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 // Configure frame buffer size based on use case
-const player = new AVPlay({
+const player = new MediaFox({
   canvas: canvasElement,
   frameBufferSize: 30, // Number of frames to buffer (default: 10)
   maxMemoryUsage: 100 * 1024 * 1024 // 100MB memory limit
@@ -79,11 +79,11 @@ class CanvasPoolManager {
   }
 }
 
-// Use with AVPlay
+// Use with MediaFox
 const canvasPool = new CanvasPoolManager();
 
 // Configure player to use canvas pool
-const player = new AVPlay({
+const player = new MediaFox({
   canvas: canvasElement,
   canvasPool: canvasPool
 });
@@ -93,24 +93,24 @@ const player = new AVPlay({
 
 ### Multi-Renderer System
 
-AVPlay now includes an automatic multi-renderer system that optimizes performance by selecting the best available rendering backend:
+MediaFox now includes an automatic multi-renderer system that optimizes performance by selecting the best available rendering backend:
 
 ```typescript
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 // Check available renderers in your environment
-const supported = AVPlay.getSupportedRenderers();
+const supported = MediaFox.getSupportedRenderers();
 console.log('Supported renderers:', supported);
 // Output: ['webgpu', 'webgl', 'canvas2d'] (in order of preference)
 
-// Let AVPlay auto-select the best renderer
-const player = new AVPlay({
+// Let MediaFox auto-select the best renderer
+const player = new MediaFox({
   renderTarget: canvas
   // renderer is auto-detected
 });
 
 // Or manually specify a renderer
-const webglPlayer = new AVPlay({
+const webglPlayer = new MediaFox({
   renderTarget: canvas,
   renderer: 'webgl' // Force WebGL renderer
 });
@@ -172,10 +172,10 @@ player.on('rendererfallback', ({ from, to }) => {
 
 ```typescript
 class AdaptiveRenderer {
-  private player: AVPlay;
+  private player: MediaFox;
   private performanceMonitor: PerformanceMonitor;
 
-  constructor(player: AVPlay) {
+  constructor(player: MediaFox) {
     this.player = player;
     this.performanceMonitor = new PerformanceMonitor();
     this.setupAdaptiveRendering();
@@ -194,7 +194,7 @@ class AdaptiveRenderer {
 
     // If experiencing frame drops with Canvas2D, try to upgrade
     if (currentRenderer === 'canvas2d' && metrics.frameDropRate > 0.1) {
-      const supported = AVPlay.getSupportedRenderers();
+      const supported = MediaFox.getSupportedRenderers();
 
       for (const renderer of supported) {
         if (renderer !== 'canvas2d') {
@@ -231,7 +231,7 @@ class OptimizedRenderer {
   private rafId: number | null = null;
   private needsRedraw = false;
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupEfficientRendering();
   }
 
@@ -410,7 +410,7 @@ class OptimizedLoader {
   private currentRequests = 0;
   private maxConcurrentRequests = 3;
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupProgressiveLoading();
   }
 
@@ -481,7 +481,7 @@ class OptimizedLoader {
   private cacheSegment(url: string, buffer: ArrayBuffer) {
     // Implementation depends on your caching strategy
     if ('caches' in window) {
-      caches.open('avplay-segments').then(cache => {
+      caches.open('mediafox-segments').then(cache => {
         cache.put(url, new Response(buffer));
       });
     }
@@ -502,7 +502,7 @@ class AdaptiveBitrateController {
   private lastSwitchTime = 0;
   private minSwitchInterval = 10000; // 10 seconds
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupBandwidthMonitoring();
     this.setupQualityAdaptation();
   }
@@ -604,7 +604,7 @@ class PerformantEventManager {
   private eventQueue: Array<{type: string, data: any}> = [];
   private processingScheduled = false;
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupBatchedEvents();
   }
 
@@ -690,7 +690,7 @@ class VisibilityOptimizer {
   private isVisible = true;
   private reducedQuality = false;
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupVisibilityHandling();
   }
 
@@ -787,7 +787,7 @@ class PerformanceMonitor {
   private frameTimeHistory: number[] = [];
   private lastFrameTime = 0;
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupMonitoring();
   }
 
@@ -923,4 +923,4 @@ setInterval(() => {
 - Log performance metrics for debugging
 - Implement automated quality adaptation
 
-Following these optimization techniques will help you build high-performance video players that work well across different devices and network conditions.
+Following these optimization techniques will help you build high-performance Media Players that work well across different devices and network conditions.

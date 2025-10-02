@@ -1,6 +1,6 @@
 # Store API
 
-The Store class manages the internal state of the AVPlay player.
+The Store class manages the internal state of the MediaFox player.
 
 ## State Structure
 

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Before installing AVPlay, make sure you have:
+Before installing MediaFox, make sure you have:
 
 - Node.js 18+ or Bun installed
 - A modern browser that supports WebCodecs API
@@ -10,24 +10,24 @@ Before installing AVPlay, make sure you have:
 
 ## Package Managers
 
-AVPlay requires both the core package and mediabunny (peer dependency):
+MediaFox requires both the core package and mediabunny (peer dependency):
 
 ::: code-group
 
 ```bash [bun]
-bun add @avplay/core mediabunny
+bun add @mediafox/core mediabunny
 ```
 
 ```bash [npm]
-npm install @avplay/core mediabunny
+npm install @mediafox/core mediabunny
 ```
 
 ```bash [yarn]
-yarn add @avplay/core mediabunny
+yarn add @mediafox/core mediabunny
 ```
 
 ```bash [pnpm]
-pnpm add @avplay/core mediabunny
+pnpm add @mediafox/core mediabunny
 ```
 
 :::
@@ -43,28 +43,28 @@ For React applications, use the dedicated React package:
 ::: code-group
 
 ```bash [bun]
-bun add @avplay/react @avplay/core mediabunny
+bun add @mediafox/react @mediafox/core mediabunny
 ```
 
 ```bash [npm]
-npm install @avplay/react @avplay/core mediabunny
+npm install @mediafox/react @mediafox/core mediabunny
 ```
 
 ```bash [yarn]
-yarn add @avplay/react @avplay/core mediabunny
+yarn add @mediafox/react @mediafox/core mediabunny
 ```
 
 ```bash [pnpm]
-pnpm add @avplay/react @avplay/core mediabunny
+pnpm add @mediafox/react @mediafox/core mediabunny
 ```
 
 :::
 
 ## What's Included
 
-When you install AVPlay, you get:
+When you install MediaFox, you get:
 
-- **Core Player** - The main AVPlay class
+- **Core Player** - The main MediaFox class
 - **TypeScript Definitions** - Complete type definitions for TypeScript users
 - **Utilities** - Helper functions for time formatting, error handling, etc.
 
@@ -75,13 +75,13 @@ Mediabunny (installed separately) provides:
 
 ## CDN Usage
 
-For quick prototyping, you can use AVPlay from a CDN:
+For quick prototyping, you can use MediaFox from a CDN:
 
 ```html
 <script type="module">
-  import { AVPlay } from 'https://unpkg.com/@avplay/core@latest/dist/index.js';
+  import { MediaFox } from 'https://unpkg.com/@mediafox/core@latest/dist/index.js';
 
-  const player = new AVPlay({
+  const player = new MediaFox({
     renderTarget: document.querySelector('canvas')
   });
 </script>
@@ -93,7 +93,7 @@ CDN usage is not recommended for production as it may impact performance and rel
 
 ## Browser Requirements
 
-AVPlay requires modern browser features:
+MediaFox requires modern browser features:
 
 | Feature | Required For | Browser Support |
 |---------|-------------|-----------------|
@@ -104,7 +104,7 @@ AVPlay requires modern browser features:
 
 ## TypeScript Configuration
 
-If you're using TypeScript, AVPlay includes all necessary type definitions. Your `tsconfig.json` should include:
+If you're using TypeScript, MediaFox includes all necessary type definitions. Your `tsconfig.json` should include:
 
 ```json
 {
@@ -119,24 +119,24 @@ If you're using TypeScript, AVPlay includes all necessary type definitions. Your
 
 ## Verify Installation
 
-After installation, you can verify AVPlay is working:
+After installation, you can verify MediaFox is working:
 
 ```javascript
-import { AVPlay, VERSION } from '@avplay/core';
+import { MediaFox, VERSION } from '@mediafox/core';
 
-console.log(`AVPlay version: ${VERSION}`);
+console.log(`MediaFox version: ${VERSION}`);
 
 // Create a test instance
-const player = new AVPlay();
+const player = new MediaFox();
 console.log('Player created successfully!');
 ```
 
 ## Bundle Size
 
-AVPlay is designed to be lightweight:
+MediaFox is designed to be lightweight:
 
-- **@avplay/core**: ~38KB minified (mediabunny excluded as peer dependency)
-- **@avplay/react**: ~3KB minified
+- **@mediafox/core**: ~38KB minified (mediabunny excluded as peer dependency)
+- **@mediafox/react**: ~3KB minified
 - **mediabunny**: ~220KB minified (peer dependency, loaded separately)
 - **Total Gzipped**: ~80KB total
 
@@ -147,8 +147,8 @@ The library is tree-shakable, so you only include what you use.
 For development, you might want to clone the repository:
 
 ```bash
-git clone https://github.com/wiedymi/avplay.git
-cd avplay
+git clone https://github.com/wiedymi/mediafox.git
+cd mediafox
 bun install
 bun run dev
 ```

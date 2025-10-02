@@ -1,10 +1,10 @@
 # Vanilla JavaScript Guide
 
-This guide demonstrates how to use AVPlay with vanilla JavaScript/TypeScript without any framework dependencies.
+This guide demonstrates how to use MediaFox with vanilla JavaScript/TypeScript without any framework dependencies.
 
 ## Basic Setup
 
-AVPlay works perfectly with vanilla JavaScript. Here's a simple setup:
+MediaFox works perfectly with vanilla JavaScript. Here's a simple setup:
 
 ```html
 <!DOCTYPE html>
@@ -12,7 +12,7 @@ AVPlay works perfectly with vanilla JavaScript. Here's a simple setup:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AVPlay Vanilla Player</title>
+    <title>MediaFox Vanilla Player</title>
     <style>
         .player-container {
             max-width: 800px;
@@ -63,7 +63,7 @@ AVPlay works perfectly with vanilla JavaScript. Here's a simple setup:
 </head>
 <body>
     <div class="player-container">
-        <h1>AVPlay Video Player</h1>
+        <h1>MediaFox Media Player</h1>
         <canvas id="video-canvas"></canvas>
 
         <div class="controls">
@@ -91,7 +91,7 @@ AVPlay works perfectly with vanilla JavaScript. Here's a simple setup:
 
 ```javascript
 // player.js
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 class VanillaVideoPlayer {
     constructor() {
@@ -118,7 +118,7 @@ class VanillaVideoPlayer {
             this.player.destroy();
         }
 
-        this.player = new AVPlay({
+        this.player = new MediaFox({
             canvas: this.canvas
         });
 
@@ -355,7 +355,7 @@ For TypeScript projects, here's a more type-safe version:
 
 ```typescript
 // player.ts
-import { AVPlay, type PlayerState, type PlayerEvents } from '@avplay/core';
+import { MediaFox, type PlayerState, type PlayerEvents } from '@mediafox/core';
 
 interface PlayerElements {
     canvas: HTMLCanvasElement;
@@ -371,7 +371,7 @@ interface PlayerElements {
 }
 
 class TypedVideoPlayer {
-    private player: AVPlay | null = null;
+    private player: MediaFox | null = null;
     private elements: PlayerElements;
 
     constructor() {
@@ -408,7 +408,7 @@ class TypedVideoPlayer {
             this.player.destroy();
         }
 
-        this.player = new AVPlay({
+        this.player = new MediaFox({
             canvas: this.elements.canvas
         });
 
@@ -767,4 +767,4 @@ class ProgressTracker {
 }
 ```
 
-This guide provides a solid foundation for using AVPlay in vanilla JavaScript environments, with examples ranging from basic setup to advanced features and TypeScript integration.
+This guide provides a solid foundation for using MediaFox in vanilla JavaScript environments, with examples ranging from basic setup to advanced features and TypeScript integration.

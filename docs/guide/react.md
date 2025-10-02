@@ -1,23 +1,23 @@
 # React Integration
 
-AVPlay works seamlessly with React. This guide shows you how to create a custom video player component using the official `@avplay/react` package.
+MediaFox works seamlessly with React. This guide shows you how to create a custom Media Player component using the official `@mediafox/react` package.
 
 ## Installation
 
 ```bash
-npm install @avplay/react @avplay/core
+npm install @mediafox/react @mediafox/core
 # or
-bun add @avplay/react @avplay/core
+bun add @mediafox/react @mediafox/core
 ```
 
-## useAVPlay Hook
+## useMediaFox Hook
 
-The `@avplay/react` package provides a `useAVPlay` hook that manages the player lifecycle and provides reactive state updates:
+The `@mediafox/react` package provides a `useMediaFox` hook that manages the player lifecycle and provides reactive state updates:
 
 ```typescript
-import { useAVPlay } from '@avplay/react';
+import { useMediaFox } from '@mediafox/react';
 
-const { player, state, load, play, pause, seek } = useAVPlay({
+const { player, state, load, play, pause, seek } = useMediaFox({
   renderTarget: canvasRef.current,
   volume: 0.8,
   onError: (error) => console.error(error)
@@ -28,15 +28,15 @@ The hook handles:
 - Player initialization and cleanup
 - Reactive state synchronization (using `useSyncExternalStore`)
 - Event handler setup
-- SSR safety (lazy loads AVPlay)
+- SSR safety (lazy loads MediaFox)
 
-## Simple Video Player Component
+## Simple Media Player Component
 
 ```tsx
 // VideoPlayer.tsx
 import React, { useRef, useEffect } from 'react';
-import { useAVPlay } from '@avplay/react';
-import { formatTime } from '@avplay/core';
+import { useMediaFox } from '@mediafox/react';
+import { formatTime } from '@mediafox/core';
 
 interface VideoPlayerProps {
   src: string | File | Blob;
@@ -51,7 +51,7 @@ export function VideoPlayer({ src, autoplay }: VideoPlayerProps) {
     load,
     play,
     pause
-  } = useAVPlay({
+  } = useMediaFox({
     renderTarget: canvasRef.current!,
     autoplay,
     onError: (error) => console.error('Player error:', error)
@@ -112,7 +112,7 @@ export function VideoPlayer({ src, autoplay }: VideoPlayerProps) {
 ```tsx
 // AdvancedPlayer.tsx
 import React, { useRef, useEffect, useState } from 'react';
-import { AVPlay, formatTime, VideoTrackInfo, AudioTrackInfo } from '@avplay/core';
+import { MediaFox, formatTime, VideoTrackInfo, AudioTrackInfo } from '@mediafox/core';
 
 interface AdvancedPlayerProps {
   src: string | File | Blob;
@@ -120,7 +120,7 @@ interface AdvancedPlayerProps {
 
 export function AdvancedPlayer({ src }: AdvancedPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerRef = useRef<AVPlay>();
+  const playerRef = useRef<MediaFox>();
   const [state, setState] = useState<any>(null);
   const [videoTracks, setVideoTracks] = useState<VideoTrackInfo[]>([]);
   const [audioTracks, setAudioTracks] = useState<AudioTrackInfo[]>([]);
@@ -132,7 +132,7 @@ export function AdvancedPlayer({ src }: AdvancedPlayerProps) {
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const player = new AVPlay({
+    const player = new MediaFox({
       renderTarget: canvasRef.current,
       volume
     });
@@ -373,7 +373,7 @@ export function AdvancedPlayer({ src }: AdvancedPlayerProps) {
 
 ```tsx
 interface VolumeSliderProps {
-  player: AVPlay;
+  player: MediaFox;
   volume: number;
   muted: boolean;
 }
@@ -447,15 +447,15 @@ function ProgressBar({ currentTime, duration, buffered, onSeek }: ProgressBarPro
 ```typescript
 // playerSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
-let playerInstance: AVPlay | null = null;
+let playerInstance: MediaFox | null = null;
 
 export const loadMedia = createAsyncThunk(
   'player/load',
   async (source: any) => {
     if (!playerInstance) {
-      playerInstance = new AVPlay();
+      playerInstance = new MediaFox();
     }
     await playerInstance.load(source);
     return playerInstance.getState();
@@ -505,10 +505,10 @@ export const playerSlice = createSlice({
 ```typescript
 // usePlayerStore.ts
 import { create } from 'zustand';
-import { AVPlay, PlayerStateData } from '@avplay/core';
+import { MediaFox, PlayerStateData } from '@mediafox/core';
 
 interface PlayerStore extends PlayerStateData {
-  player: AVPlay | null;
+  player: MediaFox | null;
   initPlayer: (options?: any) => void;
   loadMedia: (source: any) => Promise<void>;
   play: () => Promise<void>;
@@ -530,7 +530,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   player: null,
 
   initPlayer: (options) => {
-    const player = new AVPlay(options);
+    const player = new MediaFox(options);
 
     // Subscribe to state changes
     player.subscribe((state) => {
@@ -584,7 +584,7 @@ Always dispose of the player when unmounting:
 
 ```tsx
 useEffect(() => {
-  const player = new AVPlay(options);
+  const player = new MediaFox(options);
 
   return () => {
     player.dispose();
@@ -642,6 +642,6 @@ const handlePlay = useCallback(async () => {
 
 ## Next Steps
 
-- [Vue Integration](/guide/vue) - Using AVPlay with Vue
+- [Vue Integration](/guide/vue) - Using MediaFox with Vue
 - [API Reference](/api/player) - Complete API documentation
 - [Live Demo](/) - Interactive demo on the home page

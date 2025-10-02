@@ -1,10 +1,10 @@
 # Event Handling Guide
 
-AVPlay provides a comprehensive event system that allows you to respond to various playback events. This guide covers all available events and best practices for event handling.
+MediaFox provides a comprehensive event system that allows you to respond to various playback events. This guide covers all available events and best practices for event handling.
 
 ## Overview
 
-AVPlay's event system is built on a type-safe EventEmitter that supports all standard HTML media events plus custom AVPlay-specific events. Events provide notifications about state changes, user interactions, and system status.
+MediaFox's event system is built on a type-safe EventEmitter that supports all standard HTML media events plus custom MediaFox-specific events. Events provide notifications about state changes, user interactions, and system status.
 
 ## Available Events
 
@@ -120,7 +120,7 @@ function handleMediaError(error: MediaError) {
 }
 ```
 
-### AVPlay-Specific Events
+### MediaFox-Specific Events
 
 ```typescript
 // Track management events
@@ -194,7 +194,7 @@ player.removeAllListeners();
 class PlayerManager {
   private eventHandlers = new Map();
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupEventListeners();
   }
 
@@ -234,7 +234,7 @@ class PlayerManager {
 
 ```typescript
 class EventChain {
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupEventChain();
   }
 
@@ -325,7 +325,7 @@ player.on('progress', throttledProgress);
 class EventDelegator {
   private eventQueue: Array<{event: string, data: any, timestamp: number}> = [];
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupDelegation();
   }
 
@@ -383,10 +383,10 @@ class EventDelegator {
 
 ```typescript
 import { useEffect } from 'react';
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 function usePlayerEvents(
-  player: AVPlay | null,
+  player: MediaFox | null,
   events: Record<string, (...args: any[]) => void>
 ) {
   useEffect(() => {
@@ -408,7 +408,7 @@ function usePlayerEvents(
 
 // Usage
 function VideoPlayer() {
-  const [player, setPlayer] = useState<AVPlay | null>(null);
+  const [player, setPlayer] = useState<MediaFox | null>(null);
 
   const eventHandlers = useMemo(() => ({
     play: () => setIsPlaying(true),
@@ -427,10 +427,10 @@ function VideoPlayer() {
 
 ```typescript
 import { onMounted, onUnmounted } from 'vue';
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 export function usePlayerEvents(
-  player: Ref<AVPlay | null>,
+  player: Ref<MediaFox | null>,
   events: Record<string, Function>
 ) {
   const eventHandlers = new Map();
@@ -468,7 +468,7 @@ export function usePlayerEvents(
 // playerEvents.ts
 export function playerEvents(
   node: HTMLElement,
-  { player, events }: { player: AVPlay, events: Record<string, Function> }
+  { player, events }: { player: MediaFox, events: Record<string, Function> }
 ) {
   const eventHandlers = new Map();
 
@@ -516,7 +516,7 @@ export function playerEvents(
 
 ```typescript
 class ErrorHandler {
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupErrorHandling();
   }
 
@@ -596,7 +596,7 @@ class ErrorHandler {
 ```typescript
 // Monitor event listener count
 class EventMonitor {
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.monitorListeners();
   }
 
@@ -639,4 +639,4 @@ class EventMonitor {
 7. **Batch Operations**: Group related operations in event handlers
 8. **Avoid Side Effects**: Keep event handlers focused and predictable
 
-The event system in AVPlay provides powerful capabilities for building responsive and interactive video players while maintaining good performance and developer experience.
+The event system in MediaFox provides powerful capabilities for building responsive and interactive Media Players while maintaining good performance and developer experience.

@@ -1,15 +1,15 @@
-# AVPlay - Monorepo
+# MediaFox - Monorepo
 
-A monorepo for AVPlay, a framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny).
+A monorepo for MediaFox, a framework-agnostic, TypeScript-first Media Player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny).
 
 ```bash
-bun add @avplay/core mediabunny
+bun add @mediafox/core mediabunny
 ```
 
 ## Packages
 
-- **[@avplay/core](./packages/avplay)** - Core video player library
-- **[@avplay/react](./packages/react)** - React hooks for AVPlay
+- **[@mediafox/core](./packages/mediafox)** - Core Media Player library
+- **[@mediafox/react](./packages/react)** - React hooks for MediaFox
 
 ## Getting Started
 
@@ -35,10 +35,10 @@ bun run docs:build
 ## Workspace Structure
 
 ```
-avplay/
+mediafox/
 ├── packages/
-│   ├── avplay/         # Core player library (@avplay/core)
-│   └── react/          # React hooks (@avplay/react)
+│   ├── mediafox/         # Core player library (@mediafox/core)
+│   └── react/          # React hooks (@mediafox/react)
 ├── docs/               # Documentation site
 ├── scripts/            # Build and utility scripts
 └── package.json        # Workspace configuration
@@ -57,8 +57,8 @@ avplay/
 You can run commands for specific packages using filters:
 
 ```bash
-# Run build for @avplay/core package only
-bun run --filter @avplay/core build
+# Run build for @mediafox/core package only
+bun run --filter @mediafox/core build
 
 # Run tests for all packages
 bun run test
