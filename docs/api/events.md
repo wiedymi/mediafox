@@ -1,12 +1,12 @@
 # Events API Documentation
 
-AVPlay provides a comprehensive event system that allows you to respond to various player states and user interactions. This document details all available events and their usage.
+MediaFox provides a comprehensive event system that allows you to respond to various player states and user interactions. This document details all available events and their usage.
 
 ## Event System Overview
 
-AVPlay's event system is built on a type-safe EventEmitter that:
+MediaFox's event system is built on a type-safe EventEmitter that:
 - Supports all standard HTML media events
-- Provides AVPlay-specific events for advanced functionality
+- Provides MediaFox-specific events for advanced functionality
 - Includes proper TypeScript typing for all events
 - Implements memory leak protection
 - Supports event listener limits and cleanup
@@ -582,7 +582,7 @@ player.on('error', (error) => {
 
   // Report to error tracking service
   errorTracker.report(error, {
-    player: 'avplay',
+    player: 'mediafox',
     version: '1.0.0',
     userAgent: navigator.userAgent
   });
@@ -616,4 +616,4 @@ player.on('error', (error) => {
 6. **Type Safety**: Leverage TypeScript types for event parameters
 7. **Avoid Memory Leaks**: Set reasonable listener limits and clean up properly
 
-The event system in AVPlay provides comprehensive coverage of all player states and interactions, enabling you to build responsive and feature-rich video applications.
+The event system in MediaFox provides comprehensive coverage of all player states and interactions, enabling you to build responsive and feature-rich video applications.

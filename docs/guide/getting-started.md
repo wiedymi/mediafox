@@ -1,36 +1,36 @@
 # Getting Started
 
-Welcome to AVPlay! Let's get you up and running with a powerful video player in just a few minutes.
+Welcome to MediaFox! Let's get you up and running with a powerful Media Player in just a few minutes.
 
 ## Quick Start
 
 ### Try It Now!
 
-Before diving into the code, **try the interactive demo** to see AVPlay in action:
+Before diving into the code, **try the interactive demo** to see MediaFox in action:
 
-- **Live Player Demo** - Interactive video player on the home page with all essential features
+- **Live Player Demo** - Interactive Media Player on the home page with all essential features
 - **[Player API Reference](/api/player)** - Complete API documentation with examples
 
 ### Installation
 
-Install AVPlay and its peer dependency mediabunny:
+Install MediaFox and its peer dependency mediabunny:
 
 ::: code-group
 
 ```bash [bun]
-bun add @avplay/core mediabunny
+bun add @mediafox/core mediabunny
 ```
 
 ```bash [npm]
-npm install @avplay/core mediabunny
+npm install @mediafox/core mediabunny
 ```
 
 ```bash [yarn]
-yarn add @avplay/core mediabunny
+yarn add @mediafox/core mediabunny
 ```
 
 ```bash [pnpm]
-pnpm add @avplay/core mediabunny
+pnpm add @mediafox/core mediabunny
 ```
 
 :::
@@ -40,26 +40,26 @@ For React, use the dedicated package:
 ::: code-group
 
 ```bash [bun]
-bun add @avplay/react @avplay/core mediabunny
+bun add @mediafox/react @mediafox/core mediabunny
 ```
 
 ```bash [npm]
-npm install @avplay/react @avplay/core mediabunny
+npm install @mediafox/react @mediafox/core mediabunny
 ```
 
 ```bash [yarn]
-yarn add @avplay/react @avplay/core mediabunny
+yarn add @mediafox/react @mediafox/core mediabunny
 ```
 
 ```bash [pnpm]
-pnpm add @avplay/react @avplay/core mediabunny
+pnpm add @mediafox/react @mediafox/core mediabunny
 ```
 
 :::
 
 ### Browser Support
 
-AVPlay works in all modern browsers:
+MediaFox works in all modern browsers:
 
 | Browser | Minimum Version |
 |---------|----------------|
@@ -82,17 +82,17 @@ Here's the fastest way to get started:
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My First AVPlay Player</title>
+  <title>My First MediaFox Player</title>
 </head>
 <body>
   <canvas id="player" width="1280" height="720"></canvas>
 
   <script type="module">
-    import { AVPlay } from '@avplay/core';
+    import { MediaFox } from '@mediafox/core';
 
     // Create player
     const canvas = document.querySelector('#player');
-    const player = new AVPlay({
+    const player = new MediaFox({
       renderTarget: canvas,
       volume: 0.8
     });
@@ -111,7 +111,7 @@ Here's the fastest way to get started:
 
 #### 1. Create Canvas Element
 
-AVPlay renders video to a canvas element for maximum control:
+MediaFox renders video to a canvas element for maximum control:
 
 ```html
 <canvas id="video-canvas" width="1280" height="720"></canvas>
@@ -120,10 +120,10 @@ AVPlay renders video to a canvas element for maximum control:
 #### 2. Initialize Player
 
 ```typescript
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 const canvas = document.querySelector('#video-canvas');
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: canvas,
   volume: 0.8,
   autoplay: false
@@ -132,7 +132,7 @@ const player = new AVPlay({
 
 #### 3. Load Media
 
-AVPlay accepts various media sources:
+MediaFox accepts various media sources:
 
 ```typescript
 // From file input
@@ -209,16 +209,16 @@ For a minimal working example, copy this HTML:
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Quick AVPlay Player</title>
+  <title>Quick MediaFox Player</title>
 </head>
 <body>
   <canvas id="player" width="1280" height="720"></canvas>
 
   <script type="module">
-    import { AVPlay } from '@avplay/core';
+    import { MediaFox } from '@mediafox/core';
 
     const canvas = document.querySelector('#player');
-    const player = new AVPlay({ renderTarget: canvas });
+    const player = new MediaFox({ renderTarget: canvas });
 
     // Load sample video
     await player.load('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
@@ -234,7 +234,7 @@ The **live demo on the home page** includes all the essential controls and featu
 
 ## Browser Requirements
 
-AVPlay requires modern browser features:
+MediaFox requires modern browser features:
 
 - **WebCodecs API** - For hardware-accelerated video decoding
 - **Web Audio API** - For audio playback
@@ -258,10 +258,10 @@ Check [caniuse.com/webcodecs](https://caniuse.com/webcodecs) for the latest brow
 
 ## TypeScript Support
 
-AVPlay is written in TypeScript with full type safety:
+MediaFox is written in TypeScript with full type safety:
 
 ```typescript
-import { AVPlay, PlayerOptions, PlayerStateData } from '@avplay/core';
+import { MediaFox, PlayerOptions, PlayerStateData } from '@mediafox/core';
 
 const options: PlayerOptions = {
   renderTarget: canvas,
@@ -269,7 +269,7 @@ const options: PlayerOptions = {
   autoplay: true
 };
 
-const player = new AVPlay(options);
+const player = new MediaFox(options);
 
 player.subscribe((state: PlayerStateData) => {
   // Full IntelliSense and type checking
@@ -287,9 +287,9 @@ player.subscribe((state: PlayerStateData) => {
 
 ### Learn More
 - **[API Reference](/api/player)** - Complete documentation with live examples
-- **[React Integration](/guide/react)** - Use AVPlay in React applications
-- **[Vue Integration](/guide/vue)** - Use AVPlay in Vue applications
-- **[Angular Integration](/guide/angular)** - Use AVPlay in Angular applications
+- **[React Integration](/guide/react)** - Use MediaFox in React applications
+- **[Vue Integration](/guide/vue)** - Use MediaFox in Vue applications
+- **[Angular Integration](/guide/angular)** - Use MediaFox in Angular applications
 
 ## Common Issues & Solutions
 
@@ -297,7 +297,7 @@ player.subscribe((state: PlayerStateData) => {
 When loading videos from a different domain:
 
 ```typescript
-const player = new AVPlay({
+const player = new MediaFox({
   crossOrigin: 'anonymous' // or 'use-credentials'
 });
 ```
@@ -316,7 +316,7 @@ document.addEventListener('click', async () => {
 
 2. **Mute for autoplay**:
 ```typescript
-const player = new AVPlay({
+const player = new MediaFox({
   autoplay: true,
   muted: true // Required for autoplay
 });
@@ -341,21 +341,21 @@ player.destroy(); // Cannot be used after this
 
 ## Ready to Build?
 
-You've got everything you need to start building with AVPlay:
+You've got everything you need to start building with MediaFox:
 
 ### **Start Here:**
 1. **Try the Live Demo** - Get hands-on experience with the interactive player on the home page
 2. **[Explore the API](/api/player)** - Complete API reference with examples
 
 ### **Need Help?**
-- **[GitHub Issues](https://github.com/wiedymi/avplay/issues)** - Report bugs or request features
+- **[GitHub Issues](https://github.com/wiedymi/mediafox/issues)** - Report bugs or request features
 - **[API Reference](/api/player)** - Complete documentation with live examples
-- **[Community Discussions](https://github.com/wiedymi/avplay/discussions)** - Ask questions and share ideas
+- **[Community Discussions](https://github.com/wiedymi/mediafox/discussions)** - Ask questions and share ideas
 
 ### **Framework Integration:**
-- **[React Guide](/guide/react)** - Use AVPlay in React apps
-- **[Vue Guide](/guide/vue)** - Use AVPlay in Vue apps
-- **[Angular Guide](/guide/angular)** - Use AVPlay in Angular apps
-- **[Vanilla JS Guide](/guide/vanilla)** - Use AVPlay in vanilla JavaScript
+- **[React Guide](/guide/react)** - Use MediaFox in React apps
+- **[Vue Guide](/guide/vue)** - Use MediaFox in Vue apps
+- **[Angular Guide](/guide/angular)** - Use MediaFox in Angular apps
+- **[Vanilla JS Guide](/guide/vanilla)** - Use MediaFox in vanilla JavaScript
 
 Happy coding!

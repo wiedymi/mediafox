@@ -1,23 +1,23 @@
 # Vue Integration
 
-AVPlay integrates beautifully with Vue 3's Composition API. This guide shows you how to build video players with Vue.
+MediaFox integrates beautifully with Vue 3's Composition API. This guide shows you how to build Media Players with Vue.
 
 ## Vue Composable
 
-Create a reusable composable for AVPlay:
+Create a reusable composable for MediaFox:
 
 ```typescript
-// useAVPlay.ts
+// useMediaFox.ts
 import { ref, onMounted, onUnmounted, Ref } from 'vue';
-import { AVPlay, PlayerStateData, PlayerOptions } from '@avplay/core';
+import { MediaFox, PlayerStateData, PlayerOptions } from '@mediafox/core';
 
-export function useAVPlay(options?: PlayerOptions) {
-  const player = ref<AVPlay>();
+export function useMediaFox(options?: PlayerOptions) {
+  const player = ref<MediaFox>();
   const state = ref<PlayerStateData | null>(null);
   const error = ref<Error | null>(null);
 
   onMounted(() => {
-    player.value = new AVPlay(options);
+    player.value = new MediaFox(options);
 
     // Subscribe to state changes
     const unsubscribe = player.value.subscribe((newState) => {
@@ -74,7 +74,7 @@ export function useAVPlay(options?: PlayerOptions) {
 }
 ```
 
-## Simple Video Player Component
+## Simple Media Player Component
 
 ```vue
 <!-- VideoPlayer.vue -->
@@ -107,7 +107,7 @@ export function useAVPlay(options?: PlayerOptions) {
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { AVPlay, formatTime } from '@avplay/core';
+import { MediaFox, formatTime } from '@mediafox/core';
 
 const props = defineProps<{
   src: string | File | Blob;
@@ -115,7 +115,7 @@ const props = defineProps<{
 }>();
 
 const canvasRef = ref<HTMLCanvasElement>();
-const player = ref<AVPlay>();
+const player = ref<MediaFox>();
 const state = ref<any>(null);
 const error = ref<Error | null>(null);
 
@@ -127,7 +127,7 @@ const progressPercent = computed(() => {
 onMounted(() => {
   if (!canvasRef.value) return;
 
-  player.value = new AVPlay({
+  player.value = new MediaFox({
     renderTarget: canvasRef.value,
     autoplay: props.autoplay
   });
@@ -367,7 +367,7 @@ onUnmounted(() => {
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { AVPlay, formatTime, VideoTrackInfo, AudioTrackInfo } from '@avplay/core';
+import { MediaFox, formatTime, VideoTrackInfo, AudioTrackInfo } from '@mediafox/core';
 
 const props = defineProps<{
   src: string | File | Blob;
@@ -375,7 +375,7 @@ const props = defineProps<{
 
 // Refs
 const canvasRef = ref<HTMLCanvasElement>();
-const player = ref<AVPlay>();
+const player = ref<MediaFox>();
 
 // State
 const state = ref<any>(null);
@@ -398,7 +398,7 @@ onMounted(async () => {
   if (!canvasRef.value) return;
 
   // Create player
-  player.value = new AVPlay({
+  player.value = new MediaFox({
     renderTarget: canvasRef.value
   });
 
@@ -702,11 +702,11 @@ label {
 ```typescript
 // stores/player.ts
 import { defineStore } from 'pinia';
-import { AVPlay, PlayerStateData } from '@avplay/core';
+import { MediaFox, PlayerStateData } from '@mediafox/core';
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
-    player: null as AVPlay | null,
+    player: null as MediaFox | null,
     state: null as PlayerStateData | null,
     error: null as Error | null,
     loading: false
@@ -724,7 +724,7 @@ export const usePlayerStore = defineStore('player', {
 
   actions: {
     initPlayer(options?: any) {
-      this.player = new AVPlay(options);
+      this.player = new MediaFox(options);
 
       // Subscribe to state changes
       this.player.subscribe((state) => {
@@ -786,7 +786,7 @@ export const usePlayerStore = defineStore('player', {
 ```typescript
 // directives/player.ts
 import { Directive } from 'vue';
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 export const vPlayer: Directive = {
   mounted(el, binding) {
@@ -795,7 +795,7 @@ export const vPlayer: Directive = {
       return;
     }
 
-    const player = new AVPlay({
+    const player = new MediaFox({
       renderTarget: el,
       ...binding.value.options
     });
@@ -835,26 +835,26 @@ export const vPlayer: Directive = {
 ## Nuxt 3 Integration
 
 ```typescript
-// plugins/avplay.client.ts
-import { AVPlay } from '@avplay/core';
+// plugins/mediafox.client.ts
+import { MediaFox } from '@mediafox/core';
 
 export default defineNuxtPlugin(() => {
   return {
     provide: {
-      AVPlay
+      MediaFox
     }
   };
 });
 
 // composables/usePlayer.ts
 export const usePlayer = () => {
-  const { $AVPlay } = useNuxtApp();
+  const { $MediaFox } = useNuxtApp();
 
-  const player = ref<InstanceType<typeof $AVPlay>>();
+  const player = ref<InstanceType<typeof $MediaFox>>();
   const state = ref<any>(null);
 
   const initPlayer = (options: any) => {
-    player.value = new $AVPlay(options);
+    player.value = new $MediaFox(options);
 
     player.value.subscribe((newState) => {
       state.value = newState;
@@ -881,7 +881,7 @@ Always wait for the canvas to be mounted:
 <script setup>
 onMounted(() => {
   if (canvasRef.value) {
-    player.value = new AVPlay({
+    player.value = new MediaFox({
       renderTarget: canvasRef.value
     });
   }
@@ -930,12 +930,12 @@ Use `shallowRef` for the player instance:
 <script setup>
 import { shallowRef } from 'vue';
 
-const player = shallowRef<AVPlay>();
+const player = shallowRef<MediaFox>();
 </script>
 ```
 
 ## Next Steps
 
-- [React Integration](/guide/react) - Using AVPlay with React
+- [React Integration](/guide/react) - Using MediaFox with React
 - [API Reference](/api/player) - Complete API documentation
 - [Live Demo](/) - Interactive demo on the home page

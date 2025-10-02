@@ -1,10 +1,10 @@
 # State Management Guide
 
-AVPlay uses a reactive state management system that provides real-time updates about the player's current state. This guide explains how to work with the state system effectively.
+MediaFox uses a reactive state management system that provides real-time updates about the player's current state. This guide explains how to work with the state system effectively.
 
 ## Understanding the State System
 
-AVPlay's state management is built around a reactive store that emits updates whenever the player state changes. The state is immutable and batched for performance.
+MediaFox's state management is built around a reactive store that emits updates whenever the player state changes. The state is immutable and batched for performance.
 
 ### State Structure
 
@@ -49,9 +49,9 @@ interface PlayerState {
 ### Basic Subscription
 
 ```typescript
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
-const player = new AVPlay({ canvas: canvasElement });
+const player = new MediaFox({ canvas: canvasElement });
 
 // Subscribe to all state changes
 const unsubscribe = player.store.subscribe((state) => {
@@ -93,7 +93,7 @@ player.store.subscribe((state) => {
 
 ### Direct Property Access
 
-AVPlay provides convenient getters for common state properties:
+MediaFox provides convenient getters for common state properties:
 
 ```typescript
 // Direct property access (returns current state values)
@@ -173,9 +173,9 @@ function formatTime(seconds) {
 
 ```typescript
 import { useState, useEffect } from 'react';
-import { AVPlay, type PlayerState } from '@avplay/core';
+import { MediaFox, type PlayerState } from '@mediafox/core';
 
-function usePlayerState(player: AVPlay | null): PlayerState | null {
+function usePlayerState(player: MediaFox | null): PlayerState | null {
   const [state, setState] = useState<PlayerState | null>(null);
 
   useEffect(() => {
@@ -190,11 +190,11 @@ function usePlayerState(player: AVPlay | null): PlayerState | null {
 
 // Usage in component
 function VideoPlayer({ src }: { src: string }) {
-  const [player, setPlayer] = useState<AVPlay | null>(null);
+  const [player, setPlayer] = useState<MediaFox | null>(null);
   const state = usePlayerState(player);
 
   useEffect(() => {
-    const newPlayer = new AVPlay({ canvas: canvasRef.current });
+    const newPlayer = new MediaFox({ canvas: canvasRef.current });
     setPlayer(newPlayer);
 
     return () => {
@@ -220,9 +220,9 @@ function VideoPlayer({ src }: { src: string }) {
 
 ```typescript
 import { ref, onMounted, onUnmounted } from 'vue';
-import { AVPlay, type PlayerState } from '@avplay/core';
+import { MediaFox, type PlayerState } from '@mediafox/core';
 
-export function usePlayerState(player: Ref<AVPlay | null>) {
+export function usePlayerState(player: Ref<MediaFox | null>) {
   const state = ref<PlayerState | null>(null);
 
   const subscribe = () => {
@@ -252,18 +252,18 @@ export function usePlayerState(player: Ref<AVPlay | null>) {
 
 ```typescript
 import { writable } from 'svelte/store';
-import { AVPlay, type PlayerState } from '@avplay/core';
+import { MediaFox, type PlayerState } from '@mediafox/core';
 
 export function createPlayerStore() {
   const { subscribe, set } = writable<PlayerState | null>(null);
 
-  let player: AVPlay | null = null;
+  let player: MediaFox | null = null;
   let unsubscribe: (() => void) | undefined;
 
   return {
     subscribe,
 
-    setPlayer(newPlayer: AVPlay) {
+    setPlayer(newPlayer: MediaFox) {
       unsubscribe?.();
       player = newPlayer;
       unsubscribe = player.store.subscribe(set);
@@ -285,7 +285,7 @@ export function createPlayerStore() {
 class StateDiffer {
   private lastState: PlayerState | null = null;
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.player.store.subscribe(this.handleStateChange.bind(this));
   }
 
@@ -351,9 +351,9 @@ class StateDiffer {
 
 ```typescript
 class StatePersistence {
-  private storageKey = 'avplay-player-state';
+  private storageKey = 'mediafox-player-state';
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.loadState();
     this.setupStateSaving();
   }
@@ -417,7 +417,7 @@ class StateAnalytics {
     errors: 0
   };
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.setupTracking();
   }
 
@@ -518,7 +518,7 @@ class BatchedUpdater {
   private pendingUpdates = new Set<string>();
   private updateScheduled = false;
 
-  constructor(private player: AVPlay) {
+  constructor(private player: MediaFox) {
     this.player.store.subscribe(this.scheduleUpdate.bind(this));
   }
 
@@ -584,4 +584,4 @@ class BatchedUpdater {
 6. **State Diffing**: For complex applications, implement state diffing to only react to specific changes
 7. **Error Handling**: Always handle the error state in your subscriptions
 
-The state management system in AVPlay is designed to be both powerful and performant, providing real-time updates while maintaining good performance characteristics for complex applications.
+The state management system in MediaFox is designed to be both powerful and performant, providing real-time updates while maintaining good performance characteristics for complex applications.

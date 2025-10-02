@@ -1,6 +1,6 @@
 import type {
-  AVPlay,
   LoadOptions,
+  MediaFox,
   MediaSource,
   PlayerEventListener,
   PlayerEventMap,
@@ -9,10 +9,10 @@ import type {
   RendererType,
   ScreenshotOptions,
   SeekOptions,
-} from '@avplay/core';
+} from '@mediafox/core';
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 
-export interface UseAVPlayOptions extends PlayerOptions {
+export interface UseMediaFoxOptions extends PlayerOptions {
   onLoadStart?: PlayerEventListener<'loadstart'>;
   onLoadedMetadata?: PlayerEventListener<'loadedmetadata'>;
   onLoadedData?: PlayerEventListener<'loadeddata'>;
@@ -38,8 +38,8 @@ export interface UseAVPlayOptions extends PlayerOptions {
   onRendererFallback?: PlayerEventListener<'rendererfallback'>;
 }
 
-export interface UseAVPlayReturn {
-  player: AVPlay | null;
+export interface UseMediaFoxReturn {
+  player: MediaFox | null;
   state: PlayerStateData | null;
   load: (source: MediaSource, options?: LoadOptions) => Promise<void>;
   play: () => Promise<void>;
@@ -53,14 +53,14 @@ export interface UseAVPlayReturn {
 }
 
 /**
- * React hook for AVPlay video player.
- * Creates and manages an AVPlay instance with automatic cleanup.
+ * React hook for MediaFox media player.
+ * Creates and manages a MediaFox instance with automatic cleanup.
  *
  * @example
  * ```tsx
  * function VideoPlayer() {
  *   const canvasRef = useRef<HTMLCanvasElement>(null);
- *   const { player, state, play, pause, load } = useAVPlay({
+ *   const { player, state, play, pause, load } = useMediaFox({
  *     renderTarget: canvasRef.current,
  *     onError: (error) => console.error(error)
  *   });
@@ -79,8 +79,8 @@ export interface UseAVPlayReturn {
  * }
  * ```
  */
-export function useAVPlay(options: UseAVPlayOptions = {}): UseAVPlayReturn {
-  const playerRef = useRef<AVPlay | null>(null);
+export function useMediaFox(options: UseMediaFoxOptions = {}): UseMediaFoxReturn {
+  const playerRef = useRef<MediaFox | null>(null);
   const stateRef = useRef<PlayerStateData | null>(null);
   const subscribersRef = useRef(new Set<() => void>());
 
@@ -114,9 +114,9 @@ export function useAVPlay(options: UseAVPlayOptions = {}): UseAVPlayReturn {
 
   // Initialize player
   useEffect(() => {
-    // Lazy load AVPlay to support SSR
-    import('@avplay/core').then(({ AVPlay }) => {
-      const player = new AVPlay(playerOptions);
+    // Lazy load MediaFox to support SSR
+    import('@mediafox/core').then(({ MediaFox }) => {
+      const player = new MediaFox(playerOptions);
       playerRef.current = player;
 
       // Subscribe to state changes

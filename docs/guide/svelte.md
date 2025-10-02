@@ -1,36 +1,36 @@
 # Svelte Integration Guide
 
-This guide shows how to integrate AVPlay with Svelte applications for a reactive video player experience.
+This guide shows how to integrate MediaFox with Svelte applications for a reactive Media Player experience.
 
 ## Installation
 
-First, install AVPlay and mediabunny in your Svelte project:
+First, install MediaFox and mediabunny in your Svelte project:
 
 ```bash
-bun add @avplay/core mediabunny
+bun add @mediafox/core mediabunny
 # or
-npm install @avplay/core mediabunny
+npm install @mediafox/core mediabunny
 # or
-yarn add @avplay/core mediabunny
+yarn add @mediafox/core mediabunny
 ```
 
 ## Basic Svelte Component
 
-Here's a basic Svelte component that wraps AVPlay:
+Here's a basic Svelte component that wraps MediaFox:
 
 ```svelte
 <!-- VideoPlayer.svelte -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { writable } from 'svelte/store';
-  import { AVPlay, type PlayerState } from '@avplay/core';
+  import { MediaFox, type PlayerState } from '@mediafox/core';
 
   export let src: string;
   export let autoplay = false;
   export let muted = false;
 
   let canvasElement: HTMLCanvasElement;
-  let player: AVPlay | null = null;
+  let player: MediaFox | null = null;
 
   // Reactive stores for player state
   const playerState = writable<PlayerState | null>(null);
@@ -41,7 +41,7 @@ Here's a basic Svelte component that wraps AVPlay:
 
   onMount(async () => {
     if (canvasElement) {
-      player = new AVPlay({
+      player = new MediaFox({
         canvas: canvasElement,
         autoplay,
         muted
@@ -260,11 +260,11 @@ Create dedicated stores for better state management:
 ```typescript
 // stores/playerStore.ts
 import { writable, derived } from 'svelte/store';
-import { AVPlay, type PlayerState } from '@avplay/core';
+import { MediaFox, type PlayerState } from '@mediafox/core';
 
 export function createPlayerStore() {
   const { subscribe, set, update } = writable({
-    player: null as AVPlay | null,
+    player: null as MediaFox | null,
     state: null as PlayerState | null,
     tracks: [] as any[],
     loading: false,
@@ -278,7 +278,7 @@ export function createPlayerStore() {
       update(store => ({ ...store, loading: true }));
 
       try {
-        const player = new AVPlay({
+        const player = new MediaFox({
           canvas,
           ...config
         });
@@ -473,13 +473,13 @@ Handle player events reactively:
 ```svelte
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { AVPlay } from '@avplay/core';
+  import { MediaFox } from '@mediafox/core';
 
-  let player: AVPlay;
+  let player: MediaFox;
   let events: string[] = [];
 
   onMount(() => {
-    player = new AVPlay({ canvas: canvasElement });
+    player = new MediaFox({ canvas: canvasElement });
 
     // Listen to all events
     player.on('play', () => addEvent('Play started'));
@@ -545,17 +545,17 @@ For SvelteKit applications, handle SSR properly:
     muted={true}
   />
 {:else}
-  <div class="loading">Loading video player...</div>
+  <div class="loading">Loading Media Player...</div>
 {/if}
 ```
 
 ## TypeScript Support
 
-AVPlay provides full TypeScript support. Create typed components:
+MediaFox provides full TypeScript support. Create typed components:
 
 ```svelte
 <script lang="ts">
-  import type { AVPlay, PlayerState, PlayerEvents } from '@avplay/core';
+  import type { MediaFox, PlayerState, PlayerEvents } from '@mediafox/core';
 
   interface PlayerProps {
     src: string;
@@ -571,7 +571,7 @@ AVPlay provides full TypeScript support. Create typed components:
   export let onStateChange: PlayerProps['onStateChange'] = undefined;
   export let onEvent: PlayerProps['onEvent'] = undefined;
 
-  let player: AVPlay;
+  let player: MediaFox;
   let state: PlayerState | null = null;
 
   // Rest of component logic...
@@ -585,7 +585,7 @@ AVPlay provides full TypeScript support. Create typed components:
 3. **SSR**: Check for browser environment before initializing
 4. **Error Handling**: Implement proper error boundaries and user feedback
 5. **Performance**: Use derived stores for computed values to avoid unnecessary reactivity
-6. **TypeScript**: Leverage AVPlay's type definitions for better development experience
+6. **TypeScript**: Leverage MediaFox's type definitions for better development experience
 
 ## Common Patterns
 
@@ -644,4 +644,4 @@ AVPlay provides full TypeScript support. Create typed components:
 <svelte:window on:keydown={handleKeydown} />
 ```
 
-This guide provides the foundation for integrating AVPlay with Svelte applications, offering both simple and advanced patterns for different use cases.
+This guide provides the foundation for integrating MediaFox with Svelte applications, offering both simple and advanced patterns for different use cases.

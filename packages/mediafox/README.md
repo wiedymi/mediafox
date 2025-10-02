@@ -1,6 +1,6 @@
-# AVPlay
+# MediaFox
 
-A framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny). AVPlay provides an ergonomic API for media playback with complete control over rendering and UI.
+A framework-agnostic, TypeScript-first Media Player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny). MediaFox provides an ergonomic API for media playback with complete control over rendering and UI.
 
 ## Features
 
@@ -16,22 +16,22 @@ A framework-agnostic, TypeScript-first video player library powered by [Mediabun
 ## Installation
 
 ```bash
-bun add @avplay/core mediabunny
+bun add @mediafox/core mediabunny
 # or
-npm install @avplay/core mediabunny
+npm install @mediafox/core mediabunny
 # or
-yarn add @avplay/core mediabunny
+yarn add @mediafox/core mediabunny
 ```
 
-> **Note:** Mediabunny is a peer dependency. You need to install it alongside @avplay/core.
+> **Note:** Mediabunny is a peer dependency. You need to install it alongside @mediafox/core.
 
 ## Quick Start
 
 ```typescript
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 // Create player instance
-const player = new AVPlay({
+const player = new MediaFox({
   renderTarget: document.querySelector('canvas'),
   volume: 0.8
 });
@@ -64,15 +64,15 @@ player.on('timeupdate', ({ currentTime }) => {
 For React applications, use the dedicated React package:
 
 ```bash
-npm install @avplay/react @avplay/core mediabunny
+npm install @mediafox/react @mediafox/core mediabunny
 ```
 
 ```tsx
-import { useAVPlay } from '@avplay/react';
+import { useMediaFox } from '@mediafox/react';
 
 function VideoPlayer({ src }: { src: File | string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { player, state, play, pause } = useAVPlay({
+  const { player, state, play, pause } = useMediaFox({
     renderTarget: canvasRef.current,
     onError: (error) => console.error(error)
   });
@@ -87,15 +87,15 @@ function VideoPlayer({ src }: { src: File | string }) {
 
 ```tsx
 import { useEffect, useRef, useState } from 'react';
-import { AVPlay, type PlayerStateData } from '@avplay/core';
+import { MediaFox, type PlayerStateData } from '@mediafox/core';
 
 function VideoPlayer({ src }: { src: File | string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerRef = useRef<AVPlay>();
+  const playerRef = useRef<MediaFox>();
   const [state, setState] = useState<PlayerStateData>();
 
   useEffect(() => {
-    const player = new AVPlay({
+    const player = new MediaFox({
       renderTarget: canvasRef.current!
     });
 
@@ -142,17 +142,17 @@ function VideoPlayer({ src }: { src: File | string }) {
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 const props = defineProps<{ src: File | string }>();
 
 const canvasRef = ref<HTMLCanvasElement>();
-const player = ref<AVPlay>();
+const player = ref<MediaFox>();
 const currentTime = ref(0);
 const duration = ref(0);
 
 onMounted(async () => {
-  player.value = new AVPlay({
+  player.value = new MediaFox({
     renderTarget: canvasRef.value
   });
 
@@ -311,7 +311,7 @@ Available events:
 
 ## Browser Support
 
-AVPlay requires a modern browser with support for:
+MediaFox requires a modern browser with support for:
 - WebCodecs API
 - Web Audio API
 - Canvas API

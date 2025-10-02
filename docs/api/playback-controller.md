@@ -1,12 +1,12 @@
 # PlaybackController API Documentation
 
-The PlaybackController manages all aspects of media playback in AVPlay, including play/pause controls, seeking, timing, synchronization, and playback rate management.
+The PlaybackController manages all aspects of media playback in MediaFox, including play/pause controls, seeking, timing, synchronization, and playback rate management.
 
 ## Class Overview
 
 ```typescript
 class PlaybackController {
-  constructor(player: AVPlay);
+  constructor(player: MediaFox);
 
   // Playback control
   play(): Promise<void>;

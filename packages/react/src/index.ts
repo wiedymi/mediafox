@@ -15,6 +15,6 @@ export type {
   SubtitleTrackInfo,
   TimeRange,
   VideoTrackInfo,
-} from '@avplay/core';
-export type { UseAVPlayOptions, UseAVPlayReturn } from './useAVPlay';
-export { useAVPlay } from './useAVPlay';
+} from '@mediafox/core';
+export type { UseMediaFoxOptions, UseMediaFoxReturn } from './useMediaFox';
+export { useMediaFox } from './useMediaFox';

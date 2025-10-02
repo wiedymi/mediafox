@@ -1,7 +1,7 @@
 {
-  "name": "@avplay/core",
+  "name": "@mediafox/core",
   "version": "0.9.9",
-  "description": "Framework-agnostic video player library powered by MediaBunny",
+  "description": "Framework-agnostic media player library powered by MediaBunny",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -52,10 +52,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wiedymi/avplay.git"
+    "url": "https://github.com/wiedymi/mediafox.git"
   },
   "bugs": {
-    "url": "https://github.com/wiedymi/avplay/issues"
+    "url": "https://github.com/wiedymi/mediafox/issues"
   },
-  "homepage": "https://github.com/wiedymi/avplay#readme"
+  "homepage": "https://github.com/wiedymi/mediafox#readme"
 }

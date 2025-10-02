@@ -1,15 +1,15 @@
-# @avplay/react
+# @mediafox/react
 
-React hooks for [AVPlay](https://github.com/wiedymi/avplay) video player.
+React hooks for [MediaFox](https://github.com/wiedymi/mediafox) Media Player.
 
 ## Installation
 
 ```bash
-npm install @avplay/react @avplay/core
+npm install @mediafox/react @mediafox/core
 # or
-bun add @avplay/react @avplay/core
+bun add @mediafox/react @mediafox/core
 # or
-yarn add @avplay/react @avplay/core
+yarn add @mediafox/react @mediafox/core
 ```
 
 ## Usage
@@ -18,11 +18,11 @@ yarn add @avplay/react @avplay/core
 
 ```tsx
 import { useRef, useEffect } from 'react';
-import { useAVPlay } from '@avplay/react';
+import { useMediaFox } from '@mediafox/react';
 
 function VideoPlayer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { state, play, pause, load } = useAVPlay({
+  const { state, play, pause, load } = useMediaFox({
     renderTarget: canvasRef.current,
     onError: (error) => console.error('Player error:', error),
   });
@@ -51,11 +51,11 @@ function VideoPlayer() {
 ### With Event Handlers
 
 ```tsx
-import { useAVPlay } from '@avplay/react';
+import { useMediaFox } from '@mediafox/react';
 
 function VideoPlayer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { state, play, pause, seek, load } = useAVPlay({
+  const { state, play, pause, seek, load } = useMediaFox({
     renderTarget: canvasRef.current,
     volume: 0.8,
     onPlay: () => console.log('Playing'),
@@ -70,11 +70,11 @@ function VideoPlayer() {
 
 ## API
 
-### `useAVPlay(options?)`
+### `useMediaFox(options?)`
 
 Returns an object with:
 
-- `player` - The AVPlay instance (or null if not initialized)
+- `player` - The MediaFox instance (or null if not initialized)
 - `state` - Current player state (reactive)
 - `load(source, options?)` - Load a media source
 - `play()` - Start playback
@@ -86,7 +86,7 @@ Returns an object with:
 
 ### Options
 
-All `PlayerOptions` from `@avplay/core` plus event handlers:
+All `PlayerOptions` from `@mediafox/core` plus event handlers:
 
 - `onLoadStart`, `onLoadedMetadata`, `onLoadedData`
 - `onCanPlay`, `onCanPlayThrough`
@@ -101,7 +101,7 @@ All `PlayerOptions` from `@avplay/core` plus event handlers:
 
 - ✅ Automatic cleanup on unmount
 - ✅ Optimized with `useSyncExternalStore` for React 18+
-- ✅ SSR safe (lazy loads AVPlay)
+- ✅ SSR safe (lazy loads MediaFox)
 - ✅ Fully typed with TypeScript
 - ✅ Framework-agnostic core
 

@@ -14,10 +14,10 @@ export type {
   VideoCodec,
   VideoSample,
 } from 'mediabunny';
-export { AVPlay } from './avplay';
 // Event system
 export { EventEmitter } from './events/emitter';
 export type { TypedEventEmitter, UnsubscribeFn } from './events/types';
+export { MediaFox } from './mediafox';
 export { AudioManager } from './playback/audio';
 // Playback components
 export { PlaybackController } from './playback/controller';
@@ -59,8 +59,8 @@ export type {
   VideoTrackInfo,
 } from './types';
 export {
-  AVPlayError,
   ErrorCode,
+  MediaFoxError,
   wrapError,
 } from './utils/errors';
 // Utilities
@@ -80,5 +80,5 @@ export {
 export const VERSION = '0.1.0';
 
 // Default export
-import { AVPlay } from './avplay';
-export default AVPlay;
+import { MediaFox } from './mediafox';
+export default MediaFox;

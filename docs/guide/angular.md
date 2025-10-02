@@ -1,22 +1,22 @@
 # Angular Integration
 
-AVPlay integrates seamlessly with Angular using services and components. This guide covers Angular 16+ with standalone components.
+MediaFox integrates seamlessly with Angular using services and components. This guide covers Angular 16+ with standalone components.
 
 ## Angular Service
 
 Create a service to manage the player instance:
 
 ```typescript
-// avplay.service.ts
+// mediafox.service.ts
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { AVPlay, PlayerStateData, PlayerOptions } from '@avplay/core';
+import { MediaFox, PlayerStateData, PlayerOptions } from '@mediafox/core';
 
 @Injectable({
   providedIn: 'root'
 })
-export class AVPlayService implements OnDestroy {
-  private player: AVPlay | null = null;
+export class MediaFoxService implements OnDestroy {
+  private player: MediaFox | null = null;
   private stateSubject = new BehaviorSubject<PlayerStateData | null>(null);
   private errorSubject = new BehaviorSubject<Error | null>(null);
 
@@ -28,7 +28,7 @@ export class AVPlayService implements OnDestroy {
       this.player.dispose();
     }
 
-    this.player = new AVPlay(options);
+    this.player = new MediaFox(options);
 
     // Subscribe to state changes
     this.player.subscribe(state => {
@@ -87,15 +87,15 @@ export class AVPlayService implements OnDestroy {
 }
 ```
 
-## Basic Video Player Component
+## Basic Media Player Component
 
 ```typescript
 // video-player.component.ts
 import { Component, ElementRef, Input, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AVPlayService } from './avplay.service';
-import { formatTime } from '@avplay/core';
+import { MediaFoxService } from './mediafox.service';
+import { formatTime } from '@mediafox/core';
 
 @Component({
   selector: 'app-video-player',
@@ -191,7 +191,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   error$ = this.playerService.error$;
   formatTime = formatTimeUtil;
 
-  constructor(private playerService: AVPlayService) {}
+  constructor(private playerService: MediaFoxService) {}
 
   ngOnInit(): void {
     // Initialize player with canvas
@@ -243,7 +243,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AVPlay, VideoTrackInfo, AudioTrackInfo, formatTime } from '@avplay/core';
+import { MediaFox, VideoTrackInfo, AudioTrackInfo, formatTime } from '@mediafox/core';
 
 @Component({
   selector: 'app-advanced-player',
@@ -490,7 +490,7 @@ export class AdvancedPlayerComponent implements OnInit {
   @ViewChild('videoCanvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   @Input() src!: string | File | Blob;
 
-  player!: AVPlay;
+  player!: MediaFox;
   loading = false;
   loaded = false;
   playing = false;
@@ -510,7 +510,7 @@ export class AdvancedPlayerComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     // Initialize player
-    this.player = new AVPlay({
+    this.player = new MediaFox({
       renderTarget: this.canvasRef.nativeElement
     });
 
@@ -719,7 +719,7 @@ export class PlayerFormComponent {
 
   constructor(
     private fb: FormBuilder,
-    private playerService: AVPlayService
+    private playerService: MediaFoxService
   ) {
     this.playerForm = this.fb.group({
       volume: [1],
@@ -750,19 +750,19 @@ export class PlayerFormComponent {
 ## Directive for Easy Integration
 
 ```typescript
-// avplay.directive.ts
+// mediafox.directive.ts
 import { Directive, ElementRef, Input, OnInit, OnDestroy } from '@angular/core';
-import { AVPlay } from '@avplay/core';
+import { MediaFox } from '@mediafox/core';
 
 @Directive({
   selector: '[xiaoMeiPlayer]',
   standalone: true
 })
-export class AVPlayDirective implements OnInit, OnDestroy {
+export class MediaFoxDirective implements OnInit, OnDestroy {
   @Input() xiaoMeiPlayer?: string | File | Blob;
   @Input() xiaoMeiOptions: any = {};
 
-  private player?: AVPlay;
+  private player?: MediaFox;
 
   constructor(private el: ElementRef<HTMLCanvasElement>) {}
 
@@ -772,7 +772,7 @@ export class AVPlayDirective implements OnInit, OnDestroy {
       return;
     }
 
-    this.player = new AVPlay({
+    this.player = new MediaFox({
       renderTarget: this.el.nativeElement,
       ...this.xiaoMeiOptions
     });
@@ -797,15 +797,15 @@ export class AVPlayDirective implements OnInit, OnDestroy {
 // video-player.component.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { VideoPlayerComponent } from './video-player.component';
-import { AVPlayService } from './avplay.service';
+import { MediaFoxService } from './mediafox.service';
 
 describe('VideoPlayerComponent', () => {
   let component: VideoPlayerComponent;
   let fixture: ComponentFixture<VideoPlayerComponent>;
-  let mockService: jasmine.SpyObj<AVPlayService>;
+  let mockService: jasmine.SpyObj<MediaFoxService>;
 
   beforeEach(async () => {
-    mockService = jasmine.createSpyObj('AVPlayService', [
+    mockService = jasmine.createSpyObj('MediaFoxService', [
       'initialize',
       'load',
       'play',
@@ -815,7 +815,7 @@ describe('VideoPlayerComponent', () => {
     await TestBed.configureTestingModule({
       imports: [VideoPlayerComponent],
       providers: [
-        { provide: AVPlayService, useValue: mockService }
+        { provide: MediaFoxService, useValue: mockService }
       ]
     }).compileComponents();
 
@@ -894,6 +894,6 @@ this.zone.runOutsideAngular(() => {
 
 ## Next Steps
 
-- [Svelte Integration](/guide/svelte) - Using AVPlay with Svelte
+- [Svelte Integration](/guide/svelte) - Using MediaFox with Svelte
 - [State Management](/guide/state-management) - Advanced state handling
 - [API Reference](/api/player) - Complete API documentation
