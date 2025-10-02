@@ -325,6 +325,16 @@ export class PlaybackController {
     return this.videoRenderer.getRendererType();
   }
 
+  setRendererChangeCallback(callback: (type: import('./renderers').RendererType) => void): void {
+    this.videoRenderer.setRendererChangeCallback(callback);
+  }
+
+  setRendererFallbackCallback(
+    callback: (from: import('./renderers').RendererType, to: import('./renderers').RendererType) => void
+  ): void {
+    this.videoRenderer.setRendererFallbackCallback(callback);
+  }
+
   dispose(): void {
     this.pause();
     this.videoRenderer.dispose();

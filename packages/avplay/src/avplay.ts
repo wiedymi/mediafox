@@ -90,6 +90,10 @@ export class AVPlay {
 
     // Apply initial state
     this.state.applyInitial(this.options.volume ?? 1, this.options.muted ?? false, this.options.playbackRate ?? 1);
+
+    // Initialize renderer type in state to requested type (default to webgpu)
+    // The actual renderer type will be updated when initialization completes
+    this.state.updateRendererType(this.options.renderer || 'webgpu');
   }
 
   private setupInternalListeners(): void {
@@ -114,13 +118,12 @@ export class AVPlay {
     });
 
     // Renderer callbacks
-    const renderer = this.playbackController.getVideoRenderer();
-    renderer.setRendererChangeCallback((type) => {
+    this.playbackController.setRendererChangeCallback((type) => {
       this.state.updateRendererType(type);
-      this.emit('rendererchange', { renderer: type });
+      this.emit('rendererchange', type);
     });
 
-    renderer.setRendererFallbackCallback((from, to) => {
+    this.playbackController.setRendererFallbackCallback((from, to) => {
       this.emit('rendererfallback', { from, to });
     });
 

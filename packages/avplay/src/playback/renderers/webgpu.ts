@@ -47,28 +47,42 @@ export class WebGPURenderer implements IRenderer {
   constructor(options: WebGPURendererOptions) {
     this.canvas = options.canvas;
     this.powerPreference = options.powerPreference || 'high-performance';
-    this.initialize().catch(() => {});
+    this.initialize().catch((err) => {
+      console.error('WebGPU initialization failed:', err);
+    });
   }
 
   private async initialize(): Promise<boolean> {
     try {
       const nav = navigator as Navigator & { gpu?: GPU };
-      if (!nav.gpu) return false;
+      if (!nav.gpu) {
+        console.log('WebGPU not available in navigator');
+        return false;
+      }
 
       const adapter = await nav.gpu.requestAdapter({
         powerPreference: this.powerPreference,
       });
 
-      if (!adapter) return false;
+      if (!adapter) {
+        console.log('WebGPU adapter not available');
+        return false;
+      }
 
       this.device = await adapter.requestDevice();
-      if (!this.device) return false;
+      if (!this.device) {
+        console.log('WebGPU device not available');
+        return false;
+      }
 
       if ('getContext' in this.canvas) {
         this.context = this.canvas.getContext('webgpu') as GPUCanvasContext | null;
       }
 
-      if (!this.context) return false;
+      if (!this.context) {
+        console.log('WebGPU context not available on canvas');
+        return false;
+      }
 
       const canvasFormat = nav.gpu.getPreferredCanvasFormat();
       this.context.configure({
@@ -82,8 +96,10 @@ export class WebGPURenderer implements IRenderer {
       this.createVertexBuffer();
 
       this.isInitialized = true;
+      console.log('WebGPU renderer initialized successfully');
       return true;
-    } catch {
+    } catch (error) {
+      console.error('WebGPU initialization error:', error);
       return false;
     }
   }
@@ -174,22 +190,20 @@ export class WebGPURenderer implements IRenderer {
     return this.isInitialized && this.device !== null && this.context !== null && this.pipeline !== null;
   }
 
-  public render(source: HTMLCanvasElement, target: HTMLCanvasElement | OffscreenCanvas): boolean {
+  public render(source: HTMLCanvasElement | OffscreenCanvas): boolean {
     if (!this.isReady() || !this.device || !this.context || !this.pipeline) return false;
 
     try {
       const sourceWidth = source.width;
       const sourceHeight = source.height;
 
-      if (sourceWidth === 0 || sourceHeight === 0) return false;
-
-      const canvasWidth = target.width;
-      const canvasHeight = target.height;
-
-      if (this.canvas.width !== canvasWidth || this.canvas.height !== canvasHeight) {
-        this.canvas.width = canvasWidth;
-        this.canvas.height = canvasHeight;
+      if (sourceWidth === 0 || sourceHeight === 0) {
+        console.warn(`WebGPU: Source canvas has zero dimensions (${sourceWidth}x${sourceHeight})`);
+        return false;
       }
+
+      const canvasWidth = this.canvas.width;
+      const canvasHeight = this.canvas.height;
 
       if (sourceWidth !== this.textureWidth || sourceHeight !== this.textureHeight) {
         this.createTexture(sourceWidth, sourceHeight);
@@ -199,19 +213,29 @@ export class WebGPURenderer implements IRenderer {
 
       if (!this.texture) return false;
 
-      // Copy source canvas to GPU texture
-      const sourceCtx = source.getContext('2d');
-      if (!sourceCtx) return false;
+      // Use copyExternalImageToTexture for better performance
+      // This works directly with the canvas without needing getImageData
+      try {
+        this.device.queue.copyExternalImageToTexture(
+          { source },
+          { texture: this.texture },
+          { width: sourceWidth, height: sourceHeight }
+        );
+      } catch {
+        // Fallback to getImageData if copyExternalImageToTexture fails
+        const sourceCtx = source.getContext('2d');
+        if (!sourceCtx) return false;
 
-      const imageData = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
-      const data = new Uint8Array(imageData.data.buffer);
+        const imageData = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
+        const data = new Uint8Array(imageData.data.buffer);
 
-      this.device.queue.writeTexture(
-        { texture: this.texture, origin: { x: 0, y: 0, z: 0 } },
-        data,
-        { bytesPerRow: sourceWidth * 4, rowsPerImage: sourceHeight },
-        { width: sourceWidth, height: sourceHeight, depthOrArrayLayers: 1 }
-      );
+        this.device.queue.writeTexture(
+          { texture: this.texture, origin: { x: 0, y: 0, z: 0 } },
+          data,
+          { bytesPerRow: sourceWidth * 4, rowsPerImage: sourceHeight },
+          { width: sourceWidth, height: sourceHeight, depthOrArrayLayers: 1 }
+        );
+      }
 
       const commandEncoder = this.device.createCommandEncoder();
       const textureView = this.context.getCurrentTexture().createView();

@@ -341,20 +341,17 @@
                                                 d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"
                                             />
                                         </svg>
-                                        {{
-                                            videoTracks.find((t) => t.selected)
-                                                ?.height || "Auto"
-                                        }}p
+                                        {{ selectedVideoTrack?.height || "Auto" }}p
                                     </button>
                                     <select
                                         @change="selectVideoTrack($event)"
                                         class="track-select"
+                                        :value="selectedVideoTrackId"
                                     >
                                         <option
                                             v-for="track in videoTracks"
                                             :key="track.id"
                                             :value="track.id"
-                                            :selected="track.selected"
                                         >
                                             {{ track.width }}x{{ track.height }}
                                         </option>
@@ -381,21 +378,19 @@
                                             />
                                         </svg>
                                         {{
-                                            audioTracks
-                                                .find((t) => t.selected)
-                                                ?.language?.toUpperCase() ||
-                                            "Audio"
+                                            selectedAudioTrack?.language?.toUpperCase() ||
+                                            (selectedAudioTrack ? "Audio " + (audioTracks.indexOf(selectedAudioTrack) + 1) : "Audio")
                                         }}
                                     </button>
                                     <select
                                         @change="selectAudioTrack($event)"
                                         class="track-select"
+                                        :value="selectedAudioTrackId"
                                     >
                                         <option
                                             v-for="track in audioTracks"
                                             :key="track.id"
                                             :value="track.id"
-                                            :selected="track.selected"
                                         >
                                             {{
                                                 track.language ||
@@ -426,29 +421,22 @@
                                             />
                                         </svg>
                                         {{
-                                            selectedSubtitleTrackId
-                                                ? subtitleTracks
-                                                      .find((t) => t.selected)
-                                                      ?.language?.toUpperCase() ||
-                                                  "CC"
-                                                : "Off"
+                                            selectedSubtitleTrack?.language?.toUpperCase() ||
+                                            (selectedSubtitleTrack ? "CC" : "Off")
                                         }}
                                     </button>
                                     <select
                                         @change="selectSubtitleTrack($event)"
                                         class="track-select"
+                                        :value="selectedSubtitleTrackId || ''"
                                     >
-                                        <option
-                                            value=""
-                                            :selected="!selectedSubtitleTrackId"
-                                        >
+                                        <option value="">
                                             Subtitles Off
                                         </option>
                                         <option
                                             v-for="track in subtitleTracks"
                                             :key="track.id"
                                             :value="track.id"
-                                            :selected="track.selected"
                                         >
                                             {{
                                                 track.name ||
@@ -458,6 +446,34 @@
                                         </option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <!-- Renderer selector -->
+                            <div class="renderer-dropdown" v-if="availableRenderers.length > 1">
+                                <button class="track-btn" title="Video Renderer">
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM8 15h3v-2H8v2zm0-4h8v-2H8v2z"/>
+                                    </svg>
+                                    {{ rendererDisplayName }}
+                                </button>
+                                <select
+                                    @change="switchRenderer($event)"
+                                    class="track-select"
+                                    :value="currentRenderer"
+                                >
+                                    <option
+                                        v-for="renderer in availableRenderers"
+                                        :key="renderer"
+                                        :value="renderer"
+                                    >
+                                        {{ RendererFactory.getRendererDisplayName(renderer) }}
+                                    </option>
+                                </select>
                             </div>
 
                             <!-- Playback speed -->
@@ -580,12 +596,13 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import {
     AVPlay,
-    
+    RendererFactory,
     formatTime as formatTimeUtil,
     type MediaInfo,
     type VideoTrackInfo,
     type AudioTrackInfo,
     type SubtitleTrackInfo,
+    type RendererType,
 } from "@avplay/core";
 import { withBase } from "vitepress";
 
@@ -618,6 +635,8 @@ const audioTracks = ref<AudioTrackInfo[]>([]);
 const subtitleTracks = ref<SubtitleTrackInfo[]>([]);
 const warningMessage = ref("");
 const selectedSubtitleTrackId = ref<string | null>(null);
+const currentRenderer = ref<RendererType>("webgpu");
+const availableRenderers = ref<RendererType[]>([]);
 
 const SUBTITLE_DEFINITIONS = {
     vtt: {
@@ -666,6 +685,31 @@ const audioTrackInfo = computed(() => {
 const formatTime = (seconds: number): string => {
     return formatTimeUtil(seconds);
 };
+
+const rendererDisplayName = computed(() => {
+    return RendererFactory.getRendererDisplayName(currentRenderer.value);
+});
+
+const selectedVideoTrackId = computed(() => {
+    return videoTracks.value.find((t) => t.selected)?.id || "";
+});
+
+const selectedAudioTrackId = computed(() => {
+    return audioTracks.value.find((t) => t.selected)?.id || "";
+});
+
+const selectedVideoTrack = computed(() => {
+    return videoTracks.value.find((t) => t.id === selectedVideoTrackId.value);
+});
+
+const selectedAudioTrack = computed(() => {
+    return audioTracks.value.find((t) => t.id === selectedAudioTrackId.value);
+});
+
+const selectedSubtitleTrack = computed(() => {
+    if (!selectedSubtitleTrackId.value) return null;
+    return subtitleTracks.value.find((t) => t.id === selectedSubtitleTrackId.value);
+});
 
 // Methods
 const loadSample = async () => {
@@ -716,26 +760,6 @@ const handleFileSelect = async (event: Event) => {
         subtitleTracks.value = player.value.getSubtitleTracks();
         selectedSubtitleTrackId.value =
             player.value.getState().selectedSubtitleTrack ?? null;
-
-        // Debug track information
-        console.log("📊 Loaded tracks from file:");
-        console.log(
-            "🎥 Video tracks:",
-            videoTracks.value.map((t) => ({
-                id: t.id,
-                codec: t.codec,
-                decodable: t.decodable,
-            })),
-        );
-        console.log(
-            "🔊 Audio tracks:",
-            audioTracks.value.map((t) => ({
-                id: t.id,
-                codec: t.codec,
-                decodable: t.decodable,
-            })),
-        );
-        console.log("📺 Subtitle tracks:", subtitleTracks.value.length);
     } catch (error) {
         console.error("Failed to load file:", error);
         loadError = error as Error;
@@ -856,13 +880,11 @@ const selectVideoTrack = async (event: Event) => {
 
 const selectAudioTrack = async (event: Event) => {
     const trackId = (event.target as HTMLSelectElement).value;
-    console.log(`🔄 Switching to audio track: ${trackId}`);
     try {
         await player.value?.selectAudioTrack(trackId);
         audioTracks.value = player.value?.getAudioTracks() || [];
-        console.log(`✅ Successfully switched to audio track: ${trackId}`);
     } catch (error) {
-        console.error("❌ Failed to switch audio track:", error);
+        console.error("Failed to switch audio track:", error);
     }
 };
 
@@ -871,6 +893,27 @@ const selectSubtitleTrack = async (event: Event) => {
     await player.value?.selectSubtitleTrack(trackId || null);
     subtitleTracks.value = player.value?.getSubtitleTracks() || [];
     selectedSubtitleTrackId.value = trackId || null;
+};
+
+const switchRenderer = async (event: Event) => {
+    const type = (event.target as HTMLSelectElement).value as RendererType;
+    if (!player.value) return;
+    try {
+        await player.value.switchRenderer(type);
+
+        // Update canvas reference after recreation
+        const newCanvas = document.querySelector('canvas');
+        if (newCanvas instanceof HTMLCanvasElement) {
+            canvasRef.value = newCanvas;
+        }
+    } catch (error) {
+        console.error("Failed to switch renderer:", error);
+        // Show user-friendly error message
+        warningMessage.value = `Failed to switch to ${RendererFactory.getRendererDisplayName(type)} renderer`;
+        setTimeout(() => {
+            warningMessage.value = "";
+        }, 5000);
+    }
 };
 
 const showControlsTemporarily = () => {
@@ -901,12 +944,18 @@ onMounted(async () => {
         renderTarget: canvasRef.value,
         volume: volume.value,
         autoplay: false,
+        // Will default to webgpu with fallbacks
     });
 
     player.value = p;
 
     subtitleTracks.value = p.getSubtitleTracks();
     selectedSubtitleTrackId.value = p.getState().selectedSubtitleTrack ?? null;
+
+    // Get available renderers
+    availableRenderers.value = AVPlay.getSupportedRenderers();
+    // Initialize with the current state
+    currentRenderer.value = p.getState().rendererType || "webgpu";
 
     // Subscribe to state changes
     const { unsubscribe } = p.subscribe((state) => {
@@ -920,6 +969,8 @@ onMounted(async () => {
         bufferedRanges.value = state.buffered;
         subtitleTracks.value = state.subtitleTracks;
         selectedSubtitleTrackId.value = state.selectedSubtitleTrack;
+        // Always update renderer type from state
+        currentRenderer.value = state.rendererType || "webgpu";
     });
 
     // Event listeners
@@ -933,10 +984,20 @@ onMounted(async () => {
     });
 
     p.on("warning", (warning) => {
-        console.warn("Player warning:", warning);
         warningMessage.value = warning.message;
 
         // Clear warning after 5 seconds
+        setTimeout(() => {
+            warningMessage.value = "";
+        }, 5000);
+    });
+
+    p.on("rendererchange", (type) => {
+        currentRenderer.value = type;
+    });
+
+    p.on("rendererfallback", ({ from, to }) => {
+        warningMessage.value = `Renderer fallback: ${RendererFactory.getRendererDisplayName(from)} → ${RendererFactory.getRendererDisplayName(to)}`;
         setTimeout(() => {
             warningMessage.value = "";
         }, 5000);
@@ -1359,7 +1420,8 @@ onUnmounted(() => {
     gap: 0.5rem;
 }
 
-.track-dropdown {
+.track-dropdown,
+.renderer-dropdown {
     position: relative;
     display: inline-block;
 }
@@ -1380,7 +1442,8 @@ onUnmounted(() => {
     pointer-events: none;
 }
 
-.track-dropdown:hover .track-btn {
+.track-dropdown:hover .track-btn,
+.renderer-dropdown:hover .track-btn {
     background: rgba(0, 0, 0, 0.8);
     border-color: rgba(255, 255, 255, 0.4);
 }

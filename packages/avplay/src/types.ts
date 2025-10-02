@@ -6,7 +6,7 @@ export type PlayerState = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 
 
 export type PlaybackMode = 'normal' | 'loop' | 'loop-one';
 
-export type RendererType = 'webgpu' | 'webgl' | 'canvas2d' | 'auto';
+export type RendererType = 'webgpu' | 'webgl' | 'canvas2d';
 
 export interface PlayerOptions {
   renderTarget?: HTMLCanvasElement | OffscreenCanvas;
@@ -161,9 +161,7 @@ export type PlayerEventMap = {
     width: number;
     height: number;
   };
-  rendererchange: {
-    renderer: RendererType;
-  };
+  rendererchange: RendererType;
   rendererfallback: {
     from: RendererType;
     to: RendererType;

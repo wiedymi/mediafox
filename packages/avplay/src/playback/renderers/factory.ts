@@ -14,11 +14,6 @@ export class RendererFactory {
 
   public async createRenderer(type: RendererType): Promise<IRenderer | null> {
     try {
-      if (type === 'auto') {
-        const result = await this.createRendererWithFallback('webgpu');
-        return result.renderer;
-      }
-
       switch (type) {
         case 'webgpu':
           return await this.createWebGPURenderer();
@@ -36,19 +31,12 @@ export class RendererFactory {
 
   public async createRendererWithFallback(preferredType: RendererType): Promise<RendererCreationResult> {
     // Determine fallback order based on preference
-    let fallbackOrder: RendererType[];
-
-    if (preferredType === 'auto') {
-      fallbackOrder = ['webgpu', 'webgl', 'canvas2d'];
-    } else {
-      fallbackOrder = [preferredType];
-      if (preferredType !== 'webgl') fallbackOrder.push('webgl');
-      if (preferredType !== 'canvas2d') fallbackOrder.push('canvas2d');
-    }
+    // Always try the preferred type first, then fall back to others
+    const fallbackOrder: RendererType[] = [preferredType];
+    if (preferredType !== 'webgl') fallbackOrder.push('webgl');
+    if (preferredType !== 'canvas2d') fallbackOrder.push('canvas2d');
 
     for (const type of fallbackOrder) {
-      if (type === 'auto') continue;
-
       const renderer = await this.createRenderer(type);
       if (renderer?.isReady()) {
         return { renderer, actualType: type };
@@ -69,15 +57,42 @@ export class RendererFactory {
     const nav = navigator as Navigator & { gpu?: GPU };
     if (!nav.gpu) return null;
 
+    // WebGPU only works with HTMLCanvasElement, not OffscreenCanvas
+    if (!('getContext' in this.canvas)) {
+      console.log('WebGPU requires HTMLCanvasElement, not OffscreenCanvas');
+      return null;
+    }
+
     const renderer = new WebGPURenderer({
       canvas: this.canvas,
       powerPreference: this.powerPreference,
     });
 
-    // Wait for async initialization (max 300ms)
-    for (let i = 0; i < 10; i++) {
-      if (renderer.isReady()) return renderer;
-      await new Promise((resolve) => setTimeout(resolve, 30));
+    // Wait for async initialization with proper timeout
+    const timeout = 1000; // 1 second timeout
+    const startTime = performance.now();
+
+    // Create a promise that resolves when renderer is ready
+    const waitForReady = async (): Promise<boolean> => {
+      while (!renderer.isReady()) {
+        if (performance.now() - startTime > timeout) {
+          console.log('WebGPU renderer initialization timed out');
+          return false;
+        }
+        // Use requestIdleCallback if available for better performance
+        if ('requestIdleCallback' in window) {
+          await new Promise((resolve) => requestIdleCallback(() => resolve(undefined)));
+        } else {
+          await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+        }
+      }
+      return true;
+    };
+
+    const ready = await waitForReady();
+    if (ready) {
+      console.log('WebGPU renderer initialized successfully');
+      return renderer;
     }
 
     return renderer.isReady() ? renderer : null;
@@ -105,22 +120,26 @@ export class RendererFactory {
 
   /**
    * Get all available renderer types for the current environment
+   * Returns in priority order: WebGPU, WebGL, Canvas2D
    */
   public static getSupportedRenderers(): RendererType[] {
-    const available: RendererType[] = ['canvas2d'];
+    const available: RendererType[] = [];
 
-    // Check WebGL support
+    // Check WebGPU support (highest priority)
+    const nav = navigator as Navigator & { gpu?: GPU };
+    if (nav.gpu) {
+      available.push('webgpu');
+    }
+
+    // Check WebGL support (medium priority)
     try {
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
       if (gl) available.push('webgl');
     } catch {}
 
-    // Check WebGPU support
-    const nav = navigator as Navigator & { gpu?: GPU };
-    if (nav.gpu) {
-      available.push('webgpu');
-    }
+    // Canvas2D is always available (fallback)
+    available.push('canvas2d');
 
     return available;
   }
@@ -136,8 +155,6 @@ export class RendererFactory {
         return 'WebGL';
       case 'webgpu':
         return 'WebGPU';
-      case 'auto':
-        return 'Auto';
       default:
         return 'Unknown';
     }
@@ -147,7 +164,6 @@ export class RendererFactory {
    * Check if a specific renderer type is supported
    */
   public static isRendererSupported(type: RendererType): boolean {
-    if (type === 'auto') return true;
     if (type === 'canvas2d') return true;
 
     const supported = RendererFactory.getSupportedRenderers();

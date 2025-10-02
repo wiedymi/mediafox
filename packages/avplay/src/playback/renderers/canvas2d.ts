@@ -39,7 +39,7 @@ export class Canvas2DRenderer implements IRenderer {
     return this.isInitialized && this.ctx !== null;
   }
 
-  public render(source: HTMLCanvasElement, target: HTMLCanvasElement | OffscreenCanvas): boolean {
+  public render(source: HTMLCanvasElement | OffscreenCanvas): boolean {
     if (!this.isReady() || !this.ctx) {
       return false;
     }
@@ -52,9 +52,9 @@ export class Canvas2DRenderer implements IRenderer {
         return false;
       }
 
-      // Use the target canvas dimensions directly
-      const canvasWidth = target.width;
-      const canvasHeight = target.height;
+      // Use this.canvas dimensions
+      const canvasWidth = this.canvas.width;
+      const canvasHeight = this.canvas.height;
 
       // Calculate letterbox dimensions
       const scale = Math.min(canvasWidth / sourceWidth, canvasHeight / sourceHeight);

@@ -1,4 +1,4 @@
-export type RendererType = 'webgpu' | 'webgl' | 'canvas2d' | 'auto';
+export type RendererType = 'webgpu' | 'webgl' | 'canvas2d';
 
 /**
  * Base interface for video renderers.
@@ -11,12 +11,11 @@ export interface IRenderer {
   isReady(): boolean;
 
   /**
-   * Render a frame from source canvas to target canvas
+   * Render a frame from source canvas
    * @param source - Source canvas containing the video frame
-   * @param target - Target canvas to render to
    * @returns true if rendering succeeded, false otherwise
    */
-  render(source: HTMLCanvasElement, target: HTMLCanvasElement | OffscreenCanvas): boolean;
+  render(source: HTMLCanvasElement | OffscreenCanvas): boolean;
 
   /**
    * Clear the target canvas

@@ -26,6 +26,8 @@ export class WebGLRenderer implements IRenderer {
   private textureWidth = 0;
   private textureHeight = 0;
   private options: WebGLRendererOptions;
+  private boundHandleContextLost: ((event: Event) => void) | null = null;
+  private boundHandleContextRestored: (() => void) | null = null;
 
   private readonly vertexShaderSource = `
     attribute vec2 a_position;
@@ -130,9 +132,12 @@ export class WebGLRenderer implements IRenderer {
       gl.disable(gl.CULL_FACE);
       gl.disable(gl.BLEND);
 
+      // Store bound event handlers for proper cleanup
       if ('addEventListener' in this.canvas) {
-        this.canvas.addEventListener('webglcontextlost', this.handleContextLost.bind(this), false);
-        this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored.bind(this), false);
+        this.boundHandleContextLost = this.handleContextLost.bind(this);
+        this.boundHandleContextRestored = this.handleContextRestored.bind(this);
+        this.canvas.addEventListener('webglcontextlost', this.boundHandleContextLost, false);
+        this.canvas.addEventListener('webglcontextrestored', this.boundHandleContextRestored, false);
       }
 
       this.isInitialized = true;
@@ -178,7 +183,7 @@ export class WebGLRenderer implements IRenderer {
     return this.isInitialized && this.resources.gl !== null;
   }
 
-  public render(source: HTMLCanvasElement, target: HTMLCanvasElement | OffscreenCanvas): boolean {
+  public render(source: HTMLCanvasElement | OffscreenCanvas): boolean {
     if (!this.isInitialized || !this.resources.gl) return false;
 
     const gl = this.resources.gl;
@@ -191,14 +196,10 @@ export class WebGLRenderer implements IRenderer {
         return false;
       }
 
-      const canvasWidth = target.width;
-      const canvasHeight = target.height;
+      const canvasWidth = this.canvas.width;
+      const canvasHeight = this.canvas.height;
 
-      if (this.canvas.width !== canvasWidth || this.canvas.height !== canvasHeight) {
-        this.canvas.width = canvasWidth;
-        this.canvas.height = canvasHeight;
-        gl.viewport(0, 0, canvasWidth, canvasHeight);
-      }
+      gl.viewport(0, 0, canvasWidth, canvasHeight);
 
       // Upload texture
       gl.bindTexture(gl.TEXTURE_2D, this.resources.texture);
@@ -305,9 +306,16 @@ export class WebGLRenderer implements IRenderer {
 
     this.cleanup();
 
+    // Remove event listeners using stored references
     if ('removeEventListener' in this.canvas) {
-      this.canvas.removeEventListener('webglcontextlost', this.handleContextLost.bind(this));
-      this.canvas.removeEventListener('webglcontextrestored', this.handleContextRestored.bind(this));
+      if (this.boundHandleContextLost) {
+        this.canvas.removeEventListener('webglcontextlost', this.boundHandleContextLost);
+        this.boundHandleContextLost = null;
+      }
+      if (this.boundHandleContextRestored) {
+        this.canvas.removeEventListener('webglcontextrestored', this.boundHandleContextRestored);
+        this.boundHandleContextRestored = null;
+      }
     }
   }
 }
