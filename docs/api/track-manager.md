@@ -1,12 +1,12 @@
 # TrackManager API Documentation
 
-The TrackManager handles multi-track media content, providing APIs for track discovery, selection, and management in XiaoMei. It supports video tracks (different qualities/angles), audio tracks (different languages), and subtitle tracks.
+The TrackManager handles multi-track media content, providing APIs for track discovery, selection, and management in AVPlay. It supports video tracks (different qualities/angles), audio tracks (different languages), and subtitle tracks.
 
 ## Class Overview
 
 ```typescript
 class TrackManager {
-  constructor(player: XiaoMei);
+  constructor(player: AVPlay);
 
   // Track discovery
   getTracks(): TrackList;

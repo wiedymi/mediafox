@@ -1,12 +1,12 @@
 # Events API Documentation
 
-XiaoMei provides a comprehensive event system that allows you to respond to various player states and user interactions. This document details all available events and their usage.
+AVPlay provides a comprehensive event system that allows you to respond to various player states and user interactions. This document details all available events and their usage.
 
 ## Event System Overview
 
-XiaoMei's event system is built on a type-safe EventEmitter that:
+AVPlay's event system is built on a type-safe EventEmitter that:
 - Supports all standard HTML media events
-- Provides XiaoMei-specific events for advanced functionality
+- Provides AVPlay-specific events for advanced functionality
 - Includes proper TypeScript typing for all events
 - Implements memory leak protection
 - Supports event listener limits and cleanup
@@ -582,7 +582,7 @@ player.on('error', (error) => {
 
   // Report to error tracking service
   errorTracker.report(error, {
-    player: 'xiaomei',
+    player: 'avplay',
     version: '1.0.0',
     userAgent: navigator.userAgent
   });
@@ -616,4 +616,4 @@ player.on('error', (error) => {
 6. **Type Safety**: Leverage TypeScript types for event parameters
 7. **Avoid Memory Leaks**: Set reasonable listener limits and clean up properly
 
-The event system in XiaoMei provides comprehensive coverage of all player states and interactions, enabling you to build responsive and feature-rich video applications.
+The event system in AVPlay provides comprehensive coverage of all player states and interactions, enabling you to build responsive and feature-rich video applications.

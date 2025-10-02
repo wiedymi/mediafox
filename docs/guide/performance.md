@@ -1,12 +1,12 @@
 # Performance Optimization Guide
 
-This guide covers best practices and techniques for optimizing XiaoMei performance in various scenarios and use cases.
+This guide covers best practices and techniques for optimizing AVPlay performance in various scenarios and use cases.
 
 ## Core Performance Concepts
 
-XiaoMei is built with performance in mind, but understanding its internals helps you optimize your implementation:
+AVPlay is built with performance in mind, but understanding its internals helps you optimize your implementation:
 
-- **Frame Buffering**: XiaoMei buffers video frames for smooth playback
+- **Frame Buffering**: AVPlay buffers video frames for smooth playback
 - **Audio Scheduling**: Audio is scheduled ahead of time using Web Audio API
 - **Canvas Rendering**: Efficient canvas operations with frame pooling
 - **State Management**: Batched state updates to minimize re-renders
@@ -17,10 +17,10 @@ XiaoMei is built with performance in mind, but understanding its internals helps
 ### Frame Management
 
 ```typescript
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 // Configure frame buffer size based on use case
-const player = new XiaoMei({
+const player = new AVPlay({
   canvas: canvasElement,
   frameBufferSize: 30, // Number of frames to buffer (default: 10)
   maxMemoryUsage: 100 * 1024 * 1024 // 100MB memory limit
@@ -79,11 +79,11 @@ class CanvasPoolManager {
   }
 }
 
-// Use with XiaoMei
+// Use with AVPlay
 const canvasPool = new CanvasPoolManager();
 
 // Configure player to use canvas pool
-const player = new XiaoMei({
+const player = new AVPlay({
   canvas: canvasElement,
   canvasPool: canvasPool
 });
@@ -99,7 +99,7 @@ class OptimizedRenderer {
   private rafId: number | null = null;
   private needsRedraw = false;
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupEfficientRendering();
   }
 
@@ -278,7 +278,7 @@ class OptimizedLoader {
   private currentRequests = 0;
   private maxConcurrentRequests = 3;
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupProgressiveLoading();
   }
 
@@ -349,7 +349,7 @@ class OptimizedLoader {
   private cacheSegment(url: string, buffer: ArrayBuffer) {
     // Implementation depends on your caching strategy
     if ('caches' in window) {
-      caches.open('xiaomei-segments').then(cache => {
+      caches.open('avplay-segments').then(cache => {
         cache.put(url, new Response(buffer));
       });
     }
@@ -370,7 +370,7 @@ class AdaptiveBitrateController {
   private lastSwitchTime = 0;
   private minSwitchInterval = 10000; // 10 seconds
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupBandwidthMonitoring();
     this.setupQualityAdaptation();
   }
@@ -472,7 +472,7 @@ class PerformantEventManager {
   private eventQueue: Array<{type: string, data: any}> = [];
   private processingScheduled = false;
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupBatchedEvents();
   }
 
@@ -558,7 +558,7 @@ class VisibilityOptimizer {
   private isVisible = true;
   private reducedQuality = false;
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupVisibilityHandling();
   }
 
@@ -655,7 +655,7 @@ class PerformanceMonitor {
   private frameTimeHistory: number[] = [];
   private lastFrameTime = 0;
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupMonitoring();
   }
 

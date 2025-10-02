@@ -56,7 +56,6 @@ export class TrackManager {
           rotation: track.rotation,
           selected: false,
           decodable: await track.canDecode(),
-          converted: false,
         };
 
         return info;
@@ -89,7 +88,6 @@ export class TrackManager {
           bitrate,
           selected: false,
           decodable: await track.canDecode(),
-          converted: false,
         };
 
         return info;
@@ -374,7 +372,6 @@ export class TrackManager {
         sampleRate: newTrack.sampleRate,
         bitrate,
         decodable: await newTrack.canDecode(),
-        converted: true,
       };
     }
   }
@@ -410,7 +407,6 @@ export class TrackManager {
         frameRate,
         bitrate,
         decodable: await newTrack.canDecode(),
-        converted: true,
       };
     }
   }

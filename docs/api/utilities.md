@@ -1,6 +1,6 @@
 # Utility Functions
 
-XiaoMei provides several utility functions for common media-related operations.
+AVPlay provides several utility functions for common media-related operations.
 
 ## Time Utilities
 
@@ -25,7 +25,7 @@ formatTime(seconds: number, showMilliseconds?: boolean): string
 **Examples:**
 
 ```typescript
-import { formatTime } from '@vivysub/xiaomei';
+import { formatTime } from '@avplay/core';
 
 formatTime(65);        // "1:05"
 formatTime(3665);      // "1:01:05"
@@ -53,7 +53,7 @@ parseTime(timeString: string): number
 **Examples:**
 
 ```typescript
-import { parseTime } from '@vivysub/xiaomei';
+import { parseTime } from '@avplay/core';
 
 parseTime("1:30");      // 90
 parseTime("1:01:30");   // 3690
@@ -82,7 +82,7 @@ timeToFrame(time: number, frameRate: number): number
 **Example:**
 
 ```typescript
-import { timeToFrame } from '@vivysub/xiaomei';
+import { timeToFrame } from '@avplay/core';
 
 timeToFrame(1.5, 30);  // 45 (1.5 seconds at 30fps)
 timeToFrame(2, 24);    // 48 (2 seconds at 24fps)
@@ -109,7 +109,7 @@ frameToTime(frame: number, frameRate: number): number
 **Example:**
 
 ```typescript
-import { frameToTime } from '@vivysub/xiaomei';
+import { frameToTime } from '@avplay/core';
 
 frameToTime(45, 30);  // 1.5 (45 frames at 30fps)
 frameToTime(48, 24);  // 2 (48 frames at 24fps)
@@ -139,7 +139,7 @@ clamp(value: number, min: number, max: number): number
 **Example:**
 
 ```typescript
-import { clamp } from '@vivysub/xiaomei';
+import { clamp } from '@avplay/core';
 
 clamp(5, 0, 10);   // 5
 clamp(-5, 0, 10);  // 0
@@ -170,7 +170,7 @@ timeRangesOverlap(
 **Example:**
 
 ```typescript
-import { timeRangesOverlap } from '@vivysub/xiaomei';
+import { timeRangesOverlap } from '@avplay/core';
 
 const range1 = { start: 0, end: 10 };
 const range2 = { start: 5, end: 15 };
@@ -202,7 +202,7 @@ mergeTimeRanges(
 **Example:**
 
 ```typescript
-import { mergeTimeRanges } from '@vivysub/xiaomei';
+import { mergeTimeRanges } from '@avplay/core';
 
 const ranges = [
   { start: 0, end: 10 },
@@ -236,7 +236,7 @@ totalBufferedDuration(
 **Example:**
 
 ```typescript
-import { totalBufferedDuration } from '@vivysub/xiaomei';
+import { totalBufferedDuration } from '@avplay/core';
 
 const buffered = [
   { start: 0, end: 10 },
@@ -271,7 +271,7 @@ findBufferedRange(
 **Example:**
 
 ```typescript
-import { findBufferedRange } from '@vivysub/xiaomei';
+import { findBufferedRange } from '@avplay/core';
 
 const buffered = [
   { start: 0, end: 10 },
@@ -285,14 +285,14 @@ findBufferedRange(buffered, 12);  // null
 
 ## Error Handling
 
-### `XiaoMeiError`
+### `AVPlayError`
 
 Custom error class for player errors.
 
 <div class="method-signature">
 
 ```typescript
-class XiaoMeiError extends Error {
+class AVPlayError extends Error {
   code: ErrorCode;
   details?: any;
 
@@ -306,21 +306,21 @@ class XiaoMeiError extends Error {
 
 ```typescript
 // Create specific error types
-XiaoMeiError.mediaNotSupported(message?, details?);
-XiaoMeiError.mediaLoadFailed(message?, details?);
-XiaoMeiError.decodeError(message?, details?);
-XiaoMeiError.networkError(message?, details?);
-XiaoMeiError.permissionDenied(message?, details?);
-XiaoMeiError.playbackError(message?, details?);
-XiaoMeiError.trackNotFound(message?, details?);
-XiaoMeiError.invalidState(message?, details?);
-XiaoMeiError.unknownError(message?, details?);
+AVPlayError.mediaNotSupported(message?, details?);
+AVPlayError.mediaLoadFailed(message?, details?);
+AVPlayError.decodeError(message?, details?);
+AVPlayError.networkError(message?, details?);
+AVPlayError.permissionDenied(message?, details?);
+AVPlayError.playbackError(message?, details?);
+AVPlayError.trackNotFound(message?, details?);
+AVPlayError.invalidState(message?, details?);
+AVPlayError.unknownError(message?, details?);
 ```
 
 **Example:**
 
 ```typescript
-import { XiaoMeiError, ErrorCode } from '@vivysub/xiaomei';
+import { AVPlayError, ErrorCode } from '@avplay/core';
 
 // Handle player errors
 player.on('error', (error) => {
@@ -337,7 +337,7 @@ player.on('error', (error) => {
 });
 
 // Create custom errors
-throw XiaoMeiError.mediaNotSupported(
+throw AVPlayError.mediaNotSupported(
   'WebM format not supported in this browser'
 );
 ```
@@ -367,7 +367,7 @@ Wraps any error with additional context.
 <div class="method-signature">
 
 ```typescript
-wrapError(error: unknown, context: string): XiaoMeiError
+wrapError(error: unknown, context: string): AVPlayError
 ```
 
 </div>
@@ -376,12 +376,12 @@ wrapError(error: unknown, context: string): XiaoMeiError
 - `error`: Original error
 - `context`: Context string for the error
 
-**Returns:** XiaoMeiError instance
+**Returns:** AVPlayError instance
 
 **Example:**
 
 ```typescript
-import { wrapError } from '@vivysub/xiaomei';
+import { wrapError } from '@avplay/core';
 
 try {
   await loadMedia();
@@ -427,7 +427,7 @@ class EventEmitter<EventMap extends Record&lt;string, any&gt;> {
 **Example:**
 
 ```typescript
-import { EventEmitter } from '@vivysub/xiaomei';
+import { EventEmitter } from '@avplay/core';
 
 // Define event map
 type MyEvents = {
@@ -471,7 +471,7 @@ class Store<T> {
 **Example:**
 
 ```typescript
-import { Store } from '@vivysub/xiaomei';
+import { Store } from '@avplay/core';
 
 // Create store
 const store = new Store({
@@ -508,7 +508,7 @@ import {
   QUALITY_MEDIUM,
   QUALITY_HIGH,
   QUALITY_VERY_HIGH
-} from '@vivysub/xiaomei';
+} from '@avplay/core';
 
 // Use for screenshot quality
 player.screenshot({
@@ -522,9 +522,9 @@ player.screenshot({
 Library version string:
 
 ```typescript
-import { VERSION } from '@vivysub/xiaomei';
+import { VERSION } from '@avplay/core';
 
-console.log(`XiaoMei version: ${VERSION}`);
+console.log(`AVPlay version: ${VERSION}`);
 ```
 
 ## Usage Examples
@@ -532,7 +532,7 @@ console.log(`XiaoMei version: ${VERSION}`);
 ### Progress Bar Implementation
 
 ```typescript
-import { formatTime, clamp } from '@vivysub/xiaomei';
+import { formatTime, clamp } from '@avplay/core';
 
 // Update progress bar
 player.subscribe(state => {
@@ -553,7 +553,7 @@ progressBar.addEventListener('click', (e) => {
 ### Buffering Display
 
 ```typescript
-import { totalBufferedDuration, mergeTimeRanges } from '@vivysub/xiaomei';
+import { totalBufferedDuration, mergeTimeRanges } from '@avplay/core';
 
 player.subscribe(state => {
   const buffered = mergeTimeRanges(state.buffered);
@@ -574,7 +574,7 @@ player.subscribe(state => {
 ### Frame-Accurate Navigation
 
 ```typescript
-import { timeToFrame, frameToTime } from '@vivysub/xiaomei';
+import { timeToFrame, frameToTime } from '@avplay/core';
 
 const frameRate = 24; // Get from video track
 

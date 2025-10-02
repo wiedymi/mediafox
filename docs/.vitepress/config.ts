@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "XiaoMei 小美",
+  title: "AVPlay",
   description:
     "Framework-agnostic, TypeScript-first video player library powered by Mediabunny. Full control over rendering and UI.",
 
@@ -11,7 +11,7 @@ export default defineConfig({
     ["meta", { name: "og:type", content: "website" }],
     [
       "meta",
-      { name: "og:title", content: "XiaoMei - Modern Video Player Library" },
+      { name: "og:title", content: "AVPlay - Modern Video Player Library" },
     ],
     [
       "meta",
@@ -55,7 +55,7 @@ export default defineConfig({
           { text: "Utilities", link: "/api/utilities" },
         ],
       },
-      { text: "GitHub", link: "https://github.com/wiedymi/xiaomei" },
+      { text: "GitHub", link: "https://github.com/wiedymi/avplay" },
     ],
 
     sidebar: {
@@ -84,7 +84,6 @@ export default defineConfig({
             { text: "State Management", link: "/guide/state-management" },
             { text: "Event Handling", link: "/guide/events" },
             { text: "Track Management", link: "/guide/tracks" },
-            { text: "Fallback Decoder", link: "/guide/fallback-decoder" },
             { text: "Performance", link: "/guide/performance" },
           ],
         },
@@ -122,20 +121,17 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: "https://github.com/wiedymi/xiaomei/edit/main/docs/:path",
+      pattern: "https://github.com/wiedymi/avplay/edit/main/docs/:path",
       text: "Edit this page on GitHub",
     },
 
     socialLinks: [
-      { icon: "github", link: "https://github.com/wiedymi/xiaomei" },
-      { icon: "npm", link: "https://www.npmjs.com/package/xiaomei" },
+      { icon: "github", link: "https://github.com/wiedymi/avplay" },
+      { icon: "npm", link: "https://www.npmjs.com/package/@avplay/core" },
     ],
   },
 
   vite: {
-    optimizeDeps: {
-      exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util"],
-    },
     worker: {
       format: "es",
     },

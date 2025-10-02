@@ -1,23 +1,23 @@
 # Vue Integration
 
-XiaoMei integrates beautifully with Vue 3's Composition API. This guide shows you how to build video players with Vue.
+AVPlay integrates beautifully with Vue 3's Composition API. This guide shows you how to build video players with Vue.
 
 ## Vue Composable
 
-Create a reusable composable for XiaoMei:
+Create a reusable composable for AVPlay:
 
 ```typescript
-// useXiaoMei.ts
+// useAVPlay.ts
 import { ref, onMounted, onUnmounted, Ref } from 'vue';
-import { XiaoMei, PlayerStateData, PlayerOptions } from '@vivysub/xiaomei';
+import { AVPlay, PlayerStateData, PlayerOptions } from '@avplay/core';
 
-export function useXiaoMei(options?: PlayerOptions) {
-  const player = ref<XiaoMei>();
+export function useAVPlay(options?: PlayerOptions) {
+  const player = ref<AVPlay>();
   const state = ref<PlayerStateData | null>(null);
   const error = ref<Error | null>(null);
 
   onMounted(() => {
-    player.value = new XiaoMei(options);
+    player.value = new AVPlay(options);
 
     // Subscribe to state changes
     const unsubscribe = player.value.subscribe((newState) => {
@@ -107,7 +107,7 @@ export function useXiaoMei(options?: PlayerOptions) {
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { XiaoMei, formatTime } from '@vivysub/xiaomei';
+import { AVPlay, formatTime } from '@avplay/core';
 
 const props = defineProps<{
   src: string | File | Blob;
@@ -115,7 +115,7 @@ const props = defineProps<{
 }>();
 
 const canvasRef = ref<HTMLCanvasElement>();
-const player = ref<XiaoMei>();
+const player = ref<AVPlay>();
 const state = ref<any>(null);
 const error = ref<Error | null>(null);
 
@@ -127,7 +127,7 @@ const progressPercent = computed(() => {
 onMounted(() => {
   if (!canvasRef.value) return;
 
-  player.value = new XiaoMei({
+  player.value = new AVPlay({
     renderTarget: canvasRef.value,
     autoplay: props.autoplay
   });
@@ -367,7 +367,7 @@ onUnmounted(() => {
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { XiaoMei, formatTime, VideoTrackInfo, AudioTrackInfo } from '@vivysub/xiaomei';
+import { AVPlay, formatTime, VideoTrackInfo, AudioTrackInfo } from '@avplay/core';
 
 const props = defineProps<{
   src: string | File | Blob;
@@ -375,7 +375,7 @@ const props = defineProps<{
 
 // Refs
 const canvasRef = ref<HTMLCanvasElement>();
-const player = ref<XiaoMei>();
+const player = ref<AVPlay>();
 
 // State
 const state = ref<any>(null);
@@ -398,7 +398,7 @@ onMounted(async () => {
   if (!canvasRef.value) return;
 
   // Create player
-  player.value = new XiaoMei({
+  player.value = new AVPlay({
     renderTarget: canvasRef.value
   });
 
@@ -702,11 +702,11 @@ label {
 ```typescript
 // stores/player.ts
 import { defineStore } from 'pinia';
-import { XiaoMei, PlayerStateData } from '@vivysub/xiaomei';
+import { AVPlay, PlayerStateData } from '@avplay/core';
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
-    player: null as XiaoMei | null,
+    player: null as AVPlay | null,
     state: null as PlayerStateData | null,
     error: null as Error | null,
     loading: false
@@ -724,7 +724,7 @@ export const usePlayerStore = defineStore('player', {
 
   actions: {
     initPlayer(options?: any) {
-      this.player = new XiaoMei(options);
+      this.player = new AVPlay(options);
 
       // Subscribe to state changes
       this.player.subscribe((state) => {
@@ -786,7 +786,7 @@ export const usePlayerStore = defineStore('player', {
 ```typescript
 // directives/player.ts
 import { Directive } from 'vue';
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 export const vPlayer: Directive = {
   mounted(el, binding) {
@@ -795,7 +795,7 @@ export const vPlayer: Directive = {
       return;
     }
 
-    const player = new XiaoMei({
+    const player = new AVPlay({
       renderTarget: el,
       ...binding.value.options
     });
@@ -835,26 +835,26 @@ export const vPlayer: Directive = {
 ## Nuxt 3 Integration
 
 ```typescript
-// plugins/xiaomei.client.ts
-import { XiaoMei } from '@vivysub/xiaomei';
+// plugins/avplay.client.ts
+import { AVPlay } from '@avplay/core';
 
 export default defineNuxtPlugin(() => {
   return {
     provide: {
-      XiaoMei
+      AVPlay
     }
   };
 });
 
 // composables/usePlayer.ts
 export const usePlayer = () => {
-  const { $XiaoMei } = useNuxtApp();
+  const { $AVPlay } = useNuxtApp();
 
-  const player = ref<InstanceType<typeof $XiaoMei>>();
+  const player = ref<InstanceType<typeof $AVPlay>>();
   const state = ref<any>(null);
 
   const initPlayer = (options: any) => {
-    player.value = new $XiaoMei(options);
+    player.value = new $AVPlay(options);
 
     player.value.subscribe((newState) => {
       state.value = newState;
@@ -881,7 +881,7 @@ Always wait for the canvas to be mounted:
 <script setup>
 onMounted(() => {
   if (canvasRef.value) {
-    player.value = new XiaoMei({
+    player.value = new AVPlay({
       renderTarget: canvasRef.value
     });
   }
@@ -930,12 +930,12 @@ Use `shallowRef` for the player instance:
 <script setup>
 import { shallowRef } from 'vue';
 
-const player = shallowRef<XiaoMei>();
+const player = shallowRef<AVPlay>();
 </script>
 ```
 
 ## Next Steps
 
-- [React Integration](/guide/react) - Using XiaoMei with React
+- [React Integration](/guide/react) - Using AVPlay with React
 - [API Reference](/api/player) - Complete API documentation
 - [Live Demo](/) - Interactive demo on the home page

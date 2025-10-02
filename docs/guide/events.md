@@ -1,10 +1,10 @@
 # Event Handling Guide
 
-XiaoMei provides a comprehensive event system that allows you to respond to various playback events. This guide covers all available events and best practices for event handling.
+AVPlay provides a comprehensive event system that allows you to respond to various playback events. This guide covers all available events and best practices for event handling.
 
 ## Overview
 
-XiaoMei's event system is built on a type-safe EventEmitter that supports all standard HTML media events plus custom XiaoMei-specific events. Events provide notifications about state changes, user interactions, and system status.
+AVPlay's event system is built on a type-safe EventEmitter that supports all standard HTML media events plus custom AVPlay-specific events. Events provide notifications about state changes, user interactions, and system status.
 
 ## Available Events
 
@@ -120,7 +120,7 @@ function handleMediaError(error: MediaError) {
 }
 ```
 
-### XiaoMei-Specific Events
+### AVPlay-Specific Events
 
 ```typescript
 // Track management events
@@ -194,7 +194,7 @@ player.removeAllListeners();
 class PlayerManager {
   private eventHandlers = new Map();
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupEventListeners();
   }
 
@@ -234,7 +234,7 @@ class PlayerManager {
 
 ```typescript
 class EventChain {
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupEventChain();
   }
 
@@ -325,7 +325,7 @@ player.on('progress', throttledProgress);
 class EventDelegator {
   private eventQueue: Array<{event: string, data: any, timestamp: number}> = [];
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupDelegation();
   }
 
@@ -383,10 +383,10 @@ class EventDelegator {
 
 ```typescript
 import { useEffect } from 'react';
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 function usePlayerEvents(
-  player: XiaoMei | null,
+  player: AVPlay | null,
   events: Record<string, (...args: any[]) => void>
 ) {
   useEffect(() => {
@@ -408,7 +408,7 @@ function usePlayerEvents(
 
 // Usage
 function VideoPlayer() {
-  const [player, setPlayer] = useState<XiaoMei | null>(null);
+  const [player, setPlayer] = useState<AVPlay | null>(null);
 
   const eventHandlers = useMemo(() => ({
     play: () => setIsPlaying(true),
@@ -427,10 +427,10 @@ function VideoPlayer() {
 
 ```typescript
 import { onMounted, onUnmounted } from 'vue';
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 export function usePlayerEvents(
-  player: Ref<XiaoMei | null>,
+  player: Ref<AVPlay | null>,
   events: Record<string, Function>
 ) {
   const eventHandlers = new Map();
@@ -468,7 +468,7 @@ export function usePlayerEvents(
 // playerEvents.ts
 export function playerEvents(
   node: HTMLElement,
-  { player, events }: { player: XiaoMei, events: Record<string, Function> }
+  { player, events }: { player: AVPlay, events: Record<string, Function> }
 ) {
   const eventHandlers = new Map();
 
@@ -516,7 +516,7 @@ export function playerEvents(
 
 ```typescript
 class ErrorHandler {
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupErrorHandling();
   }
 
@@ -596,7 +596,7 @@ class ErrorHandler {
 ```typescript
 // Monitor event listener count
 class EventMonitor {
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.monitorListeners();
   }
 
@@ -639,4 +639,4 @@ class EventMonitor {
 7. **Batch Operations**: Group related operations in event handlers
 8. **Avoid Side Effects**: Keep event handlers focused and predictable
 
-The event system in XiaoMei provides powerful capabilities for building responsive and interactive video players while maintaining good performance and developer experience.
+The event system in AVPlay provides powerful capabilities for building responsive and interactive video players while maintaining good performance and developer experience.

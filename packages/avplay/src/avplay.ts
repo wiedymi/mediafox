@@ -1,7 +1,6 @@
 import { PlayerCore } from './core/player-core';
 import { StateFacade } from './core/state-facade';
 import { TrackSwitcher } from './core/track-switcher';
-import type { MediaConverterDecoder } from './decoders/media-converter-decoder';
 import { EventEmitter } from './events/emitter';
 import type { UnsubscribeFn } from './events/types';
 import { PlaybackController } from './playback/controller';
@@ -25,7 +24,7 @@ import type {
 } from './types';
 //
 
-export class XiaoMei {
+export class AVPlay {
   private emitter: EventEmitter<PlayerEventMap>;
   private store: Store;
   private state: StateFacade;
@@ -33,7 +32,6 @@ export class XiaoMei {
   private playbackController: PlaybackController;
   private trackManager: TrackManager;
   private options: PlayerOptions;
-  private fallbackDecoder?: MediaConverterDecoder;
   private disposed = false;
   private getCurrentInput = () => this.sourceManager.getCurrentSource()?.input ?? null;
   private trackSwitcher: TrackSwitcher;
@@ -48,9 +46,6 @@ export class XiaoMei {
       preload: 'metadata',
       ...options,
     };
-
-    // Store fallback decoder if provided
-    this.fallbackDecoder = options.fallbackDecoder;
 
     // Initialize components
     this.emitter = new EventEmitter({ maxListeners: 100 });
@@ -73,7 +68,6 @@ export class XiaoMei {
       sourceManager: this.sourceManager,
       trackManager: this.trackManager,
       playbackController: this.playbackController,
-      fallbackDecoder: this.fallbackDecoder,
       emit: this.emit.bind(this),
       store: this.store,
       getCurrentInput: this.getCurrentInput,

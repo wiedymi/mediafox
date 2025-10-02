@@ -1,6 +1,6 @@
-# XiaoMei 小美
+# AVPlay
 
-A framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny). XiaoMei provides an ergonomic API for media playback with complete control over rendering and UI.
+A framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny). AVPlay provides an ergonomic API for media playback with complete control over rendering and UI.
 
 ## Features
 
@@ -16,20 +16,20 @@ A framework-agnostic, TypeScript-first video player library powered by [Mediabun
 ## Installation
 
 ```bash
-bun add @vivysub/xiaomei
+bun add @avplay/core
 # or
-npm install @vivysub/xiaomei
+npm install @avplay/core
 # or
-yarn add @vivysub/xiaomei
+yarn add @avplay/core
 ```
 
 ## Quick Start
 
 ```typescript
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 // Create player instance
-const player = new XiaoMei({
+const player = new AVPlay({
   renderTarget: document.querySelector('canvas'),
   volume: 0.8
 });
@@ -63,15 +63,15 @@ player.on('timeupdate', ({ currentTime }) => {
 
 ```tsx
 import { useEffect, useRef, useState } from 'react';
-import { XiaoMei, type PlayerStateData } from '@vivysub/xiaomei';
+import { AVPlay, type PlayerStateData } from '@avplay/core';
 
 function VideoPlayer({ src }: { src: File | string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerRef = useRef<XiaoMei>();
+  const playerRef = useRef<AVPlay>();
   const [state, setState] = useState<PlayerStateData>();
 
   useEffect(() => {
-    const player = new XiaoMei({
+    const player = new AVPlay({
       renderTarget: canvasRef.current!
     });
 
@@ -118,17 +118,17 @@ function VideoPlayer({ src }: { src: File | string }) {
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 const props = defineProps<{ src: File | string }>();
 
 const canvasRef = ref<HTMLCanvasElement>();
-const player = ref<XiaoMei>();
+const player = ref<AVPlay>();
 const currentTime = ref(0);
 const duration = ref(0);
 
 onMounted(async () => {
-  player.value = new XiaoMei({
+  player.value = new AVPlay({
     renderTarget: canvasRef.value
   });
 
@@ -287,7 +287,7 @@ Available events:
 
 ## Browser Support
 
-XiaoMei requires a modern browser with support for:
+AVPlay requires a modern browser with support for:
 - WebCodecs API
 - Web Audio API
 - Canvas API

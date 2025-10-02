@@ -1,14 +1,14 @@
-# XiaoMei 小美 - Monorepo
+# AVPlay - Monorepo
 
-A monorepo for XiaoMei, a framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny).
+A monorepo for AVPlay, a framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny).
 
 ```bash
-bun add @vivysub/xiaomei
+bun add @avplay/core
 ```
 
 ## Packages
 
-- **[xiaomei](./packages/xiaomei)** - Core video player library
+- **[@avplay/core](./packages/avplay)** - Core video player library
 
 ## Getting Started
 
@@ -34,9 +34,9 @@ bun run docs:build
 ## Workspace Structure
 
 ```
-xiaomei/
+avplay/
 ├── packages/
-│   └── xiaomei/        # Core player library
+│   └── avplay/         # Core player library (@avplay/core)
 ├── docs/               # Documentation site
 ├── scripts/            # Build and utility scripts
 └── package.json        # Workspace configuration
@@ -55,8 +55,8 @@ xiaomei/
 You can run commands for specific packages using filters:
 
 ```bash
-# Run build for xiaomei package only
-bun run --filter xiaomei build
+# Run build for @avplay/core package only
+bun run --filter @avplay/core build
 
 # Run tests for all packages
 bun run test
@@ -64,7 +64,7 @@ bun run test
 
 ## Documentation
 
-Visit the [documentation site](https://xiaomei.vivysub.com) for detailed guides and API references.
+Visit the documentation site for detailed guides and API references.
 
 To run the documentation locally:
 

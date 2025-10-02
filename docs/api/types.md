@@ -1,6 +1,6 @@
 # TypeScript Types Documentation
 
-XiaoMei provides comprehensive TypeScript support with detailed type definitions for all APIs. This document covers all the available types and interfaces.
+AVPlay provides comprehensive TypeScript support with detailed type definitions for all APIs. This document covers all the available types and interfaces.
 
 ## Core Player Types
 
@@ -34,9 +34,6 @@ interface PlayerOptions {
 
   /** Maximum cache size for buffering */
   maxCacheSize?: number;
-
-  /** Decoder for unsupported codecs */
-  fallbackDecoder?: MediaConverterDecoder;
 }
 ```
 
@@ -506,7 +503,7 @@ interface Plugin {
   readonly version: string;
 
   /** Initialize the plugin */
-  init(player: XiaoMei, options?: any): void | Promise<void>;
+  init(player: AVPlay, options?: any): void | Promise<void>;
 
   /** Cleanup when plugin is destroyed */
   destroy?(): void | Promise<void>;
@@ -683,7 +680,7 @@ type PlayerEventName = typeof PLAYER_EVENTS[number];
 ```typescript
 declare global {
   interface Window {
-    XiaoMei: typeof XiaoMei;
+    AVPlay: typeof AVPlay;
   }
 }
 ```
@@ -693,9 +690,9 @@ declare global {
 ```typescript
 declare module 'html-canvas-element' {
   interface HTMLCanvasElement {
-    xiaomeiPlayer?: XiaoMei;
+    avplayPlayer?: AVPlay;
   }
 }
 ```
 
-This comprehensive type system provides full IntelliSense support and compile-time safety when using XiaoMei with TypeScript.
+This comprehensive type system provides full IntelliSense support and compile-time safety when using AVPlay with TypeScript.

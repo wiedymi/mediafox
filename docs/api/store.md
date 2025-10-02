@@ -1,6 +1,6 @@
 # Store API
 
-The Store class manages the internal state of the XiaoMei player.
+The Store class manages the internal state of the AVPlay player.
 
 ## State Structure
 

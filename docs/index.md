@@ -2,12 +2,12 @@
 layout: home
 
 hero:
-  name: "XiaoMei 小美"
+  name: "AVPlay"
   text: "Framework-Agnostic Video Player"
   tagline: A TypeScript-first video player library powered by Mediabunny. Full control over rendering and UI, zero opinions.
   image:
     src: /logo.png
-    alt: XiaoMei
+    alt: AVPlay
   actions:
     - theme: brand
       text: Get Started
@@ -17,7 +17,7 @@ hero:
       link: /api/player
     - theme: alt
       text: View on GitHub
-      link: https://github.com/wiedymi/xiaomei
+      link: https://github.com/wiedymi/avplay
 ---
 
 <ClientOnly>
@@ -27,7 +27,7 @@ hero:
 <div style="text-align: center; margin: 80px auto; max-width: 800px; font-size: 20px;">
 
 ```bash
-bun add @vivysub/xiaomei
+bun add @avplay/core
 ```
 
 </div>
@@ -37,7 +37,7 @@ bun add @vivysub/xiaomei
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;">
 <div>
 <h1 style="background: -webkit-linear-gradient(-30deg, #3b82f6, #06b6d4); -webkit-background-clip: text; color: transparent; display: inline-block;">Complete media playback control</h1>
-<p style="font-size: 18px; line-height: 1.6;">XiaoMei gives you full control over video playback without imposing any UI constraints. Handle multi-track media files with video, audio, and subtitle tracks. Perfect canvas-based rendering with hardware acceleration.</p>
+<p style="font-size: 18px; line-height: 1.6;">AVPlay gives you full control over video playback without imposing any UI constraints. Handle multi-track media files with video, audio, and subtitle tracks. Perfect canvas-based rendering with hardware acceleration.</p>
 <a href="/guide/basic-usage" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: var(--vp-c-brand);">
     Learn more
     <span style="margin-left: 4px;">→</span>
@@ -46,9 +46,9 @@ bun add @vivysub/xiaomei
 <div style="font-size: 14px; position: relative;">
 
 ```typescript
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
-const player = new XiaoMei({
+const player = new AVPlay({
   renderTarget: document.querySelector('#canvas'),
   volume: 0.8,
   autoplay: false
@@ -114,45 +114,6 @@ player.on('timeupdate', ({ currentTime }) => {
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;">
 <div>
-<h1 style="background: -webkit-linear-gradient(-30deg, #3b82f6, #06b6d4); -webkit-background-clip: text; color: transparent; display: inline-block;">Automatic codec conversion</h1>
-<p style="font-size: 18px; line-height: 1.6;">Handle unsupported codecs gracefully with the fallback decoder system. Automatically convert audio and video tracks using custom decoder functions like FFmpeg.wasm when browsers can't handle them natively.</p>
-<a href="/guide/fallback-decoder" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: var(--vp-c-brand);">
-    Learn more
-    <span style="margin-left: 4px;">→</span>
-</a>
-</div>
-<div style="font-size: 14px; position: relative;">
-
-```typescript
-import { MediaConverterDecoder } from '@vivysub/xiaomei';
-
-const fallbackDecoder = new MediaConverterDecoder({
-  decodeAudioTrack: async (data, trackIndex, options) => {
-    // Convert unsupported audio to AAC
-    return await convertToAAC(data, trackIndex);
-  },
-  decodeVideoTrack: async (data, trackIndex, options) => {
-    // Convert unsupported video to H.264
-    return await convertToH264(data, trackIndex);
-  }
-});
-
-const player = new XiaoMei({
-  renderTarget: canvas,
-  fallbackDecoder // Handles unsupported codecs automatically
-});
-
-// Listen for conversion events
-player.on('conversionstart', (event) => {
-  console.log(`Converting ${event.type} track...`);
-});
-```
-
-</div>
-</div>
-
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;">
-<div>
 <h1 style="background: -webkit-linear-gradient(-30deg, #3b82f6, #06b6d4); -webkit-background-clip: text; color: transparent; display: inline-block;">Framework agnostic</h1>
 <p style="font-size: 18px; line-height: 1.6;">Works seamlessly with React, Vue, Angular, Svelte, or vanilla JavaScript. No UI opinions means you can build exactly the interface you want with complete control over every pixel.</p>
 <a href="/guide/react" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: var(--vp-c-brand);">
@@ -171,7 +132,7 @@ function VideoPlayer({ src }) {
   const [state, setState] = useState(null);
 
   useEffect(() => {
-    const player = new XiaoMei({ renderTarget: canvasRef.current });
+    const player = new AVPlay({ renderTarget: canvasRef.current });
     const { unsubscribe } = player.subscribe(setState);
 
     playerRef.current = player;
@@ -182,12 +143,12 @@ function VideoPlayer({ src }) {
 }
 
 // Vue
-const player = new XiaoMei({ renderTarget: canvasRef.value });
+const player = new AVPlay({ renderTarget: canvasRef.value });
 const state = ref(null);
 player.subscribe(newState => state.value = newState);
 
 // Vanilla
-const player = new XiaoMei({ renderTarget: canvas });
+const player = new AVPlay({ renderTarget: canvas });
 player.subscribe(state => updateUI(state));
 ```
 
@@ -199,16 +160,14 @@ player.subscribe(state => updateUI(state));
 
 ```typescript
 import {
-  XiaoMei,
+  AVPlay,
   PlayerStateData,
   VideoTrackInfo,
-  AudioTrackInfo,
-  MediaConverterDecoder
-} from '@vivysub/xiaomei';
+  AudioTrackInfo
+} from '@avplay/core';
 
-const player = new XiaoMei({
+const player = new AVPlay({
   renderTarget: canvas,
-  fallbackDecoder: myDecoder,
   volume: 0.8
 });
 

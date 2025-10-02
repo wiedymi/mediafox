@@ -1,22 +1,22 @@
 # Angular Integration
 
-XiaoMei integrates seamlessly with Angular using services and components. This guide covers Angular 16+ with standalone components.
+AVPlay integrates seamlessly with Angular using services and components. This guide covers Angular 16+ with standalone components.
 
 ## Angular Service
 
 Create a service to manage the player instance:
 
 ```typescript
-// xiaomei.service.ts
+// avplay.service.ts
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { XiaoMei, PlayerStateData, PlayerOptions } from '@vivysub/xiaomei';
+import { AVPlay, PlayerStateData, PlayerOptions } from '@avplay/core';
 
 @Injectable({
   providedIn: 'root'
 })
-export class XiaoMeiService implements OnDestroy {
-  private player: XiaoMei | null = null;
+export class AVPlayService implements OnDestroy {
+  private player: AVPlay | null = null;
   private stateSubject = new BehaviorSubject<PlayerStateData | null>(null);
   private errorSubject = new BehaviorSubject<Error | null>(null);
 
@@ -28,7 +28,7 @@ export class XiaoMeiService implements OnDestroy {
       this.player.dispose();
     }
 
-    this.player = new XiaoMei(options);
+    this.player = new AVPlay(options);
 
     // Subscribe to state changes
     this.player.subscribe(state => {
@@ -94,8 +94,8 @@ export class XiaoMeiService implements OnDestroy {
 import { Component, ElementRef, Input, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { XiaoMeiService } from './xiaomei.service';
-import { formatTime } from '@vivysub/xiaomei';
+import { AVPlayService } from './avplay.service';
+import { formatTime } from '@avplay/core';
 
 @Component({
   selector: 'app-video-player',
@@ -191,7 +191,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
   error$ = this.playerService.error$;
   formatTime = formatTimeUtil;
 
-  constructor(private playerService: XiaoMeiService) {}
+  constructor(private playerService: AVPlayService) {}
 
   ngOnInit(): void {
     // Initialize player with canvas
@@ -243,7 +243,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { XiaoMei, VideoTrackInfo, AudioTrackInfo, formatTime } from '@vivysub/xiaomei';
+import { AVPlay, VideoTrackInfo, AudioTrackInfo, formatTime } from '@avplay/core';
 
 @Component({
   selector: 'app-advanced-player',
@@ -490,7 +490,7 @@ export class AdvancedPlayerComponent implements OnInit {
   @ViewChild('videoCanvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   @Input() src!: string | File | Blob;
 
-  player!: XiaoMei;
+  player!: AVPlay;
   loading = false;
   loaded = false;
   playing = false;
@@ -510,7 +510,7 @@ export class AdvancedPlayerComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     // Initialize player
-    this.player = new XiaoMei({
+    this.player = new AVPlay({
       renderTarget: this.canvasRef.nativeElement
     });
 
@@ -719,7 +719,7 @@ export class PlayerFormComponent {
 
   constructor(
     private fb: FormBuilder,
-    private playerService: XiaoMeiService
+    private playerService: AVPlayService
   ) {
     this.playerForm = this.fb.group({
       volume: [1],
@@ -750,19 +750,19 @@ export class PlayerFormComponent {
 ## Directive for Easy Integration
 
 ```typescript
-// xiaomei.directive.ts
+// avplay.directive.ts
 import { Directive, ElementRef, Input, OnInit, OnDestroy } from '@angular/core';
-import { XiaoMei } from '@vivysub/xiaomei';
+import { AVPlay } from '@avplay/core';
 
 @Directive({
   selector: '[xiaoMeiPlayer]',
   standalone: true
 })
-export class XiaoMeiDirective implements OnInit, OnDestroy {
+export class AVPlayDirective implements OnInit, OnDestroy {
   @Input() xiaoMeiPlayer?: string | File | Blob;
   @Input() xiaoMeiOptions: any = {};
 
-  private player?: XiaoMei;
+  private player?: AVPlay;
 
   constructor(private el: ElementRef<HTMLCanvasElement>) {}
 
@@ -772,7 +772,7 @@ export class XiaoMeiDirective implements OnInit, OnDestroy {
       return;
     }
 
-    this.player = new XiaoMei({
+    this.player = new AVPlay({
       renderTarget: this.el.nativeElement,
       ...this.xiaoMeiOptions
     });
@@ -797,15 +797,15 @@ export class XiaoMeiDirective implements OnInit, OnDestroy {
 // video-player.component.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { VideoPlayerComponent } from './video-player.component';
-import { XiaoMeiService } from './xiaomei.service';
+import { AVPlayService } from './avplay.service';
 
 describe('VideoPlayerComponent', () => {
   let component: VideoPlayerComponent;
   let fixture: ComponentFixture<VideoPlayerComponent>;
-  let mockService: jasmine.SpyObj<XiaoMeiService>;
+  let mockService: jasmine.SpyObj<AVPlayService>;
 
   beforeEach(async () => {
-    mockService = jasmine.createSpyObj('XiaoMeiService', [
+    mockService = jasmine.createSpyObj('AVPlayService', [
       'initialize',
       'load',
       'play',
@@ -815,7 +815,7 @@ describe('VideoPlayerComponent', () => {
     await TestBed.configureTestingModule({
       imports: [VideoPlayerComponent],
       providers: [
-        { provide: XiaoMeiService, useValue: mockService }
+        { provide: AVPlayService, useValue: mockService }
       ]
     }).compileComponents();
 
@@ -894,6 +894,6 @@ this.zone.runOutsideAngular(() => {
 
 ## Next Steps
 
-- [Svelte Integration](/guide/svelte) - Using XiaoMei with Svelte
+- [Svelte Integration](/guide/svelte) - Using AVPlay with Svelte
 - [State Management](/guide/state-management) - Advanced state handling
 - [API Reference](/api/player) - Complete API documentation

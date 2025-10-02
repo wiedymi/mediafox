@@ -1,5 +1,5 @@
 {
-  "name": "xiaomei-monorepo",
+  "name": "avplay-monorepo",
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
     "typescript": "^5.7.0",
@@ -14,15 +14,13 @@
     "format": "biome format --write ./packages",
     "check": "biome check --write ./packages",
     "ci": "biome ci ./packages",
-    "dev": "bun run --filter xiaomei dev",
+    "dev": "bun run --filter @avplay/core dev",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "workspaces": ["packages/*"],
   "dependencies": {
-    "@ffmpeg/ffmpeg": "^0.12.15",
-    "@ffmpeg/util": "^0.12.2",
     "lucide-static": "^0.544.0"
   }
 }

@@ -1,36 +1,36 @@
 # Svelte Integration Guide
 
-This guide shows how to integrate XiaoMei with Svelte applications for a reactive video player experience.
+This guide shows how to integrate AVPlay with Svelte applications for a reactive video player experience.
 
 ## Installation
 
-First, install XiaoMei in your Svelte project:
+First, install AVPlay in your Svelte project:
 
 ```bash
-bun add @vivysub/xiaomei
+bun add @avplay/core
 # or
-npm install @vivysub/xiaomei
+npm install @avplay/core
 # or
-yarn add @vivysub/xiaomei
+yarn add @avplay/core
 ```
 
 ## Basic Svelte Component
 
-Here's a basic Svelte component that wraps XiaoMei:
+Here's a basic Svelte component that wraps AVPlay:
 
 ```svelte
 <!-- VideoPlayer.svelte -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { writable } from 'svelte/store';
-  import { XiaoMei, type PlayerState } from '@vivysub/xiaomei';
+  import { AVPlay, type PlayerState } from '@avplay/core';
 
   export let src: string;
   export let autoplay = false;
   export let muted = false;
 
   let canvasElement: HTMLCanvasElement;
-  let player: XiaoMei | null = null;
+  let player: AVPlay | null = null;
 
   // Reactive stores for player state
   const playerState = writable<PlayerState | null>(null);
@@ -41,7 +41,7 @@ Here's a basic Svelte component that wraps XiaoMei:
 
   onMount(async () => {
     if (canvasElement) {
-      player = new XiaoMei({
+      player = new AVPlay({
         canvas: canvasElement,
         autoplay,
         muted
@@ -260,11 +260,11 @@ Create dedicated stores for better state management:
 ```typescript
 // stores/playerStore.ts
 import { writable, derived } from 'svelte/store';
-import { XiaoMei, type PlayerState } from '@vivysub/xiaomei';
+import { AVPlay, type PlayerState } from '@avplay/core';
 
 export function createPlayerStore() {
   const { subscribe, set, update } = writable({
-    player: null as XiaoMei | null,
+    player: null as AVPlay | null,
     state: null as PlayerState | null,
     tracks: [] as any[],
     loading: false,
@@ -278,7 +278,7 @@ export function createPlayerStore() {
       update(store => ({ ...store, loading: true }));
 
       try {
-        const player = new XiaoMei({
+        const player = new AVPlay({
           canvas,
           ...config
         });
@@ -473,13 +473,13 @@ Handle player events reactively:
 ```svelte
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { XiaoMei } from '@vivysub/xiaomei';
+  import { AVPlay } from '@avplay/core';
 
-  let player: XiaoMei;
+  let player: AVPlay;
   let events: string[] = [];
 
   onMount(() => {
-    player = new XiaoMei({ canvas: canvasElement });
+    player = new AVPlay({ canvas: canvasElement });
 
     // Listen to all events
     player.on('play', () => addEvent('Play started'));
@@ -551,11 +551,11 @@ For SvelteKit applications, handle SSR properly:
 
 ## TypeScript Support
 
-XiaoMei provides full TypeScript support. Create typed components:
+AVPlay provides full TypeScript support. Create typed components:
 
 ```svelte
 <script lang="ts">
-  import type { XiaoMei, PlayerState, PlayerEvents } from '@vivysub/xiaomei';
+  import type { AVPlay, PlayerState, PlayerEvents } from '@avplay/core';
 
   interface PlayerProps {
     src: string;
@@ -571,7 +571,7 @@ XiaoMei provides full TypeScript support. Create typed components:
   export let onStateChange: PlayerProps['onStateChange'] = undefined;
   export let onEvent: PlayerProps['onEvent'] = undefined;
 
-  let player: XiaoMei;
+  let player: AVPlay;
   let state: PlayerState | null = null;
 
   // Rest of component logic...
@@ -585,7 +585,7 @@ XiaoMei provides full TypeScript support. Create typed components:
 3. **SSR**: Check for browser environment before initializing
 4. **Error Handling**: Implement proper error boundaries and user feedback
 5. **Performance**: Use derived stores for computed values to avoid unnecessary reactivity
-6. **TypeScript**: Leverage XiaoMei's type definitions for better development experience
+6. **TypeScript**: Leverage AVPlay's type definitions for better development experience
 
 ## Common Patterns
 
@@ -644,4 +644,4 @@ XiaoMei provides full TypeScript support. Create typed components:
 <svelte:window on:keydown={handleKeydown} />
 ```
 
-This guide provides the foundation for integrating XiaoMei with Svelte applications, offering both simple and advanced patterns for different use cases.
+This guide provides the foundation for integrating AVPlay with Svelte applications, offering both simple and advanced patterns for different use cases.

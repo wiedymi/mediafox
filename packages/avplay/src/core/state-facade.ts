@@ -22,7 +22,7 @@ export class StateFacade {
     this.store.setState({ volume, muted, playbackRate });
   }
 
-  // Updates used by XiaoMei
+  // Updates used by AVPlay
   updateLoadingState(): void {
     this.store.updateLoadingState();
   }

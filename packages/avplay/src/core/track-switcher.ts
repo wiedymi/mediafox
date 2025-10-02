@@ -1,5 +1,4 @@
 import type { InputAudioTrack, InputVideoTrack } from 'mediabunny';
-import type { MediaConverterDecoder } from '../decoders/media-converter-decoder';
 import type { PlaybackController } from '../playback/controller';
 import type { SourceManager } from '../sources/manager';
 import type { Store } from '../state/store';
@@ -7,7 +6,6 @@ import type { TrackManager } from '../tracks/manager';
 import type { PlayerEventMap } from '../types';
 import { KeyedLock } from '../utils/async-lock';
 import { logger } from '../utils/logger';
-import { ensureAudioTrackPlayable, ensureVideoTrackPlayable } from '../utils/track-fallback';
 
 type EmitFn = <K extends keyof PlayerEventMap>(event: K, data: PlayerEventMap[K]) => void;
 
@@ -15,7 +13,6 @@ export interface TrackSwitcherDeps {
   sourceManager: SourceManager;
   trackManager: TrackManager;
   playbackController: PlaybackController;
-  fallbackDecoder?: MediaConverterDecoder;
   emit: EmitFn;
   store: Store;
   getCurrentInput: () => import('mediabunny').Input | null;
@@ -39,17 +36,12 @@ export class TrackSwitcher {
 
     if (videoTrack) {
       try {
-        videoSupported = await this.locks.run('video', () =>
-          ensureVideoTrackPlayable(videoTrack, {
-            sourceManager: this.deps.sourceManager,
-            trackManager: this.deps.trackManager,
-            playbackController: this.deps.playbackController,
-            fallbackDecoder: this.deps.fallbackDecoder,
-            emit: this.deps.emit,
-            store: this.deps.store,
-            getCurrentInput: this.deps.getCurrentInput,
-          })
-        );
+        videoSupported = await this.locks.run('video', async () => {
+          if (videoTrack.codec !== null && (await videoTrack.canDecode())) {
+            return await this.deps.playbackController.trySetVideoTrack(videoTrack);
+          }
+          return false;
+        });
         if (!videoSupported) warningMessage += 'Unsupported video codec. ';
       } catch (error) {
         warningMessage += 'Failed to set up video track. ';
@@ -59,17 +51,12 @@ export class TrackSwitcher {
 
     if (audioTrack) {
       try {
-        audioSupported = await this.locks.run('audio', () =>
-          ensureAudioTrackPlayable(audioTrack, {
-            sourceManager: this.deps.sourceManager,
-            trackManager: this.deps.trackManager,
-            playbackController: this.deps.playbackController,
-            fallbackDecoder: this.deps.fallbackDecoder,
-            emit: this.deps.emit,
-            store: this.deps.store,
-            getCurrentInput: this.deps.getCurrentInput,
-          })
-        );
+        audioSupported = await this.locks.run('audio', async () => {
+          if (audioTrack.codec !== null && (await audioTrack.canDecode())) {
+            return await this.deps.playbackController.trySetAudioTrack(audioTrack);
+          }
+          return false;
+        });
         if (!audioSupported) warningMessage += 'Unsupported audio codec. ';
       } catch (error) {
         warningMessage += 'Failed to set up audio track. ';
@@ -94,17 +81,13 @@ export class TrackSwitcher {
       return;
     }
 
-    const ok = await this.locks.run('video', () =>
-      ensureVideoTrackPlayable(track, {
-        sourceManager: this.deps.sourceManager,
-        trackManager: this.deps.trackManager,
-        playbackController: this.deps.playbackController,
-        fallbackDecoder: this.deps.fallbackDecoder,
-        emit: this.deps.emit,
-        store: this.deps.store,
-        getCurrentInput: this.deps.getCurrentInput,
-      })
-    );
+    const ok = await this.locks.run('video', async () => {
+      if (track.codec !== null && (await track.canDecode())) {
+        return await this.deps.playbackController.trySetVideoTrack(track);
+      }
+      return false;
+    });
+
     if (!ok) {
       this.deps.emit('warning', {
         type: 'video-codec-unsupported',
@@ -125,17 +108,12 @@ export class TrackSwitcher {
       return;
     }
 
-    const ok = await this.locks.run('audio', () =>
-      ensureAudioTrackPlayable(track, {
-        sourceManager: this.deps.sourceManager,
-        trackManager: this.deps.trackManager,
-        playbackController: this.deps.playbackController,
-        fallbackDecoder: this.deps.fallbackDecoder,
-        emit: this.deps.emit,
-        store: this.deps.store,
-        getCurrentInput: this.deps.getCurrentInput,
-      })
-    );
+    const ok = await this.locks.run('audio', async () => {
+      if (track.codec !== null && (await track.canDecode())) {
+        return await this.deps.playbackController.trySetAudioTrack(track);
+      }
+      return false;
+    });
 
     if (!ok) {
       this.deps.emit('warning', {

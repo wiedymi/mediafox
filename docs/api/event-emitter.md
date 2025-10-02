@@ -1,6 +1,6 @@
 # EventEmitter API Documentation
 
-XiaoMei's EventEmitter provides a robust, type-safe event system with memory leak protection and performance optimizations. This document covers the complete EventEmitter API.
+AVPlay's EventEmitter provides a robust, type-safe event system with memory leak protection and performance optimizations. This document covers the complete EventEmitter API.
 
 ## Class Overview
 
@@ -105,7 +105,7 @@ player
 class PlayerComponent {
   private handlers = new Map<string, Function>();
 
-  constructor(private player: XiaoMei) {
+  constructor(private player: AVPlay) {
     this.setupEventListeners();
   }
 
@@ -151,7 +151,7 @@ player.once('loadedmetadata', () => {
 });
 
 // Promise-like pattern
-function waitForReady(player: XiaoMei): Promise<void> {
+function waitForReady(player: AVPlay): Promise<void> {
   return new Promise((resolve) => {
     player.once('canplay', resolve);
   });
@@ -186,7 +186,7 @@ if (!handled) {
 
 // Custom events in plugins
 class CustomPlugin {
-  init(player: XiaoMei) {
+  init(player: AVPlay) {
     // Emit custom events
     player.emit('pluginLoaded', this.name);
 
@@ -404,7 +404,7 @@ player.on('error', (error) => {
 });
 
 // Use case: override default behavior
-class PlayerWithCustomErrorHandling extends XiaoMei {
+class PlayerWithCustomErrorHandling extends AVPlay {
   constructor(options: PlayerOptions) {
     super(options);
 
@@ -513,10 +513,10 @@ function EventListener<T extends EventMap>(
 }
 
 class PlayerController {
-  private player: XiaoMei;
+  private player: AVPlay;
   private _eventListeners: any[] = [];
 
-  constructor(player: XiaoMei) {
+  constructor(player: AVPlay) {
     this.player = player;
     this.bindEventListeners();
   }
@@ -617,4 +617,4 @@ class BatchedEventEmitter<T extends EventMap> extends EventEmitter<T> {
 6. **Naming**: Use consistent event naming conventions
 7. **Documentation**: Document custom events and their parameters
 
-The EventEmitter in XiaoMei provides a robust foundation for building event-driven video applications with full TypeScript support and performance optimizations.
+The EventEmitter in AVPlay provides a robust foundation for building event-driven video applications with full TypeScript support and performance optimizations.
