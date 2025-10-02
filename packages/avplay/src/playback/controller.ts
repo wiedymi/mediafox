@@ -12,6 +12,7 @@ export interface PlaybackControllerOptions {
   volume?: number;
   muted?: boolean;
   playbackRate?: number;
+  rendererType?: import('./renderers').RendererType;
 }
 
 export class PlaybackController {
@@ -31,6 +32,7 @@ export class PlaybackController {
   constructor(options: PlaybackControllerOptions = {}) {
     this.videoRenderer = new VideoRenderer({
       canvas: options.canvas,
+      rendererType: options.rendererType,
     });
 
     this.audioManager = new AudioManager({
@@ -100,8 +102,8 @@ export class PlaybackController {
     }
   }
 
-  setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas): void {
-    this.videoRenderer.setCanvas(canvas);
+  async setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas): Promise<void> {
+    await this.videoRenderer.setCanvas(canvas);
   }
 
   async play(): Promise<void> {
@@ -313,6 +315,24 @@ export class PlaybackController {
 
   getAudioManager(): AudioManager {
     return this.audioManager;
+  }
+
+  async switchRenderer(type: import('./renderers').RendererType): Promise<void> {
+    await this.videoRenderer.switchRenderer(type);
+  }
+
+  getRendererType(): import('./renderers').RendererType {
+    return this.videoRenderer.getRendererType();
+  }
+
+  setRendererChangeCallback(callback: (type: import('./renderers').RendererType) => void): void {
+    this.videoRenderer.setRendererChangeCallback(callback);
+  }
+
+  setRendererFallbackCallback(
+    callback: (from: import('./renderers').RendererType, to: import('./renderers').RendererType) => void
+  ): void {
+    this.videoRenderer.setRendererFallbackCallback(callback);
   }
 
   dispose(): void {

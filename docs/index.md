@@ -193,4 +193,43 @@ player.subscribe((state: PlayerStateData) => {
 </div>
 </div>
 
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;">
+<div>
+<h1 style="background: -webkit-linear-gradient(-30deg, #3b82f6, #06b6d4); -webkit-background-clip: text; color: transparent; display: inline-block;">Multi-renderer system</h1>
+<p style="font-size: 18px; line-height: 1.6;">Automatic selection of the best rendering backend for optimal performance. Seamlessly switches between WebGPU, WebGL, and Canvas2D based on availability and performance needs with automatic fallback.</p>
+<a href="/guide/performance#multi-renderer-system" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: var(--vp-c-brand);">
+    Performance guide
+    <span style="margin-left: 4px;">→</span>
+</a>
+</div>
+<div style="font-size: 14px; position: relative;">
+
+```typescript
+// Auto-detect best renderer
+const player = new AVPlay({
+  renderTarget: canvas
+  // Automatically uses WebGPU, WebGL, or Canvas2D
+});
+
+// Check available renderers
+const supported = AVPlay.getSupportedRenderers();
+console.log('Available:', supported);
+// Output: ['webgpu', 'webgl', 'canvas2d']
+
+// Manually switch renderers
+await player.switchRenderer('webgl');
+
+// Monitor renderer changes
+player.on('rendererchange', (type) => {
+  console.log(`Using ${type} renderer`);
+});
+
+player.on('rendererfallback', ({ from, to }) => {
+  console.warn(`Fallback: ${from} → ${to}`);
+});
+```
+
+</div>
+</div>
+
 </div>

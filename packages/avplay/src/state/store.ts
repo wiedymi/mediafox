@@ -1,3 +1,4 @@
+import { RendererFactory } from '../playback/renderers';
 import type {
   AudioTrackInfo,
   MediaInfo,
@@ -21,6 +22,10 @@ export class Store implements StateStore {
   }
 
   private getInitialState(): PlayerStateData {
+    // Detect the best available renderer
+    const supportedRenderers = RendererFactory.getSupportedRenderers();
+    const defaultRenderer = supportedRenderers[0] || 'canvas2d';
+
     return {
       state: 'idle',
       currentTime: 0,
@@ -44,6 +49,7 @@ export class Store implements StateStore {
       canPlay: false,
       canPlayThrough: false,
       isLive: false,
+      rendererType: defaultRenderer,
     };
   }
 
@@ -207,5 +213,9 @@ export class Store implements StateStore {
       ended: false,
       error: null,
     });
+  }
+
+  updateRendererType(rendererType: import('../types').RendererType): void {
+    this.setState({ rendererType });
   }
 }

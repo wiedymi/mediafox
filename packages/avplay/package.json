@@ -32,10 +32,11 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "mediabunny": "^1.17.3"
+    "@webgpu/types": "^0.1.65",
+    "mediabunny": "^1.23.0"
   },
   "peerDependencies": {
-    "mediabunny": "^1.17.3",
+    "mediabunny": "^1.23.0",
     "typescript": ">=5.0.0"
   },
   "keywords": [

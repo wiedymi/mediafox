@@ -6,6 +6,7 @@ import type {
   PlayerEventMap,
   PlayerOptions,
   PlayerStateData,
+  RendererType,
   ScreenshotOptions,
   SeekOptions,
 } from '@avplay/core';
@@ -33,6 +34,8 @@ export interface UseAVPlayOptions extends PlayerOptions {
   onWarning?: PlayerEventListener<'warning'>;
   onTrackChange?: PlayerEventListener<'trackchange'>;
   onStateChange?: PlayerEventListener<'statechange'>;
+  onRendererChange?: PlayerEventListener<'rendererchange'>;
+  onRendererFallback?: PlayerEventListener<'rendererfallback'>;
 }
 
 export interface UseAVPlayReturn {
@@ -44,7 +47,9 @@ export interface UseAVPlayReturn {
   seek: (time: number, options?: SeekOptions) => Promise<void>;
   stop: () => Promise<void>;
   screenshot: (options?: ScreenshotOptions) => Promise<Blob | null>;
-  setRenderTarget: (canvas: HTMLCanvasElement | OffscreenCanvas) => void;
+  setRenderTarget: (canvas: HTMLCanvasElement | OffscreenCanvas) => Promise<void>;
+  switchRenderer: (type: RendererType) => Promise<void>;
+  rendererType: RendererType | null;
 }
 
 /**
@@ -91,6 +96,7 @@ export function useAVPlay(options: UseAVPlayOptions = {}): UseAVPlayReturn {
       preload: options.preload,
       crossOrigin: options.crossOrigin,
       maxCacheSize: options.maxCacheSize,
+      renderer: options.renderer,
     }),
     [
       options.renderTarget,
@@ -102,6 +108,7 @@ export function useAVPlay(options: UseAVPlayOptions = {}): UseAVPlayReturn {
       options.preload,
       options.crossOrigin,
       options.maxCacheSize,
+      options.renderer,
     ]
   );
 
@@ -171,6 +178,8 @@ export function useAVPlay(options: UseAVPlayOptions = {}): UseAVPlayReturn {
     registerHandler('warning', options.onWarning);
     registerHandler('trackchange', options.onTrackChange);
     registerHandler('statechange', options.onStateChange);
+    registerHandler('rendererchange', options.onRendererChange);
+    registerHandler('rendererfallback', options.onRendererFallback);
 
     return () => {
       for (const [event, handler] of handlers) {
@@ -199,6 +208,8 @@ export function useAVPlay(options: UseAVPlayOptions = {}): UseAVPlayReturn {
     options.onWarning,
     options.onTrackChange,
     options.onStateChange,
+    options.onRendererChange,
+    options.onRendererFallback,
   ]);
 
   // useSyncExternalStore for optimal React 18+ performance
@@ -244,10 +255,17 @@ export function useAVPlay(options: UseAVPlayOptions = {}): UseAVPlayReturn {
     return playerRef.current.screenshot(screenshotOptions);
   }, []);
 
-  const setRenderTarget = useCallback((canvas: HTMLCanvasElement | OffscreenCanvas) => {
+  const setRenderTarget = useCallback(async (canvas: HTMLCanvasElement | OffscreenCanvas) => {
     if (!playerRef.current) throw new Error('Player not initialized');
-    playerRef.current.setRenderTarget(canvas);
+    return playerRef.current.setRenderTarget(canvas);
   }, []);
+
+  const switchRenderer = useCallback(async (type: RendererType) => {
+    if (!playerRef.current) throw new Error('Player not initialized');
+    return playerRef.current.switchRenderer(type);
+  }, []);
+
+  const rendererType = state?.rendererType ?? null;
 
   return {
     player: playerRef.current,
@@ -259,5 +277,7 @@ export function useAVPlay(options: UseAVPlayOptions = {}): UseAVPlayReturn {
     stop,
     screenshot,
     setRenderTarget,
+    switchRenderer,
+    rendererType,
   };
 }
