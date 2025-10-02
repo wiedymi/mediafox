@@ -32,8 +32,8 @@ export default defineConfig({
           object-fit: cover !important;
           border-radius: 1000% !important;
           overflow: hidden !important;
-          width: 28px !important;
-          height: 28px !important;
+          width: 32px !important;
+          height: 32px !important;
         }
       `,
     ],

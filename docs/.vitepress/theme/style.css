@@ -161,12 +161,12 @@
 }
 
 img.VPImage.image-src {
-    width: 256px !important;
-    height: 256px !important;
-    min-width: 256px !important;
-    min-height: 256px !important;
-    max-width: 256px !important;
-    max-height: 256px !important;
+    width: 320px !important;
+    height: 320px !important;
+    min-width: 320px !important;
+    min-height: 320px !important;
+    max-width: 320px !important;
+    max-height: 320px !important;
     object-fit: cover;
     background-size: cover;
     background-position: center;
