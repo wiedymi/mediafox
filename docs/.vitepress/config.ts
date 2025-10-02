@@ -7,7 +7,7 @@ export default defineConfig({
     "Framework-agnostic, TypeScript-first media player library powered by Mediabunny. Full control over rendering and UI.",
 
   head: [
-    ["meta", { name: "theme-color", content: "#3b82f6" }],
+    ["meta", { name: "theme-color", content: "#ee780e" }],
     ["meta", { name: "og:type", content: "website" }],
     [
       "meta",
