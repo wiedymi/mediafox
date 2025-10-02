@@ -27,6 +27,7 @@ constructor(options?: PlayerOptions)
 | `preload` | `'none' \| 'metadata' \| 'auto'` | `'metadata'` | Preloading strategy |
 | `crossOrigin` | `string` | `undefined` | CORS setting for cross-origin content |
 | `maxCacheSize` | `number` | `undefined` | Maximum cache size for buffering |
+| `renderer` | `'webgpu' \| 'webgl' \| 'canvas2d'` | Auto-detected | Rendering backend (auto-detects best available) |
 
 #### Example
 
@@ -48,7 +49,8 @@ const advancedPlayer = new AVPlay({
   autoplay: false,
   preload: 'metadata',
   crossOrigin: 'anonymous',
-  maxCacheSize: 200 * 1024 * 1024 // 200MB
+  maxCacheSize: 200 * 1024 * 1024, // 200MB
+  renderer: 'webgpu' // Use WebGPU renderer (falls back automatically if unavailable)
 });
 ```
 
@@ -781,6 +783,84 @@ const offscreen = canvas.transferControlToOffscreen();
 player.setRenderTarget(offscreen);
 ```
 
+#### `getRendererType()`
+
+Gets the current renderer type being used.
+
+<div class="method-signature">
+
+```typescript
+getRendererType(): RendererType
+```
+
+</div>
+
+**Returns:** Current renderer type ('webgpu', 'webgl', or 'canvas2d')
+
+**Example:**
+
+```typescript
+const renderer = player.getRendererType();
+console.log(`Using ${renderer} renderer`);
+```
+
+#### `switchRenderer(type)`
+
+Switches to a different renderer backend with automatic fallback.
+
+<div class="method-signature">
+
+```typescript
+async switchRenderer(type: RendererType): Promise<void>
+```
+
+</div>
+
+**Parameters:**
+- `type`: Target renderer type ('webgpu', 'webgl', or 'canvas2d')
+
+**Example:**
+
+```typescript
+// Switch to WebGL renderer
+await player.switchRenderer('webgl');
+
+// Try WebGPU with automatic fallback if unavailable
+try {
+  await player.switchRenderer('webgpu');
+} catch (error) {
+  console.log('Renderer switch failed, using fallback');
+}
+```
+
+#### `getSupportedRenderers()` (Static)
+
+Gets list of supported renderers in the current environment.
+
+<div class="method-signature">
+
+```typescript
+static getSupportedRenderers(): RendererType[]
+```
+
+</div>
+
+**Returns:** Array of supported renderer types in preference order
+
+**Example:**
+
+```typescript
+const supported = AVPlay.getSupportedRenderers();
+console.log('Supported renderers:', supported);
+// Output: ['webgpu', 'webgl', 'canvas2d'] or ['webgl', 'canvas2d'] etc.
+
+// Use best available renderer
+const player = new AVPlay({
+  renderTarget: canvas,
+  renderer: supported[0] // Use best available
+});
+```
+
 ### State Management
 
 #### `subscribe(listener)`
@@ -1023,6 +1103,13 @@ AVPlay emits various events during playback. All events are strongly typed.
 |-------|-----------|-------------|
 | `warning` | `{ type: string, message: string, error?: Error }` | Non-fatal warning occurred |
 
+### Renderer Events
+
+| Event | Data Type | Description |
+|-------|-----------|-------------|
+| `rendererchange` | `RendererType` | Renderer backend has changed |
+| `rendererfallback` | `{ from: RendererType, to: RendererType }` | Renderer has fallen back to a different backend |
+
 ### Error Events
 
 | Event | Data Type | Description |
@@ -1053,6 +1140,15 @@ player.on('timeupdate', ({ currentTime }) => {
 
 player.on('error', (error) => {
   console.error(`Error ${error.code}: ${error.message}`);
+});
+
+// Listen to renderer events
+player.on('rendererchange', (type) => {
+  console.log(`Renderer changed to: ${type}`);
+});
+
+player.on('rendererfallback', ({ from, to }) => {
+  console.warn(`Renderer fallback: ${from} -> ${to}`);
 });
 ```
 
@@ -1092,6 +1188,9 @@ interface PlayerStateData {
   canPlay: boolean;
   canPlayThrough: boolean;
   isLive: boolean;
+
+  // Renderer
+  rendererType: RendererType;
 
   // Error state
   error: Error | null;
@@ -1153,3 +1252,15 @@ interface AudioTrackInfo {
   converted?: boolean;
 }
 ```
+
+### RendererType
+
+Supported rendering backends for video playback.
+
+```typescript
+type RendererType = 'webgpu' | 'webgl' | 'canvas2d';
+```
+
+- **`webgpu`**: Modern GPU-accelerated rendering using WebGPU API (best performance)
+- **`webgl`**: Hardware-accelerated rendering using WebGL (broad compatibility)
+- **`canvas2d`**: Software rendering using Canvas 2D API (universal fallback)

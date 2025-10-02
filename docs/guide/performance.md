@@ -91,6 +91,138 @@ const player = new AVPlay({
 
 ## Rendering Optimization
 
+### Multi-Renderer System
+
+AVPlay now includes an automatic multi-renderer system that optimizes performance by selecting the best available rendering backend:
+
+```typescript
+import { AVPlay } from '@avplay/core';
+
+// Check available renderers in your environment
+const supported = AVPlay.getSupportedRenderers();
+console.log('Supported renderers:', supported);
+// Output: ['webgpu', 'webgl', 'canvas2d'] (in order of preference)
+
+// Let AVPlay auto-select the best renderer
+const player = new AVPlay({
+  renderTarget: canvas
+  // renderer is auto-detected
+});
+
+// Or manually specify a renderer
+const webglPlayer = new AVPlay({
+  renderTarget: canvas,
+  renderer: 'webgl' // Force WebGL renderer
+});
+
+// Get current renderer type
+console.log(`Using ${player.getRendererType()} renderer`);
+
+// Switch renderers dynamically
+async function optimizeRenderer() {
+  const currentRenderer = player.getRendererType();
+
+  // Switch based on content or performance metrics
+  if (hasHighFrameRate && currentRenderer !== 'webgpu') {
+    try {
+      await player.switchRenderer('webgpu');
+      console.log('Switched to WebGPU for better performance');
+    } catch (error) {
+      console.log('WebGPU unavailable, using fallback');
+    }
+  }
+}
+
+// Listen to renderer changes
+player.on('rendererchange', (type) => {
+  console.log(`Renderer changed to: ${type}`);
+  updateUIIndicator(type);
+});
+
+player.on('rendererfallback', ({ from, to }) => {
+  console.warn(`Renderer fallback: ${from} -> ${to}`);
+  // Notify user or adjust quality settings
+});
+```
+
+#### Renderer Performance Characteristics
+
+**WebGPU Renderer**
+- **Performance**: Highest - Direct GPU command submission
+- **Memory**: Efficient texture handling
+- **CPU Usage**: Minimal
+- **Best For**: High-resolution content, 4K/8K video, HDR
+- **Availability**: Modern browsers with WebGPU support
+
+**WebGL Renderer**
+- **Performance**: High - Hardware-accelerated
+- **Memory**: Good with proper texture management
+- **CPU Usage**: Low
+- **Best For**: Most use cases, wide browser support
+- **Availability**: All modern browsers
+
+**Canvas2D Renderer**
+- **Performance**: Moderate - Software rendering
+- **Memory**: Higher due to pixel manipulation
+- **CPU Usage**: Higher
+- **Best For**: Universal fallback, simple playback
+- **Availability**: All browsers
+
+#### Dynamic Renderer Selection
+
+```typescript
+class AdaptiveRenderer {
+  private player: AVPlay;
+  private performanceMonitor: PerformanceMonitor;
+
+  constructor(player: AVPlay) {
+    this.player = player;
+    this.performanceMonitor = new PerformanceMonitor();
+    this.setupAdaptiveRendering();
+  }
+
+  private setupAdaptiveRendering() {
+    // Monitor performance metrics
+    setInterval(() => {
+      this.checkAndAdaptRenderer();
+    }, 10000); // Check every 10 seconds
+  }
+
+  private async checkAndAdaptRenderer() {
+    const metrics = this.performanceMonitor.getMetrics();
+    const currentRenderer = this.player.getRendererType();
+
+    // If experiencing frame drops with Canvas2D, try to upgrade
+    if (currentRenderer === 'canvas2d' && metrics.frameDropRate > 0.1) {
+      const supported = AVPlay.getSupportedRenderers();
+
+      for (const renderer of supported) {
+        if (renderer !== 'canvas2d') {
+          try {
+            await this.player.switchRenderer(renderer);
+            console.log(`Upgraded to ${renderer} for better performance`);
+            break;
+          } catch (error) {
+            continue; // Try next renderer
+          }
+        }
+      }
+    }
+
+    // If GPU memory is constrained, consider downgrading
+    if (currentRenderer === 'webgpu' && metrics.gpuMemoryPressure) {
+      try {
+        await this.player.switchRenderer('webgl');
+        console.log('Switched to WebGL due to memory pressure');
+      } catch (error) {
+        // Fall back to canvas2d if needed
+        await this.player.switchRenderer('canvas2d');
+      }
+    }
+  }
+}
+```
+
 ### Efficient Canvas Operations
 
 ```typescript
