@@ -595,7 +595,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import {
-    AVPlay,
+    MediaFox,
     RendererFactory,
     formatTime as formatTimeUtil,
     type MediaInfo,
@@ -603,7 +603,7 @@ import {
     type AudioTrackInfo,
     type SubtitleTrackInfo,
     type RendererType,
-} from "@avplay/core";
+} from "@mediafox/core";
 import { withBase } from "vitepress";
 
 // Refs
@@ -614,7 +614,7 @@ const hiddenFileInput = ref<HTMLInputElement>();
 const subtitleContainer = ref<HTMLElement>();
 
 // Player instance
-const player = ref<AVPlay>();
+const player = ref<MediaFox>();
 const lastLoadedFile = ref<File | null>(null);
 
 // State
@@ -940,7 +940,7 @@ onMounted(async () => {
     if (!canvasRef.value) return;
 
     // Create player
-    const p = new AVPlay({
+    const p = new MediaFox({
         renderTarget: canvasRef.value,
         volume: volume.value,
         autoplay: false,
@@ -953,7 +953,7 @@ onMounted(async () => {
     selectedSubtitleTrackId.value = p.getState().selectedSubtitleTrack ?? null;
 
     // Get available renderers
-    availableRenderers.value = AVPlay.getSupportedRenderers();
+    availableRenderers.value = MediaFox.getSupportedRenderers();
     // Initialize with the current state
     currentRenderer.value = p.getState().rendererType || "webgpu";
 
