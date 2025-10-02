@@ -4,17 +4,27 @@
  */
 
 :root {
-    --vp-c-brand-1: #ee780e;
-    --vp-c-brand-2: #326b98;
-    --vp-c-brand-3: #326b98;
-    --vp-c-brand-soft: rgba(238, 120, 14, 0.14);
+    /* Primary: Blue for links and interactive elements */
+    --vp-c-brand-1: #326b98;
+    --vp-c-brand-2: #245179;
+    --vp-c-brand-3: #1a3d5c;
+    --vp-c-brand-soft: rgba(50, 107, 152, 0.14);
+
+    /* Accent: Orange for highlights */
+    --vp-c-accent: #ee780e;
+    --vp-c-accent-soft: rgba(238, 120, 14, 0.14);
 }
 
 .dark {
-    --vp-c-brand-1: #ee780e;
-    --vp-c-brand-2: #ccad91;
-    --vp-c-brand-3: #aac8d6;
-    --vp-c-brand-soft: rgba(238, 120, 14, 0.16);
+    /* Primary: Lighter blue for dark mode */
+    --vp-c-brand-1: #aac8d6;
+    --vp-c-brand-2: #7ba9c3;
+    --vp-c-brand-3: #5891b0;
+    --vp-c-brand-soft: rgba(170, 200, 214, 0.16);
+
+    /* Accent: Orange stays vibrant in dark mode */
+    --vp-c-accent: #ee780e;
+    --vp-c-accent-soft: rgba(238, 120, 14, 0.16);
 }
 
 /**
@@ -24,6 +34,23 @@
     border-color: var(--vp-c-brand-1);
 }
 
+.custom-block.warning {
+    border-color: var(--vp-c-accent);
+}
+
+/**
+ * Accent color usage
+ */
+.VPButton.brand {
+    background-color: var(--vp-c-accent);
+    border-color: var(--vp-c-accent);
+}
+
+.VPButton.brand:hover {
+    background-color: #d66a0c;
+    border-color: #d66a0c;
+}
+
 /**
  * Component: Home
  */
@@ -31,14 +58,14 @@
     --vp-home-hero-name-color: transparent;
     --vp-home-hero-name-background: -webkit-linear-gradient(
         120deg,
-        #326b98 30%,
+        #326b98 40%,
         #ee780e
     );
 
     --vp-home-hero-image-background-image: linear-gradient(
         -45deg,
-        #326b98 30%,
-        #ee780e 70%
+        #326b98 50%,
+        #ee780e
     );
     --vp-home-hero-image-filter: blur(72px);
 }
@@ -46,13 +73,13 @@
 .dark {
     --vp-home-hero-name-background: -webkit-linear-gradient(
         120deg,
-        #aac8d6 30%,
+        #aac8d6 40%,
         #ee780e
     );
     --vp-home-hero-image-background-image: linear-gradient(
         -45deg,
-        #aac8d6 30%,
-        #ee780e 70%
+        #5891b0 50%,
+        #ee780e
     );
 }
 
