@@ -1,6 +1,6 @@
 {
   "name": "@avplay/core",
-  "version": "0.9.3",
+  "version": "0.9.9",
   "description": "Framework-agnostic video player library powered by MediaBunny",
   "type": "module",
   "main": "./dist/index.js",
