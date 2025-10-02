@@ -6,6 +6,8 @@ export type PlayerState = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 
 
 export type PlaybackMode = 'normal' | 'loop' | 'loop-one';
 
+export type RendererType = 'webgpu' | 'webgl' | 'canvas2d' | 'auto';
+
 export interface PlayerOptions {
   renderTarget?: HTMLCanvasElement | OffscreenCanvas;
   audioContext?: AudioContext;
@@ -16,6 +18,7 @@ export interface PlayerOptions {
   preload?: 'none' | 'metadata' | 'auto';
   crossOrigin?: string;
   maxCacheSize?: number;
+  renderer?: RendererType;
 }
 
 export interface MediaInfo {
@@ -85,6 +88,7 @@ export interface PlayerStateData {
   canPlay: boolean;
   canPlayThrough: boolean;
   isLive: boolean;
+  rendererType: RendererType;
 }
 
 export interface TimeRange {
@@ -156,6 +160,13 @@ export type PlayerEventMap = {
   resize: {
     width: number;
     height: number;
+  };
+  rendererchange: {
+    renderer: RendererType;
+  };
+  rendererfallback: {
+    from: RendererType;
+    to: RendererType;
   };
 };
 

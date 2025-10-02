@@ -4,6 +4,7 @@ import { TrackSwitcher } from './core/track-switcher';
 import { EventEmitter } from './events/emitter';
 import type { UnsubscribeFn } from './events/types';
 import { PlaybackController } from './playback/controller';
+import { RendererFactory } from './playback/renderers';
 import { SourceManager } from './sources/manager';
 import { Store } from './state/store';
 import { TrackManager } from './tracks/manager';
@@ -16,6 +17,7 @@ import type {
   PlayerEventMap,
   PlayerOptions,
   PlayerStateData,
+  RendererType,
   ScreenshotOptions,
   SeekOptions,
   Subscription,
@@ -61,6 +63,7 @@ export class AVPlay {
       volume: this.options.volume,
       muted: this.options.muted,
       playbackRate: this.options.playbackRate,
+      rendererType: this.options.renderer,
     });
     this.trackManager = new TrackManager();
 
@@ -108,6 +111,17 @@ export class AVPlay {
         type: event.type,
         trackId: event.newTrackId,
       });
+    });
+
+    // Renderer callbacks
+    const renderer = this.playbackController.getVideoRenderer();
+    renderer.setRendererChangeCallback((type) => {
+      this.state.updateRendererType(type);
+      this.emit('rendererchange', { renderer: type });
+    });
+
+    renderer.setRendererFallbackCallback((from, to) => {
+      this.emit('rendererfallback', { from, to });
     });
 
     // State change listener
@@ -288,9 +302,22 @@ export class AVPlay {
     return this.playbackController.screenshot(options);
   }
 
-  setRenderTarget(canvas: HTMLCanvasElement | OffscreenCanvas): void {
+  async setRenderTarget(canvas: HTMLCanvasElement | OffscreenCanvas): Promise<void> {
     this.checkDisposed();
-    this.playbackController.setCanvas(canvas);
+    await this.playbackController.setCanvas(canvas);
+  }
+
+  getRendererType(): RendererType {
+    return this.playbackController.getRendererType();
+  }
+
+  async switchRenderer(type: RendererType): Promise<void> {
+    this.checkDisposed();
+    await this.playbackController.switchRenderer(type);
+  }
+
+  static getSupportedRenderers(): RendererType[] {
+    return RendererFactory.getSupportedRenderers();
   }
 
   getState(): Readonly<PlayerStateData> {

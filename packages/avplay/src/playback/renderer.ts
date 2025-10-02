@@ -1,5 +1,8 @@
 import { CanvasSink, type InputVideoTrack, type VideoSample, VideoSampleSink, type WrappedCanvas } from 'mediabunny';
 
+import type { IRenderer, RendererType } from './renderers';
+import { RendererFactory } from './renderers';
+
 export interface VideoRendererOptions {
   canvas?: HTMLCanvasElement | OffscreenCanvas;
   width?: number;
@@ -7,11 +10,11 @@ export interface VideoRendererOptions {
   fit?: 'fill' | 'contain' | 'cover';
   rotation?: 0 | 90 | 180 | 270;
   poolSize?: number;
+  rendererType?: RendererType;
 }
 
 export class VideoRenderer {
   private canvas: HTMLCanvasElement | OffscreenCanvas | null = null;
-  private context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null = null;
   private canvasSink: CanvasSink | null = null;
   private sampleSink: VideoSampleSink | null = null;
   private options: VideoRendererOptions;
@@ -20,28 +23,49 @@ export class VideoRenderer {
   private nextFrame: WrappedCanvas | null = null;
   private disposed = false;
   private renderingId = 0;
+  private renderer: IRenderer | null = null;
+  private rendererType: RendererType = 'auto';
+  private onRendererChange?: (type: RendererType) => void;
+  private onRendererFallback?: (from: RendererType, to: RendererType) => void;
 
   constructor(options: VideoRendererOptions = {}) {
     this.options = {
       poolSize: options.poolSize ?? 2,
       fit: options.fit ?? 'contain',
+      rendererType: options.rendererType ?? 'auto',
       ...options,
     };
+
+    this.rendererType = this.options.rendererType ?? 'auto';
 
     if (options.canvas) {
       this.setCanvas(options.canvas);
     }
   }
 
-  setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas): void {
+  async setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas): Promise<void> {
     this.canvas = canvas;
-    this.context = canvas.getContext('2d', {
-      alpha: false,
-      desynchronized: true,
-    }) as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
 
-    if (!this.context) {
-      throw new Error('Failed to get 2D context from canvas');
+    // Initialize renderer with fallback
+    const factory = new RendererFactory({ canvas });
+    const result = await factory.createRendererWithFallback(this.rendererType);
+
+    // Clean up old renderer
+    if (this.renderer) {
+      this.renderer.dispose();
+    }
+
+    this.renderer = result.renderer;
+
+    // Emit events if renderer changed
+    if (result.actualType !== this.rendererType) {
+      if (this.onRendererFallback) {
+        this.onRendererFallback(this.rendererType, result.actualType);
+      }
+      this.rendererType = result.actualType;
+      if (this.onRendererChange) {
+        this.onRendererChange(this.rendererType);
+      }
     }
 
     // Configure canvas size if specified
@@ -187,9 +211,12 @@ export class VideoRenderer {
   }
 
   private renderFrame(frame: WrappedCanvas): void {
-    if (!this.context || !this.canvas) return;
+    if (!this.renderer || !this.canvas) return;
 
-    this.context.drawImage(frame.canvas, 0, 0, this.canvas.width, this.canvas.height);
+    // Use renderer to draw frame
+    // TypeScript has issues with union type inference here, but this is safe
+    // @ts-expect-error - IRenderer.render accepts HTMLCanvasElement | OffscreenCanvas
+    this.renderer.render(frame.canvas, this.canvas);
   }
 
   async getFrameAt(timestamp: number): Promise<WrappedCanvas | null> {
@@ -263,6 +290,59 @@ export class VideoRenderer {
     return this.nextFrame;
   }
 
+  getRendererType(): RendererType {
+    return this.rendererType;
+  }
+
+  async switchRenderer(type: RendererType): Promise<void> {
+    if (!this.canvas) {
+      throw new Error('Cannot switch renderer: No canvas set');
+    }
+
+    const previousType = this.rendererType;
+    this.rendererType = type;
+
+    const factory = new RendererFactory({ canvas: this.canvas });
+    const result = await factory.createRendererWithFallback(type);
+
+    // Clean up old renderer
+    if (this.renderer) {
+      this.renderer.dispose();
+    }
+
+    this.renderer = result.renderer;
+
+    // Update type if fallback occurred
+    if (result.actualType !== type) {
+      if (this.onRendererFallback) {
+        this.onRendererFallback(type, result.actualType);
+      }
+      this.rendererType = result.actualType;
+    }
+
+    // Emit change event
+    if (this.onRendererChange && this.rendererType !== previousType) {
+      this.onRendererChange(this.rendererType);
+    }
+
+    // Re-render current frame with new renderer
+    if (this.currentFrame) {
+      this.renderFrame(this.currentFrame);
+    }
+  }
+
+  setRendererChangeCallback(callback: (type: RendererType) => void): void {
+    this.onRendererChange = callback;
+  }
+
+  setRendererFallbackCallback(callback: (from: RendererType, to: RendererType) => void): void {
+    this.onRendererFallback = callback;
+  }
+
+  static getSupportedRenderers(): RendererType[] {
+    return RendererFactory.getSupportedRenderers();
+  }
+
   dispose(): void {
     this.disposed = true;
     this.renderingId++;
@@ -273,10 +353,17 @@ export class VideoRenderer {
       this.frameIterator = null;
     }
 
+    if (this.renderer) {
+      this.renderer.dispose();
+      this.renderer = null;
+    }
+
     this.currentFrame = null;
     this.nextFrame = null;
     this.canvasSink = null;
     this.sampleSink = null;
+    this.onRendererChange = undefined;
+    this.onRendererFallback = undefined;
     // Track reference cleared through dispose of iterators
   }
 }

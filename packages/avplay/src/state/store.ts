@@ -44,6 +44,7 @@ export class Store implements StateStore {
       canPlay: false,
       canPlayThrough: false,
       isLive: false,
+      rendererType: 'auto',
     };
   }
 
@@ -207,5 +208,9 @@ export class Store implements StateStore {
       ended: false,
       error: null,
     });
+  }
+
+  updateRendererType(rendererType: import('../types').RendererType): void {
+    this.setState({ rendererType });
   }
 }

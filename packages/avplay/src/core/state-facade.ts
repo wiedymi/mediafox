@@ -78,4 +78,8 @@ export class StateFacade {
   updateError(error: Error | null): void {
     this.store.updateError(error);
   }
+
+  updateRendererType(rendererType: import('../types').RendererType): void {
+    this.store.updateRendererType(rendererType);
+  }
 }

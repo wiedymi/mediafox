@@ -1,5 +1,4 @@
 // Main player class
-export { AVPlay } from './avplay';
 
 // Re-export useful Mediabunny types
 export type {
@@ -15,6 +14,7 @@ export type {
   VideoCodec,
   VideoSample,
 } from 'mediabunny';
+export { AVPlay } from './avplay';
 // Event system
 export { EventEmitter } from './events/emitter';
 export type { TypedEventEmitter, UnsubscribeFn } from './events/types';
@@ -22,6 +22,8 @@ export { AudioManager } from './playback/audio';
 // Playback components
 export { PlaybackController } from './playback/controller';
 export { VideoRenderer } from './playback/renderer';
+export type { IRenderer, RendererCreationResult } from './playback/renderers';
+export { RendererFactory } from './playback/renderers';
 // Source management
 export { SourceManager } from './sources/manager';
 export type { SourceInfo, SourceManagerOptions } from './sources/types';
@@ -48,6 +50,7 @@ export type {
   PlayerState,
   PlayerStateData,
   QualityLevel,
+  RendererType,
   ScreenshotOptions,
   SeekOptions,
   Subscription,
