@@ -508,7 +508,7 @@ import {
   QUALITY_MEDIUM,
   QUALITY_HIGH,
   QUALITY_VERY_HIGH
-} from '@avplay/core';
+} from 'mediabunny';
 
 // Use for screenshot quality
 player.screenshot({
@@ -516,6 +516,10 @@ player.screenshot({
   quality: QUALITY_HIGH
 });
 ```
+
+::: tip
+These quality constants are exported directly from mediabunny. Since mediabunny is a peer dependency, import them from `'mediabunny'` rather than `'@avplay/core'`.
+:::
 
 ### Version
 

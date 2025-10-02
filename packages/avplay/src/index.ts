@@ -1,4 +1,5 @@
 // Main player class
+export { AVPlay } from './avplay';
 
 // Re-export useful Mediabunny types
 export type {
@@ -14,15 +15,6 @@ export type {
   VideoCodec,
   VideoSample,
 } from 'mediabunny';
-// Re-export Mediabunny quality constants
-export {
-  QUALITY_HIGH,
-  QUALITY_LOW,
-  QUALITY_MEDIUM,
-  QUALITY_VERY_HIGH,
-  QUALITY_VERY_LOW,
-} from 'mediabunny';
-export { AVPlay } from './avplay';
 // Event system
 export { EventEmitter } from './events/emitter';
 export type { TypedEventEmitter, UnsubscribeFn } from './events/types';
