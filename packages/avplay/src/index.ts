@@ -1,4 +1,5 @@
 // Main player class
+export { AVPlay } from './avplay';
 
 // Re-export useful Mediabunny types
 export type {
@@ -13,14 +14,6 @@ export type {
   SubtitleCodec,
   VideoCodec,
   VideoSample,
-} from 'mediabunny';
-// Re-export Mediabunny quality constants
-export {
-  QUALITY_HIGH,
-  QUALITY_LOW,
-  QUALITY_MEDIUM,
-  QUALITY_VERY_HIGH,
-  QUALITY_VERY_LOW,
 } from 'mediabunny';
 // Event system
 export { EventEmitter } from './events/emitter';
@@ -79,8 +72,6 @@ export {
   timeToFrame,
   totalBufferedDuration,
 } from './utils/time';
-
-export { AVPlay } from './avplay';
 
 // Version
 export const VERSION = '0.1.0';

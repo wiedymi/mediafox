@@ -3,12 +3,13 @@
 A monorepo for AVPlay, a framework-agnostic, TypeScript-first video player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny).
 
 ```bash
-bun add @avplay/core
+bun add @avplay/core mediabunny
 ```
 
 ## Packages
 
 - **[@avplay/core](./packages/avplay)** - Core video player library
+- **[@avplay/react](./packages/react)** - React hooks for AVPlay
 
 ## Getting Started
 
@@ -36,7 +37,8 @@ bun run docs:build
 ```
 avplay/
 ├── packages/
-│   └── avplay/         # Core player library (@avplay/core)
+│   ├── avplay/         # Core player library (@avplay/core)
+│   └── react/          # React hooks (@avplay/react)
 ├── docs/               # Documentation site
 ├── scripts/            # Build and utility scripts
 └── package.json        # Workspace configuration

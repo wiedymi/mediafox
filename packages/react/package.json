@@ -1,7 +1,7 @@
 {
-  "name": "@avplay/core",
+  "name": "@avplay/react",
   "version": "0.9.9",
-  "description": "Framework-agnostic video player library powered by MediaBunny",
+  "description": "React hooks for AVPlay video player",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -18,7 +18,7 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun run build:js && bun run build:types",
-    "build:js": "bun build src/index.ts --outdir=dist --target=browser --format=esm --minify --external mediabunny",
+    "build:js": "bun build src/index.ts --outdir=dist --target=browser --format=esm --minify --external react --external @avplay/core",
     "build:types": "tsc --emitDeclarationOnly",
     "test": "bun test",
     "lint": "biome lint ./src",
@@ -30,28 +30,30 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "mediabunny": "^1.17.3"
+  "dependencies": {
+    "@avplay/core": "workspace:*"
   },
   "peerDependencies": {
-    "mediabunny": "^1.17.3",
-    "typescript": ">=5.0.0"
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^18.3.18"
   },
   "keywords": [
+    "react",
+    "hooks",
     "video",
     "player",
-    "media",
-    "mediabunny",
-    "webcodecs",
-    "audio",
-    "streaming"
+    "avplay",
+    "mediabunny"
   ],
   "author": "",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wiedymi/avplay.git"
+    "url": "https://github.com/wiedymi/avplay.git",
+    "directory": "packages/react"
   },
   "bugs": {
     "url": "https://github.com/wiedymi/avplay/issues"

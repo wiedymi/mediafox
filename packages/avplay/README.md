@@ -16,12 +16,14 @@ A framework-agnostic, TypeScript-first video player library powered by [Mediabun
 ## Installation
 
 ```bash
-bun add @avplay/core
+bun add @avplay/core mediabunny
 # or
-npm install @avplay/core
+npm install @avplay/core mediabunny
 # or
-yarn add @avplay/core
+yarn add @avplay/core mediabunny
 ```
+
+> **Note:** Mediabunny is a peer dependency. You need to install it alongside @avplay/core.
 
 ## Quick Start
 
@@ -57,9 +59,31 @@ player.on('timeupdate', ({ currentTime }) => {
 });
 ```
 
+## Framework Packages
+
+For React applications, use the dedicated React package:
+
+```bash
+npm install @avplay/react @avplay/core mediabunny
+```
+
+```tsx
+import { useAVPlay } from '@avplay/react';
+
+function VideoPlayer({ src }: { src: File | string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { player, state, play, pause } = useAVPlay({
+    renderTarget: canvasRef.current,
+    onError: (error) => console.error(error)
+  });
+
+  // ...
+}
+```
+
 ## Framework Integration Examples
 
-### React
+### React (using core package)
 
 ```tsx
 import { useEffect, useRef, useState } from 'react';
