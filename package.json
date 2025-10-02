@@ -7,7 +7,7 @@
   },
   "private": true,
   "scripts": {
-    "build": "bun run --filter '*' build",
+    "build": "bun run --filter @avplay/core build && bun run --filter @avplay/react build",
     "test": "bun run --filter '*' test",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "biome lint --write ./packages",
