@@ -501,25 +501,16 @@ export class VideoRenderer {
 
     const currentRenderingId = this.renderingId;
 
-    // Loop until we find a frame in the future or run out of frames
-    while (true) {
-      const result = await this.frameIterator.next();
-      const frame = result.value ?? null;
+    // Get the next frame from iterator
+    const result = await this.frameIterator.next();
+    const frame = result.value ?? null;
 
-      if (!frame || currentRenderingId !== this.renderingId || this.disposed) {
-        break;
-      }
-
-      if (frame.timestamp <= currentTime) {
-        // This frame is in the past, store it and try to draw
-        this.currentFrame = frame;
-        this.renderFrame(frame);
-      } else {
-        // This frame is in the future, save it for later
-        this.nextFrame = frame;
-        break;
-      }
+    if (!frame || currentRenderingId !== this.renderingId || this.disposed) {
+      return;
     }
+
+    // Store the frame for later use
+    this.nextFrame = frame;
   }
 
   private renderFrame(frame: WrappedCanvas): void {
