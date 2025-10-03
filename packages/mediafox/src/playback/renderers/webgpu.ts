@@ -205,6 +205,12 @@ export class WebGPURenderer implements IRenderer {
       const canvasWidth = this.canvas.width;
       const canvasHeight = this.canvas.height;
 
+      // Validate canvas dimensions before scaling
+      if (canvasWidth === 0 || canvasHeight === 0) {
+        console.warn(`WebGPU: Output canvas has zero dimensions (${canvasWidth}x${canvasHeight})`);
+        return false;
+      }
+
       if (sourceWidth !== this.textureWidth || sourceHeight !== this.textureHeight) {
         this.createTexture(sourceWidth, sourceHeight);
         this.textureWidth = sourceWidth;
@@ -254,12 +260,12 @@ export class WebGPURenderer implements IRenderer {
       renderPass.setPipeline(this.pipeline);
       if (this.bindGroup) renderPass.setBindGroup(0, this.bindGroup);
 
-      // Calculate letterbox dimensions
+      // Calculate letterbox dimensions to preserve aspect ratio
       const scale = Math.min(canvasWidth / this.textureWidth, canvasHeight / this.textureHeight);
-      const drawW = Math.floor(this.textureWidth * scale);
-      const drawH = Math.floor(this.textureHeight * scale);
-      const x = Math.floor((canvasWidth - drawW) / 2);
-      const y = Math.floor((canvasHeight - drawH) / 2);
+      const drawW = Math.round(this.textureWidth * scale);
+      const drawH = Math.round(this.textureHeight * scale);
+      const x = Math.round((canvasWidth - drawW) / 2);
+      const y = Math.round((canvasHeight - drawH) / 2);
 
       const left = (x / canvasWidth) * 2 - 1;
       const right = ((x + drawW) / canvasWidth) * 2 - 1;

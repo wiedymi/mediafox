@@ -22,6 +22,10 @@ export class PlayerCore {
 
   async load(source: MediaSource, options: LoadOptions = {}): Promise<void> {
     try {
+      // Reset playback controller first to stop any active playback
+      await this.deps.playbackController.reset();
+
+      // Reset state
       this.deps.state.reset();
       this.deps.state.updateLoadingState();
       this.deps.emit('loadstart', undefined);
