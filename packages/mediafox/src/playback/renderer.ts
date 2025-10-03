@@ -463,7 +463,7 @@ export class VideoRenderer {
 
       // If we don't have a next frame yet, try to fetch one
       if (!this.nextFrame) {
-        void this.fetchNextFrame(timestamp);
+        void this.fetchNextFrame();
       }
     }
   }
@@ -473,7 +473,7 @@ export class VideoRenderer {
 
     // If we don't have a next frame, request one
     if (!this.nextFrame && this.frameIterator) {
-      void this.fetchNextFrame(currentTime);
+      void this.fetchNextFrame();
       return false;
     }
 
@@ -489,14 +489,14 @@ export class VideoRenderer {
       this.renderFrame(this.currentFrame);
 
       // Request the next frame asynchronously
-      void this.fetchNextFrame(currentTime);
+      void this.fetchNextFrame();
       return true;
     }
 
     return false;
   }
 
-  private async fetchNextFrame(currentTime: number): Promise<void> {
+  private async fetchNextFrame(): Promise<void> {
     if (!this.frameIterator || this.disposed) return;
 
     const currentRenderingId = this.renderingId;
