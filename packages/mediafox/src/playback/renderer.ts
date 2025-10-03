@@ -27,11 +27,14 @@ export class VideoRenderer {
   private onRendererChange?: (type: RendererType) => void;
   private onRendererFallback?: (from: RendererType, to: RendererType) => void;
   private initPromise: Promise<void> | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private lastObservedWidth = 0;
+  private lastObservedHeight = 0;
+  private videoAspectRatio: string | null = null;
 
   constructor(options: VideoRendererOptions = {}) {
     this.options = {
       poolSize: options.poolSize ?? 2,
-      fit: options.fit ?? 'contain',
       rendererType: options.rendererType ?? 'webgpu',
       ...options,
     };
@@ -40,14 +43,13 @@ export class VideoRenderer {
     this.initPromise = null;
 
     if (options.canvas) {
-      // Initialize canvas
       this.canvas = options.canvas;
 
-      // Configure canvas size if specified
-      if (this.options.width) {
+      // Set canvas backing buffer dimensions if provided in options
+      if (this.options.width !== undefined) {
         options.canvas.width = this.options.width;
       }
-      if (this.options.height) {
+      if (this.options.height !== undefined) {
         options.canvas.height = this.options.height;
       }
 
@@ -57,7 +59,120 @@ export class VideoRenderer {
         console.error('Failed to initialize renderer:', err);
         // Don't create fallback here - let initializeRenderer handle it
       });
+
+      // Setup automatic resize handling for HTMLCanvasElement
+      this.setupResizeObserver(options.canvas);
     }
+  }
+
+  private setupResizeObserver(canvas: HTMLCanvasElement | OffscreenCanvas): void {
+    // Only setup for HTMLCanvasElement in DOM
+    if (!('getBoundingClientRect' in canvas) || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    // Don't auto-resize if user provided explicit dimensions
+    if (this.options.width !== undefined || this.options.height !== undefined) {
+      return;
+    }
+
+    // Clean up any existing observer
+    this.cleanupResizeObserver();
+
+    const htmlCanvas = canvas as HTMLCanvasElement;
+
+    // Create resize observer to automatically update canvas dimensions
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        const dpr = window.devicePixelRatio || 1;
+
+        // Calculate new dimensions
+        const newWidth = Math.round(width * dpr);
+        const newHeight = Math.round(height * dpr);
+
+        // Only update if dimensions changed
+        if (newWidth !== this.lastObservedWidth || newHeight !== this.lastObservedHeight) {
+          this.lastObservedWidth = newWidth;
+          this.lastObservedHeight = newHeight;
+
+          // Update canvas backing buffer
+          if (htmlCanvas.width !== newWidth || htmlCanvas.height !== newHeight) {
+            htmlCanvas.width = newWidth;
+            htmlCanvas.height = newHeight;
+
+            // Apply video aspect ratio if available
+            this.updateCanvasAspectRatio();
+
+            // Re-render current frame with new dimensions
+            if (this.currentFrame && this.renderer && this.renderer.isReady()) {
+              this.renderFrame(this.currentFrame);
+            }
+          }
+        }
+      }
+    });
+
+    // Start observing
+    this.resizeObserver.observe(htmlCanvas);
+
+    // Defer initial dimensions to ensure proper layout
+    // Use requestAnimationFrame to wait for browser layout
+    requestAnimationFrame(() => {
+      const rect = htmlCanvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const initialWidth = Math.round(rect.width * dpr);
+      const initialHeight = Math.round(rect.height * dpr);
+
+      // Store dimensions
+      this.lastObservedWidth = initialWidth;
+      this.lastObservedHeight = initialHeight;
+
+      // Apply initial dimensions to canvas if they differ
+      if (htmlCanvas.width !== initialWidth || htmlCanvas.height !== initialHeight) {
+        htmlCanvas.width = initialWidth;
+        htmlCanvas.height = initialHeight;
+
+        // Apply video aspect ratio if available
+        this.updateCanvasAspectRatio();
+
+        // Re-render if we have a frame
+        if (this.currentFrame && this.renderer && this.renderer.isReady()) {
+          this.renderFrame(this.currentFrame);
+        }
+      }
+    });
+  }
+
+  private cleanupResizeObserver(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+      this.lastObservedWidth = 0;
+      this.lastObservedHeight = 0;
+    }
+  }
+
+  private updateCanvasAspectRatio(): void {
+    if (!this.canvas || !this.videoAspectRatio || !('style' in this.canvas)) {
+      return;
+    }
+
+    this.canvas.style.aspectRatio = this.videoAspectRatio;
+  }
+
+  private updateCanvasBackingBuffer(canvas: HTMLCanvasElement): boolean {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.round(rect.width * dpr);
+    const height = Math.round(rect.height * dpr);
+
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+      return true;
+    }
+    return false;
   }
 
   private async initializeRenderer(canvas: HTMLCanvasElement | OffscreenCanvas, type: RendererType): Promise<void> {
@@ -135,13 +250,16 @@ export class VideoRenderer {
       this.renderer = null;
     }
 
-    // Configure canvas size if specified
-    if (this.options.width) {
+    // Set canvas backing buffer dimensions if provided in options
+    if (this.options.width !== undefined) {
       canvas.width = this.options.width;
     }
-    if (this.options.height) {
+    if (this.options.height !== undefined) {
       canvas.height = this.options.height;
     }
+
+    // Setup automatic resize handling for HTMLCanvasElement
+    this.setupResizeObserver(canvas);
 
     // Initialize renderer without pre-creating Canvas2D
     try {
@@ -173,6 +291,18 @@ export class VideoRenderer {
       throw new Error(`Cannot decode video track with codec: ${track.codec}`);
     }
 
+    // Calculate the video's aspect ratio from its dimensions (only once per track)
+    if (!this.videoAspectRatio && track.displayWidth && track.displayHeight) {
+      const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+      const divisor = gcd(track.displayWidth, track.displayHeight);
+      const aspectWidth = track.displayWidth / divisor;
+      const aspectHeight = track.displayHeight / divisor;
+      this.videoAspectRatio = `${aspectWidth}/${aspectHeight}`;
+
+      // Apply aspect ratio to canvas
+      this.updateCanvasAspectRatio();
+    }
+
     // Wait for renderer initialization to complete
     if (this.initPromise) {
       try {
@@ -195,27 +325,46 @@ export class VideoRenderer {
       }
     }
 
+    // Set canvas backing buffer dimensions for optimal quality
+    if (this.canvas) {
+      // If user provided explicit dimensions, use those
+      if (this.options.width !== undefined || this.options.height !== undefined) {
+        const targetWidth = this.options.width ?? track.displayWidth;
+        const targetHeight = this.options.height ?? track.displayHeight;
+
+        if (this.canvas.width !== targetWidth || this.canvas.height !== targetHeight) {
+          this.canvas.width = targetWidth;
+          this.canvas.height = targetHeight;
+
+          // Apply video aspect ratio if available
+          this.updateCanvasAspectRatio();
+        }
+      }
+      // If ResizeObserver is active, it will handle dimensions
+      else if (!this.resizeObserver) {
+        // No ResizeObserver and no explicit dimensions, default to video dimensions
+        if (this.canvas.width === 0 || this.canvas.height === 0) {
+          this.canvas.width = track.displayWidth;
+          this.canvas.height = track.displayHeight;
+
+          // Apply video aspect ratio if available
+          this.updateCanvasAspectRatio();
+        }
+      }
+      // Otherwise ResizeObserver is handling dimensions automatically
+    }
+
     // Create sinks
-    // Track is set and used through iterators and sinks
+    // CanvasSink creates intermediate canvases at native video size
+    // Renderers handle scaling to display canvas (downscale or 1:1, never upscale beyond native)
     this.canvasSink = new CanvasSink(track, {
-      width: this.options.width,
-      height: this.options.height,
-      fit: this.options.fit,
+      // Use native video dimensions for maximum quality
+      // Renderers will letterbox when rendering to display canvas
       rotation: this.options.rotation,
       poolSize: this.options.poolSize,
     });
 
     this.sampleSink = new VideoSampleSink(track);
-
-    // Update canvas size if not specified
-    if (this.canvas) {
-      if (!this.options.width) {
-        this.canvas.width = track.displayWidth;
-      }
-      if (!this.options.height) {
-        this.canvas.height = track.displayHeight;
-      }
-    }
 
     // Allow rendering again now that resources are initialized
     this.disposed = false;
@@ -227,13 +376,31 @@ export class VideoRenderer {
       console.error('Initial seek failed:', err);
     }
 
-    // Schedule an immediate re-render to ensure the first frame is visible
-    // This works around timing issues with WebGPU initialization
     queueMicrotask(() => {
       if (this.currentFrame && this.renderer && this.renderer.isReady()) {
         this.renderFrame(this.currentFrame);
       }
     });
+
+    requestAnimationFrame(() => {
+      if (this.resizeObserver && this.canvas && 'getBoundingClientRect' in this.canvas) {
+        this.updateCanvasBackingBuffer(this.canvas as HTMLCanvasElement);
+      }
+
+      if (this.currentFrame && this.renderer && this.renderer.isReady()) {
+        this.renderFrame(this.currentFrame);
+      }
+    });
+
+    setTimeout(() => {
+      if (this.resizeObserver && this.canvas && 'getBoundingClientRect' in this.canvas) {
+        this.updateCanvasBackingBuffer(this.canvas as HTMLCanvasElement);
+      }
+
+      if (this.currentFrame && this.renderer && this.renderer.isReady()) {
+        this.renderFrame(this.currentFrame);
+      }
+    }, 100);
   }
 
   async seek(timestamp: number): Promise<void> {
@@ -478,6 +645,24 @@ export class VideoRenderer {
     return this.canvas;
   }
 
+  /**
+   * Updates canvas backing buffer dimensions to match its CSS display size.
+   * Call this after changing CSS dimensions to prevent stretching.
+   * Only works for HTMLCanvasElement in DOM.
+   */
+  updateCanvasDimensions(): void {
+    if (!this.canvas || !('getBoundingClientRect' in this.canvas)) {
+      return;
+    }
+
+    const htmlCanvas = this.canvas as HTMLCanvasElement;
+    const dimensionsChanged = this.updateCanvasBackingBuffer(htmlCanvas);
+
+    if (dimensionsChanged && this.currentFrame && this.renderer && this.renderer.isReady()) {
+      this.renderFrame(this.currentFrame);
+    }
+  }
+
   async switchRenderer(type: RendererType): Promise<void> {
     if (!this.canvas) {
       throw new Error('Cannot switch renderer: No canvas set');
@@ -610,6 +795,7 @@ export class VideoRenderer {
     this.nextFrame = null;
     this.canvasSink = null;
     this.sampleSink = null;
+    this.videoAspectRatio = null;
   }
 
   dispose(): void {
@@ -626,6 +812,9 @@ export class VideoRenderer {
       this.renderer.dispose();
       this.renderer = null;
     }
+
+    // Clean up resize observer
+    this.cleanupResizeObserver();
 
     this.currentFrame = null;
     this.nextFrame = null;

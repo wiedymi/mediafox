@@ -325,6 +325,10 @@ export class PlaybackController {
     return this.videoRenderer.getRendererType();
   }
 
+  updateCanvasDimensions(): void {
+    this.videoRenderer.updateCanvasDimensions();
+  }
+
   setRendererChangeCallback(callback: (type: import('./renderers').RendererType) => void): void {
     this.videoRenderer.setRendererChangeCallback(callback);
   }
@@ -333,6 +337,28 @@ export class PlaybackController {
     callback: (from: import('./renderers').RendererType, to: import('./renderers').RendererType) => void
   ): void {
     this.videoRenderer.setRendererFallbackCallback(callback);
+  }
+
+  async reset(): Promise<void> {
+    // Stop playback completely
+    this.pause();
+
+    // Reset time to beginning
+    this.currentTime = 0;
+    this.duration = 0;
+
+    // Reset video renderer frame state to clear iterators
+    if (this.videoRenderer) {
+      await this.videoRenderer.seek(0);
+    }
+
+    // Reset playback rate to default
+    this.playbackRate = 1;
+    this.lastFrameTime = 0;
+
+    // Clear any pending animation frames/intervals
+    this.stopRenderLoop();
+    this.stopSyncInterval();
   }
 
   dispose(): void {

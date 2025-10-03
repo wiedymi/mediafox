@@ -319,6 +319,15 @@ export class MediaFox {
     await this.playbackController.switchRenderer(type);
   }
 
+  /**
+   * Updates canvas backing buffer to match its CSS display size.
+   * Call this after changing CSS dimensions to prevent stretching.
+   */
+  updateCanvasDimensions(): void {
+    this.checkDisposed();
+    this.playbackController.updateCanvasDimensions();
+  }
+
   static getSupportedRenderers(): RendererType[] {
     return RendererFactory.getSupportedRenderers();
   }

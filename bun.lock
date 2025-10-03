@@ -8,17 +8,17 @@
       },
       "devDependencies": {
         "@biomejs/biome": "2.2.4",
+        "mediabunny": "^1.23.0",
         "typescript": "^5.7.0",
         "vitepress": "^2.0.0-alpha.12",
       },
     },
     "packages/mediafox": {
       "name": "@mediafox/core",
-      "version": "0.9.9",
+      "version": "1.0.1",
       "devDependencies": {
         "@types/bun": "latest",
         "@webgpu/types": "^0.1.65",
-        "mediabunny": "^1.23.0",
       },
       "peerDependencies": {
         "mediabunny": "^1.23.0",
@@ -27,7 +27,7 @@
     },
     "packages/react": {
       "name": "@mediafox/react",
-      "version": "0.9.9",
+      "version": "1.0.1",
       "devDependencies": {
         "@types/bun": "latest",
         "@types/react": "^18.3.18",

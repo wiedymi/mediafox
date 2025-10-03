@@ -199,6 +199,11 @@ export class WebGLRenderer implements IRenderer {
       const canvasWidth = this.canvas.width;
       const canvasHeight = this.canvas.height;
 
+      // Validate canvas dimensions before scaling
+      if (canvasWidth === 0 || canvasHeight === 0) {
+        return false;
+      }
+
       gl.viewport(0, 0, canvasWidth, canvasHeight);
 
       // Upload texture
@@ -212,16 +217,16 @@ export class WebGLRenderer implements IRenderer {
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
       }
 
-      // Clear
+      // Clear with black background for letterboxing
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      // Calculate letterbox dimensions
+      // Calculate letterbox dimensions to preserve aspect ratio
       const scale = Math.min(canvasWidth / this.textureWidth, canvasHeight / this.textureHeight);
-      const drawW = Math.floor(this.textureWidth * scale);
-      const drawH = Math.floor(this.textureHeight * scale);
-      const x = Math.floor((canvasWidth - drawW) / 2);
-      const y = Math.floor((canvasHeight - drawH) / 2);
+      const drawW = Math.round(this.textureWidth * scale);
+      const drawH = Math.round(this.textureHeight * scale);
+      const x = Math.round((canvasWidth - drawW) / 2);
+      const y = Math.round((canvasHeight - drawH) / 2);
 
       const left = (x / canvasWidth) * 2 - 1;
       const right = ((x + drawW) / canvasWidth) * 2 - 1;

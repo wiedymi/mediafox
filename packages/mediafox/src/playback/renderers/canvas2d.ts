@@ -56,15 +56,23 @@ export class Canvas2DRenderer implements IRenderer {
       const canvasWidth = this.canvas.width;
       const canvasHeight = this.canvas.height;
 
-      // Calculate letterbox dimensions
-      const scale = Math.min(canvasWidth / sourceWidth, canvasHeight / sourceHeight);
-      const destW = Math.floor(sourceWidth * scale);
-      const destH = Math.floor(sourceHeight * scale);
-      const dx = Math.floor((canvasWidth - destW) / 2);
-      const dy = Math.floor((canvasHeight - destH) / 2);
+      // Validate canvas dimensions before scaling
+      if (canvasWidth === 0 || canvasHeight === 0) {
+        return false;
+      }
 
-      // Clear and render
-      this.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      // Calculate letterbox dimensions to preserve aspect ratio
+      const scale = Math.min(canvasWidth / sourceWidth, canvasHeight / sourceHeight);
+      const destW = Math.round(sourceWidth * scale);
+      const destH = Math.round(sourceHeight * scale);
+      const dx = Math.round((canvasWidth - destW) / 2);
+      const dy = Math.round((canvasHeight - destH) / 2);
+
+      // Clear and fill with black for letterboxing
+      this.ctx.fillStyle = 'black';
+      this.ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Draw the video frame centered
       this.ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight, dx, dy, destW, destH);
 
       return true;
@@ -77,7 +85,8 @@ export class Canvas2DRenderer implements IRenderer {
     if (!this.isReady() || !this.ctx) {
       return;
     }
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
   public dispose(): void {
