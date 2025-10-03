@@ -341,7 +341,10 @@
                                                 d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"
                                             />
                                         </svg>
-                                        {{ selectedVideoTrack?.height || "Auto" }}p
+                                        {{
+                                            selectedVideoTrack?.height ||
+                                            "Auto"
+                                        }}p
                                     </button>
                                     <select
                                         @change="selectVideoTrack($event)"
@@ -379,7 +382,13 @@
                                         </svg>
                                         {{
                                             selectedAudioTrack?.language?.toUpperCase() ||
-                                            (selectedAudioTrack ? "Audio " + (audioTracks.indexOf(selectedAudioTrack) + 1) : "Audio")
+                                            (selectedAudioTrack
+                                                ? "Audio " +
+                                                  (audioTracks.indexOf(
+                                                      selectedAudioTrack,
+                                                  ) +
+                                                      1)
+                                                : "Audio")
                                         }}
                                     </button>
                                     <select
@@ -394,11 +403,11 @@
                                         >
                                             {{
                                                 track.language ||
-                                                    "Audio " +
-                                                        (audioTracks.indexOf(
-                                                            track,
-                                                        ) +
-                                                            1)
+                                                "Audio " +
+                                                    (audioTracks.indexOf(
+                                                        track,
+                                                    ) +
+                                                        1)
                                             }}
                                         </option>
                                     </select>
@@ -422,7 +431,9 @@
                                         </svg>
                                         {{
                                             selectedSubtitleTrack?.language?.toUpperCase() ||
-                                            (selectedSubtitleTrack ? "CC" : "Off")
+                                            (selectedSubtitleTrack
+                                                ? "CC"
+                                                : "Off")
                                         }}
                                     </button>
                                     <select
@@ -430,9 +441,7 @@
                                         class="track-select"
                                         :value="selectedSubtitleTrackId || ''"
                                     >
-                                        <option value="">
-                                            Subtitles Off
-                                        </option>
+                                        <option value="">Subtitles Off</option>
                                         <option
                                             v-for="track in subtitleTracks"
                                             :key="track.id"
@@ -449,15 +458,23 @@
                             </div>
 
                             <!-- Renderer selector -->
-                            <div class="renderer-dropdown" v-if="availableRenderers.length > 1">
-                                <button class="track-btn" title="Video Renderer">
+                            <div
+                                class="renderer-dropdown"
+                                v-if="availableRenderers.length > 1"
+                            >
+                                <button
+                                    class="track-btn"
+                                    title="Video Renderer"
+                                >
                                     <svg
                                         width="16"
                                         height="16"
                                         viewBox="0 0 24 24"
                                         fill="currentColor"
                                     >
-                                        <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM8 15h3v-2H8v2zm0-4h8v-2H8v2z"/>
+                                        <path
+                                            d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM8 15h3v-2H8v2zm0-4h8v-2H8v2z"
+                                        />
                                     </svg>
                                     {{ rendererDisplayName }}
                                 </button>
@@ -471,7 +488,11 @@
                                         :key="renderer"
                                         :value="renderer"
                                     >
-                                        {{ RendererFactory.getRendererDisplayName(renderer) }}
+                                        {{
+                                            RendererFactory.getRendererDisplayName(
+                                                renderer,
+                                            )
+                                        }}
                                     </option>
                                 </select>
                             </div>
@@ -708,7 +729,9 @@ const selectedAudioTrack = computed(() => {
 
 const selectedSubtitleTrack = computed(() => {
     if (!selectedSubtitleTrackId.value) return null;
-    return subtitleTracks.value.find((t) => t.id === selectedSubtitleTrackId.value);
+    return subtitleTracks.value.find(
+        (t) => t.id === selectedSubtitleTrackId.value,
+    );
 });
 
 // Methods
@@ -902,7 +925,7 @@ const switchRenderer = async (event: Event) => {
         await player.value.switchRenderer(type);
 
         // Update canvas reference after recreation
-        const newCanvas = document.querySelector('canvas');
+        const newCanvas = document.querySelector("canvas");
         if (newCanvas instanceof HTMLCanvasElement) {
             canvasRef.value = newCanvas;
         }
@@ -1077,7 +1100,7 @@ onUnmounted(() => {
 
 .video-canvas {
     width: 100%;
-    height: auto;
+    height: 100%;
     display: block;
     cursor: pointer;
 }
