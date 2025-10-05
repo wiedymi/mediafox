@@ -10,6 +10,8 @@ export interface VideoRendererOptions {
   rotation?: 0 | 90 | 180 | 270;
   poolSize?: number;
   rendererType?: RendererType;
+  /** Enable debug logging for renderer operations (default: false) */
+  debug?: boolean;
 }
 
 export class VideoRenderer {
@@ -31,6 +33,7 @@ export class VideoRenderer {
   private lastObservedWidth = 0;
   private lastObservedHeight = 0;
   private videoAspectRatio: string | null = null;
+  private debug = false;
 
   constructor(options: VideoRendererOptions = {}) {
     this.options = {
@@ -40,6 +43,7 @@ export class VideoRenderer {
     };
 
     this.rendererType = this.options.rendererType ?? 'webgpu';
+    this.debug = options.debug ?? false;
     this.initPromise = null;
 
     if (options.canvas) {
@@ -56,7 +60,7 @@ export class VideoRenderer {
       // Start initialization immediately but store the promise
       // We'll await it when needed
       this.initPromise = this.initializeRenderer(options.canvas, this.rendererType).catch((err) => {
-        console.error('Failed to initialize renderer:', err);
+        if (this.debug) console.error('Failed to initialize renderer:', err);
         // Don't create fallback here - let initializeRenderer handle it
       });
 
@@ -83,13 +87,13 @@ export class VideoRenderer {
 
     // Create resize observer to automatically update canvas dimensions
     this.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        const dpr = window.devicePixelRatio || 1;
+      // Check if disposed to prevent memory leaks
+      if (this.disposed || !this.resizeObserver) {
+        return;
+      }
 
-        // Calculate new dimensions
-        const newWidth = Math.round(width * dpr);
-        const newHeight = Math.round(height * dpr);
+      for (const entry of entries) {
+        const { width: newWidth, height: newHeight } = this.getCanvasDimensionsFromEntry(entry, htmlCanvas);
 
         // Only update if dimensions changed
         if (newWidth !== this.lastObservedWidth || newHeight !== this.lastObservedHeight) {
@@ -113,16 +117,27 @@ export class VideoRenderer {
       }
     });
 
-    // Start observing
-    this.resizeObserver.observe(htmlCanvas);
+    // Try to observe with device-pixel-content-box first, fallback to content-box
+    try {
+      this.resizeObserver.observe(htmlCanvas, { box: 'device-pixel-content-box' });
+    } catch {
+      try {
+        this.resizeObserver.observe(htmlCanvas, { box: 'content-box' });
+      } catch {
+        // If both fail, observe without options
+        this.resizeObserver.observe(htmlCanvas);
+      }
+    }
 
     // Defer initial dimensions to ensure proper layout
     // Use requestAnimationFrame to wait for browser layout
     requestAnimationFrame(() => {
-      const rect = htmlCanvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      const initialWidth = Math.round(rect.width * dpr);
-      const initialHeight = Math.round(rect.height * dpr);
+      // Check if disposed before applying dimensions
+      if (this.disposed || !this.resizeObserver) {
+        return;
+      }
+
+      const { width: initialWidth, height: initialHeight } = this.getCanvasDimensionsFromCanvas(htmlCanvas);
 
       // Store dimensions
       this.lastObservedWidth = initialWidth;
@@ -144,6 +159,68 @@ export class VideoRenderer {
     });
   }
 
+  private getCanvasDimensionsFromEntry(
+    entry: ResizeObserverEntry,
+    canvas: HTMLCanvasElement
+  ): { width: number; height: number } {
+    let width = 0;
+    let height = 0;
+    const dpr = window.devicePixelRatio || 1;
+
+    // Try device-pixel-content-box first (Chrome/Edge) - most accurate for canvas
+    if (entry.devicePixelContentBoxSize?.length) {
+      width = entry.devicePixelContentBoxSize[0].inlineSize;
+      height = entry.devicePixelContentBoxSize[0].blockSize;
+    }
+    // Fallback to contentBoxSize (Firefox/Safari)
+    else if (entry.contentBoxSize?.length) {
+      width = Math.round(entry.contentBoxSize[0].inlineSize * dpr);
+      height = Math.round(entry.contentBoxSize[0].blockSize * dpr);
+    }
+    // Fallback to contentRect
+    else if (entry.contentRect) {
+      width = Math.round(entry.contentRect.width * dpr);
+      height = Math.round(entry.contentRect.height * dpr);
+    }
+
+    // If still zero, get from canvas directly
+    if (width === 0 || height === 0) {
+      return this.getCanvasDimensionsFromCanvas(canvas);
+    }
+
+    // Return dimensions with minimum 1x1 guard
+    return {
+      width: Math.max(1, width),
+      height: Math.max(1, height),
+    };
+  }
+
+  private getCanvasDimensionsFromCanvas(canvas: HTMLCanvasElement): { width: number; height: number } {
+    let width = 0;
+    let height = 0;
+    const dpr = window.devicePixelRatio || 1;
+
+    // Try getBoundingClientRect first
+    const rect = canvas.getBoundingClientRect();
+    width = Math.round(rect.width * dpr);
+    height = Math.round(rect.height * dpr);
+
+    // If zero, fallback to clientWidth/clientHeight
+    if (width === 0 || height === 0) {
+      width = Math.round(canvas.clientWidth * dpr) || width;
+      height = Math.round(canvas.clientHeight * dpr) || height;
+    }
+
+    // Guard against zero dimensions - use minimum 1x1
+    if (width === 0 || height === 0) {
+      console.warn('Canvas has zero dimensions after all fallbacks, using 1x1');
+    }
+    return {
+      width: Math.max(1, width),
+      height: Math.max(1, height),
+    };
+  }
+
   private cleanupResizeObserver(): void {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
@@ -151,6 +228,22 @@ export class VideoRenderer {
       this.lastObservedWidth = 0;
       this.lastObservedHeight = 0;
     }
+  }
+
+  private retryUntilCanvasReady(frame: WrappedCanvas, action: () => void, maxRetries = 60): void {
+    let count = 0;
+    const retry = () => {
+      count++;
+      if (frame.canvas.width > 0 && frame.canvas.height > 0) {
+        action();
+      } else if (count < maxRetries) {
+        requestAnimationFrame(retry);
+      } else {
+        if (this.debug) console.warn('Canvas dimensions timeout, forcing action');
+        action(); // Try anyway
+      }
+    };
+    requestAnimationFrame(retry);
   }
 
   private updateCanvasAspectRatio(): void {
@@ -162,10 +255,7 @@ export class VideoRenderer {
   }
 
   private updateCanvasBackingBuffer(canvas: HTMLCanvasElement): boolean {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const width = Math.round(rect.width * dpr);
-    const height = Math.round(rect.height * dpr);
+    const { width, height } = this.getCanvasDimensionsFromCanvas(canvas);
 
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
@@ -176,16 +266,16 @@ export class VideoRenderer {
   }
 
   private async initializeRenderer(canvas: HTMLCanvasElement | OffscreenCanvas, type: RendererType): Promise<void> {
-    console.log(`Initializing renderer: ${type}`);
+    if (this.debug) console.log(`Initializing renderer: ${type}`);
 
     const factory = new RendererFactory({ canvas });
     const result = await factory.createRendererWithFallback(type);
 
-    console.log(`Renderer factory result: ${result.actualType}`);
+    if (this.debug) console.log(`Renderer factory result: ${result.actualType}`);
 
     // Verify new renderer is ready
     if (!result.renderer.isReady()) {
-      console.warn(`VideoRenderer: Renderer (${result.actualType}) not ready`);
+      if (this.debug) console.warn(`VideoRenderer: Renderer (${result.actualType}) not ready`);
       result.renderer.dispose();
       throw new Error(`Failed to initialize renderer: ${result.actualType}`);
     }
@@ -194,7 +284,7 @@ export class VideoRenderer {
     this.renderer = result.renderer;
     this.rendererType = result.actualType;
 
-    console.log(`Initialized renderer: ${this.rendererType}`);
+    if (this.debug) console.log(`Initialized renderer: ${this.rendererType}`);
 
     // Emit events
     if (result.actualType !== type) {
@@ -205,36 +295,26 @@ export class VideoRenderer {
 
     // Always emit renderer change on initialization
     if (this.onRendererChange) {
-      console.log(`Emitting renderer change: ${this.rendererType}`);
+      if (this.debug) console.log(`Emitting renderer change: ${this.rendererType}`);
       this.onRendererChange(this.rendererType);
     }
 
     // IMPORTANT: Re-render current frame immediately if we have one
     // This fixes the black screen on initial load
     if (this.currentFrame && this.renderer && this.renderer.isReady()) {
-      console.log(`Rendering initial frame with ${this.rendererType}`);
+      if (this.debug) console.log(`Rendering initial frame with ${this.rendererType}`);
 
       // Check if canvas has dimensions, if not, wait for them
       if (this.currentFrame.canvas.width === 0 || this.currentFrame.canvas.height === 0) {
-        console.log('Initial frame has zero dimensions, scheduling render when ready...');
-        // Use requestAnimationFrame for better rendering timing
-        let frameCount = 0;
-        const tryRender = () => {
-          frameCount++;
-          if (this.currentFrame && this.currentFrame.canvas.width > 0 && this.currentFrame.canvas.height > 0) {
+        if (this.debug) console.log('Initial frame has zero dimensions, scheduling render when ready...');
+        this.retryUntilCanvasReady(this.currentFrame, () => {
+          if (this.currentFrame && this.debug) {
             console.log(
               `Canvas ready (${this.currentFrame.canvas.width}x${this.currentFrame.canvas.height}), rendering initial frame`
             );
-            this.renderFrame(this.currentFrame);
-          } else if (frameCount < 60) {
-            // About 1 second at 60fps
-            requestAnimationFrame(tryRender);
-          } else {
-            console.warn('Canvas dimensions timeout, forcing render');
-            if (this.currentFrame) this.renderFrame(this.currentFrame);
           }
-        };
-        requestAnimationFrame(tryRender);
+          if (this.currentFrame) this.renderFrame(this.currentFrame);
+        });
       } else {
         this.renderFrame(this.currentFrame);
       }
@@ -265,7 +345,7 @@ export class VideoRenderer {
     try {
       await this.initializeRenderer(canvas, this.rendererType);
     } catch (err) {
-      console.error('Failed to initialize renderer:', err);
+      if (this.debug) console.error('Failed to initialize renderer:', err);
       // If all else fails, create Canvas2D as last resort
       if (!this.renderer) {
         this.renderer = new Canvas2DRenderer({ canvas });
@@ -308,14 +388,14 @@ export class VideoRenderer {
       try {
         await this.initPromise;
       } catch (err) {
-        console.error('Renderer initialization failed:', err);
+        if (this.debug) console.error('Renderer initialization failed:', err);
         // Continue anyway, we'll handle it later
       }
     }
 
     // If still no renderer, create Canvas2D fallback
     if (!this.renderer) {
-      console.warn('Renderer not ready, creating Canvas2D fallback');
+      if (this.debug) console.warn('Renderer not ready, creating Canvas2D fallback');
       if (this.canvas) {
         this.renderer = new Canvas2DRenderer({ canvas: this.canvas });
         this.rendererType = 'canvas2d';
@@ -373,15 +453,10 @@ export class VideoRenderer {
     try {
       await this.seek(0);
     } catch (err) {
-      console.error('Initial seek failed:', err);
+      if (this.debug) console.error('Initial seek failed:', err);
     }
 
-    queueMicrotask(() => {
-      if (this.currentFrame && this.renderer && this.renderer.isReady()) {
-        this.renderFrame(this.currentFrame);
-      }
-    });
-
+    // Single render attempt after layout
     requestAnimationFrame(() => {
       if (this.resizeObserver && this.canvas && 'getBoundingClientRect' in this.canvas) {
         this.updateCanvasBackingBuffer(this.canvas as HTMLCanvasElement);
@@ -391,16 +466,6 @@ export class VideoRenderer {
         this.renderFrame(this.currentFrame);
       }
     });
-
-    setTimeout(() => {
-      if (this.resizeObserver && this.canvas && 'getBoundingClientRect' in this.canvas) {
-        this.updateCanvasBackingBuffer(this.canvas as HTMLCanvasElement);
-      }
-
-      if (this.currentFrame && this.renderer && this.renderer.isReady()) {
-        this.renderFrame(this.currentFrame);
-      }
-    }, 100);
   }
 
   async seek(timestamp: number): Promise<void> {
@@ -433,26 +498,18 @@ export class VideoRenderer {
         this.currentFrame = firstFrame;
 
         // Wait a tick to ensure renderer is ready if it was just switched
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
 
         // Draw the first frame
         // Ensure canvas has dimensions before rendering
         if (firstFrame.canvas.width === 0 || firstFrame.canvas.height === 0) {
-          // Use requestAnimationFrame for canvas dimensions check
-          let frameCount = 0;
-          const checkDimensions = () => {
-            frameCount++;
-            if (firstFrame.canvas.width > 0 && firstFrame.canvas.height > 0) {
+          this.retryUntilCanvasReady(
+            firstFrame,
+            () => {
               this.renderFrame(firstFrame);
-            } else if (frameCount < 30) {
-              // About 0.5 seconds at 60fps
-              requestAnimationFrame(checkDimensions);
-            } else {
-              // Try to render anyway
-              this.renderFrame(firstFrame);
-            }
-          };
-          requestAnimationFrame(checkDimensions);
+            },
+            30
+          ); // About 0.5 seconds at 60fps
         } else {
           this.renderFrame(firstFrame);
         }
@@ -523,7 +580,7 @@ export class VideoRenderer {
       if (this.initPromise) {
         this.initPromise.then(() => {
           if (this.currentFrame === frame && this.renderer && this.renderer.isReady()) {
-            console.log('Rendering frame after renderer initialization');
+            if (this.debug) console.log('Rendering frame after renderer initialization');
             this.renderer.render(frame.canvas);
           }
         });
@@ -532,27 +589,33 @@ export class VideoRenderer {
     }
 
     if (!this.renderer.isReady()) {
-      console.warn(`VideoRenderer: Renderer (${this.rendererType}) not ready, skipping frame`);
+      if (this.debug) console.warn(`VideoRenderer: Renderer (${this.rendererType}) not ready, skipping frame`);
       return;
     }
 
     // Use renderer to draw frame
     const success = this.renderer.render(frame.canvas);
     if (!success) {
-      console.warn(
-        `Failed to render frame with ${this.rendererType} (canvas: ${frame.canvas.width}x${frame.canvas.height})`
-      );
+      if (this.debug) {
+        console.warn(
+          `Failed to render frame with ${this.rendererType} (canvas: ${frame.canvas.width}x${frame.canvas.height})`
+        );
+      }
 
       // If render failed due to zero dimensions, retry on next frame
       if (frame.canvas.width === 0 || frame.canvas.height === 0) {
-        requestAnimationFrame(() => {
-          if (this.currentFrame === frame && this.renderer && this.renderer.isReady()) {
-            const retrySuccess = this.renderer.render(frame.canvas);
-            if (!retrySuccess) {
-              console.warn('Retry render also failed');
+        this.retryUntilCanvasReady(
+          frame,
+          () => {
+            if (this.currentFrame === frame && this.renderer && this.renderer.isReady()) {
+              const retrySuccess = this.renderer.render(frame.canvas);
+              if (!retrySuccess && this.debug) {
+                console.warn('Retry render also failed');
+              }
             }
-          }
-        });
+          },
+          1
+        ); // Just one retry for render failures
       }
     }
   }
@@ -666,7 +729,8 @@ export class VideoRenderer {
       return;
     }
 
-    console.warn(`Switching renderer from ${previousType} to ${type}. This will recreate the canvas element.`);
+    if (this.debug)
+      console.warn(`Switching renderer from ${previousType} to ${type}. This will recreate the canvas element.`);
 
     // For HTMLCanvasElement, we need to recreate it to switch context types
     if (this.canvas instanceof HTMLCanvasElement) {
@@ -706,7 +770,7 @@ export class VideoRenderer {
       try {
         await this.initializeRenderer(newCanvas, type);
       } catch (err) {
-        console.error(`Failed to switch to ${type}:`, err);
+        if (this.debug) console.error(`Failed to switch to ${type}:`, err);
         // Try to fall back to Canvas2D
         if (!this.renderer) {
           this.renderer = new Canvas2DRenderer({ canvas: newCanvas });
@@ -719,7 +783,7 @@ export class VideoRenderer {
     } else {
       // For OffscreenCanvas, we can't recreate it, so just try to switch
       // This will likely fail if the context is already set
-      console.warn('Runtime switching for OffscreenCanvas may not work if context is already set');
+      if (this.debug) console.warn('Runtime switching for OffscreenCanvas may not work if context is already set');
 
       // Clean up old renderer
       if (this.renderer) {
@@ -730,7 +794,7 @@ export class VideoRenderer {
       try {
         await this.initializeRenderer(this.canvas, type);
       } catch (err) {
-        console.error(`Failed to switch to ${type}:`, err);
+        if (this.debug) console.error(`Failed to switch to ${type}:`, err);
         // Try to fall back to Canvas2D
         if (!this.renderer) {
           this.renderer = new Canvas2DRenderer({ canvas: this.canvas });
@@ -744,7 +808,7 @@ export class VideoRenderer {
 
     // Re-render current frame with new renderer
     if (this.currentFrame && this.renderer && this.renderer.isReady()) {
-      console.log(`Re-rendering after switch to ${this.rendererType}`);
+      if (this.debug) console.log(`Re-rendering after switch to ${this.rendererType}`);
       // Use microtask for immediate re-render after context switch
       queueMicrotask(() => {
         if (this.currentFrame && this.renderer && this.renderer.isReady()) {
@@ -759,7 +823,7 @@ export class VideoRenderer {
 
     // If renderer is already initialized, emit immediately
     if (this.renderer && this.rendererType) {
-      console.log(`Renderer already initialized as ${this.rendererType}, emitting change event`);
+      if (this.debug) console.log(`Renderer already initialized as ${this.rendererType}, emitting change event`);
       callback(this.rendererType);
     }
   }
