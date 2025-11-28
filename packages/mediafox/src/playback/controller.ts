@@ -136,13 +136,8 @@ export class PlaybackController {
 
     this.playing = false;
 
-    // Clear waiting state
-    if (this.isWaiting) {
-      this.isWaiting = false;
-      if (this.onPlaying) {
-        this.onPlaying();
-      }
-    }
+    // Clear waiting state without emitting playing event (we're pausing, not playing)
+    this.isWaiting = false;
 
     // Pause audio
     this.audioManager.pause();
