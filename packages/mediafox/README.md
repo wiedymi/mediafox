@@ -1,5 +1,36 @@
 # MediaFox
 
+Framework-agnostic media player library with full control over playback. Supports playlists, tracks, custom rendering, and more.
+
+## Features
+
+- Canvas-based video rendering (WebGPU/WebGL/Canvas2D)
+- Web Audio API integration
+- Multi-track support (video/audio/subtitles)
+- **Playlist support**: Sequential/manual play, position preservation
+- Reactive state and type-safe events
+- Framework-agnostic (React, Vue, Svelte, Angular, vanilla)
+
+## Quick Start
+
+```ts
+import { MediaFox } from 'mediafox';
+
+const player = new MediaFox({ renderTarget: canvas });
+await player.load('video.mp4');
+player.play();
+```
+
+### With Playlist
+
+```ts
+await player.loadPlaylist(['video1.mp4', 'audio1.mp3']);
+player.playlistMode = 'sequential';
+player.play(); // Auto-switches on end
+```
+
+See [docs/guide/getting-started.md](docs/guide/getting-started.md) for full setup.
+
 A framework-agnostic, TypeScript-first Media Player library powered by [Mediabunny](https://github.com/Vanilagy/mediabunny). MediaFox provides an ergonomic API for media playback with complete control over rendering and UI.
 
 ## Features

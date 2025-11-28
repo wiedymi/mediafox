@@ -80,6 +80,17 @@
                             </svg>
                             Load Sample Video
                         </button>
+                        <button @click="loadSamplePlaylist" class="empty-btn primary">
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                            >
+                                <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z" />
+                            </svg>
+                            Load Sample Playlist
+                        </button>
                         <button @click="openFileDialog" class="empty-btn">
                             <svg
                                 width="20"
@@ -194,6 +205,24 @@
                     <!-- Control buttons -->
                     <div class="controls-bar">
                         <div class="controls-left">
+                            <!-- Previous (Playlist) -->
+                            <button
+                                v-if="hasPlaylist"
+                                @click="playlistPrev"
+                                class="control-btn"
+                                :disabled="!canGoPrev"
+                                :title="'Previous: ' + (prevItem?.title || 'None')"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                                </svg>
+                            </button>
+
                             <!-- Play/Pause -->
                             <button
                                 @click="togglePlay"
@@ -221,8 +250,27 @@
                                 </svg>
                             </button>
 
+                            <!-- Next (Playlist) -->
+                            <button
+                                v-if="hasPlaylist"
+                                @click="playlistNext"
+                                class="control-btn"
+                                :disabled="!canGoNext"
+                                :title="'Next: ' + (nextItem?.title || 'None')"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z" />
+                                </svg>
+                            </button>
+
                             <!-- Skip backward -->
                             <button
+                                v-if="!hasPlaylist"
                                 @click="skipBackward"
                                 class="control-btn"
                                 title="Skip -10s"
@@ -241,6 +289,7 @@
 
                             <!-- Skip forward -->
                             <button
+                                v-if="!hasPlaylist"
                                 @click="skipForward"
                                 class="control-btn"
                                 title="Skip +10s"
@@ -558,6 +607,70 @@
 
         <!-- Bottom info panels -->
         <div class="bottom-panels" v-if="ready">
+            <!-- Playlist panel (if playlist active) -->
+            <div class="playlist-panel" v-if="hasPlaylist">
+                <h3>
+                    Playlist
+                    <span class="playlist-mode-badge">{{ playlistModeDisplay }}</span>
+                </h3>
+                <div class="playlist-items">
+                    <div
+                        v-for="(item, index) in playlist"
+                        :key="item.id"
+                        class="playlist-item"
+                        :class="{ active: index === playlistIndex }"
+                        @click="jumpToPlaylistItem(index)"
+                    >
+                        <div class="playlist-item-index">{{ index + 1 }}</div>
+                        <div class="playlist-item-info">
+                            <div class="playlist-item-title">
+                                {{ item.title || `Item ${index + 1}` }}
+                            </div>
+                            <div class="playlist-item-time" v-if="item.duration">
+                                {{ formatTime(item.duration) }}
+                                <span v-if="item.savedPosition" class="saved-position">
+                                    (at {{ formatTime(item.savedPosition) }})
+                                </span>
+                            </div>
+                        </div>
+                        <div class="playlist-item-playing" v-if="index === playlistIndex">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z" v-if="!playing" />
+                                <template v-else>
+                                    <rect x="6" y="4" width="4" height="16" />
+                                    <rect x="14" y="4" width="4" height="16" />
+                                </template>
+                            </svg>
+                        </div>
+                        <button
+                            class="playlist-item-remove"
+                            @click.stop="removePlaylistItem(index)"
+                            title="Remove from playlist"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="playlist-controls">
+                    <button @click="cyclePlaylistMode" class="playlist-mode-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path v-if="playlistMode === 'sequential'" d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+                            <path v-else-if="playlistMode === 'repeat'" d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z" />
+                            <path v-else-if="playlistMode === 'repeat-one'" d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-3-2V9h-1l-2 1v1h1.5v4H14z" />
+                            <path v-else d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
+                        </svg>
+                        {{ playlistModeDisplay }}
+                    </button>
+                    <button @click="clearPlaylistFn" class="playlist-clear-btn" title="Clear playlist">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
             <div class="info-panel">
                 <h3>Media Info</h3>
                 <div class="info-grid">
@@ -607,6 +720,14 @@
                         <kbd>F</kbd>
                         <span>Fullscreen</span>
                     </div>
+                    <div class="shortcut" v-if="hasPlaylist">
+                        <kbd>N</kbd>
+                        <span>Next</span>
+                    </div>
+                    <div class="shortcut" v-if="hasPlaylist">
+                        <kbd>P</kbd>
+                        <span>Previous</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -624,6 +745,8 @@ import {
     type AudioTrackInfo,
     type SubtitleTrackInfo,
     type RendererType,
+    type PlaylistItem,
+    type PlaylistMode,
 } from "@mediafox/core";
 import { withBase } from "vitepress";
 
@@ -658,6 +781,11 @@ const warningMessage = ref("");
 const selectedSubtitleTrackId = ref<string | null>(null);
 const currentRenderer = ref<RendererType>("webgpu");
 const availableRenderers = ref<RendererType[]>([]);
+
+// Playlist state
+const playlist = ref<PlaylistItem[]>([]);
+const playlistIndex = ref<number | null>(null);
+const playlistMode = ref<PlaylistMode>(null);
 
 const SUBTITLE_DEFINITIONS = {
     vtt: {
@@ -734,20 +862,49 @@ const selectedSubtitleTrack = computed(() => {
     );
 });
 
+// Playlist computed
+const hasPlaylist = computed(() => playlist.value.length > 0);
+
+const playlistModeDisplay = computed(() => {
+    switch (playlistMode.value) {
+        case 'sequential': return 'Sequential';
+        case 'repeat': return 'Repeat All';
+        case 'repeat-one': return 'Repeat One';
+        case 'manual': return 'Manual';
+        default: return 'Off';
+    }
+});
+
+const canGoPrev = computed(() => {
+    return playlistIndex.value !== null && playlistIndex.value > 0;
+});
+
+const canGoNext = computed(() => {
+    return playlistIndex.value !== null &&
+           playlistIndex.value < playlist.value.length - 1;
+});
+
+const prevItem = computed(() => {
+    if (playlistIndex.value === null || playlistIndex.value <= 0) return null;
+    return playlist.value[playlistIndex.value - 1];
+});
+
+const nextItem = computed(() => {
+    if (playlistIndex.value === null ||
+        playlistIndex.value >= playlist.value.length - 1) return null;
+    return playlist.value[playlistIndex.value + 1];
+});
+
 // Methods
 const loadSample = async () => {
     if (!player.value) return;
 
     loading.value = true;
     try {
-        // Use a sample video URL
         const sampleUrl =
             "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-        const response = await fetch(sampleUrl);
-        const blob = await response.blob();
-
-        await player.value.load(blob);
+        await player.value.load(sampleUrl);
         ready.value = true;
 
         // Update track info
@@ -759,6 +916,45 @@ const loadSample = async () => {
     } catch (error) {
         console.error("Failed to load sample video:", error);
         alert("Failed to load sample video. Please try a local file.");
+    } finally {
+        loading.value = false;
+    }
+};
+
+const loadSamplePlaylist = async () => {
+    if (!player.value) return;
+
+    loading.value = true;
+    try {
+        // Sample playlist with different videos
+        const samplePlaylist = [
+            {
+                mediaSource: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                title: "Big Buck Bunny",
+            },
+            {
+                mediaSource: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+                title: "Elephants Dream",
+            },
+            {
+                mediaSource: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+                title: "For Bigger Blazes",
+            },
+        ];
+
+        await player.value.loadPlaylist(samplePlaylist);
+        player.value.playlistMode = 'sequential';
+        ready.value = true;
+
+        // Update track info
+        videoTracks.value = player.value.getVideoTracks();
+        audioTracks.value = player.value.getAudioTracks();
+        subtitleTracks.value = player.value.getSubtitleTracks();
+        selectedSubtitleTrackId.value =
+            player.value.getState().selectedSubtitleTrack ?? null;
+    } catch (error) {
+        console.error("Failed to load sample playlist:", error);
+        alert("Failed to load sample playlist. Please try a local file.");
     } finally {
         loading.value = false;
     }
@@ -869,6 +1065,61 @@ const updateTooltip = (event: MouseEvent) => {
 
 const hideTooltip = () => {
     tooltipVisible.value = false;
+};
+
+// Playlist methods
+const playlistNext = async () => {
+    if (!player.value) return;
+    try {
+        await player.value.next();
+    } catch (error) {
+        console.error('Failed to go to next item:', error);
+    }
+};
+
+const playlistPrev = async () => {
+    if (!player.value) return;
+    try {
+        await player.value.prev();
+    } catch (error) {
+        console.error('Failed to go to previous item:', error);
+    }
+};
+
+const jumpToPlaylistItem = async (index: number) => {
+    if (!player.value) return;
+    try {
+        await player.value.jumpTo(index);
+    } catch (error) {
+        console.error('Failed to jump to playlist item:', error);
+    }
+};
+
+const cyclePlaylistMode = () => {
+    if (!player.value) return;
+    const modes: PlaylistMode[] = ['sequential', 'repeat', 'repeat-one', 'manual', null];
+    const currentIndex = modes.indexOf(playlistMode.value);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    player.value.playlistMode = nextMode;
+};
+
+const removePlaylistItem = async (index: number) => {
+    if (!player.value) return;
+    try {
+        await player.value.removeFromPlaylist(index);
+        // If playlist is now empty, reset ready state
+        if (player.value.playlist.length === 0) {
+            ready.value = false;
+        }
+    } catch (error) {
+        console.error('Failed to remove playlist item:', error);
+    }
+};
+
+const clearPlaylistFn = () => {
+    if (!player.value) return;
+    player.value.clearPlaylist();
+    ready.value = false;
 };
 
 const takeScreenshot = async () => {
@@ -988,12 +1239,16 @@ onMounted(async () => {
         volume.value = state.volume;
         muted.value = state.muted;
         playerState.value = state.state;
-        buffering.value = state.buffering;
+        buffering.value = state.waiting || state.seeking;
         bufferedRanges.value = state.buffered;
         subtitleTracks.value = state.subtitleTracks;
         selectedSubtitleTrackId.value = state.selectedSubtitleTrack;
-        // Always update renderer type from state
         currentRenderer.value = state.rendererType || "webgpu";
+        
+        // Playlist state
+        playlist.value = state.playlist;
+        playlistIndex.value = state.currentPlaylistIndex;
+        playlistMode.value = state.playlistMode;
     });
 
     // Event listeners
@@ -1059,6 +1314,18 @@ onMounted(async () => {
             case "f":
             case "F":
                 toggleFullscreen();
+                break;
+            case "n":
+            case "N":
+                if (hasPlaylist.value) {
+                    playlistNext();
+                }
+                break;
+            case "p":
+            case "P":
+                if (hasPlaylist.value) {
+                    playlistPrev();
+                }
                 break;
         }
     };
@@ -1599,6 +1866,183 @@ onUnmounted(() => {
 .slide-up-leave-to {
     transform: translateY(20px);
     opacity: 0;
+}
+
+/* Playlist panel */
+.playlist-panel {
+    background: var(--vp-c-bg-soft);
+    border-radius: 8px;
+    padding: 1.5rem;
+    grid-column: 1 / -1;
+}
+
+.playlist-panel h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--vp-c-text-1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.playlist-mode-badge {
+    font-size: 11px;
+    background: var(--vp-c-brand);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: none;
+    font-weight: 500;
+}
+
+.playlist-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--vp-c-bg);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.playlist-item:hover {
+    background: var(--vp-c-bg-alt);
+    border-color: var(--vp-c-divider);
+}
+
+.playlist-item.active {
+    background: var(--vp-c-brand-soft);
+    border-color: var(--vp-c-brand);
+}
+
+.playlist-item-index {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--vp-c-bg-soft);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vp-c-text-2);
+    flex-shrink: 0;
+}
+
+.playlist-item.active .playlist-item-index {
+    background: var(--vp-c-brand);
+    color: white;
+}
+
+.playlist-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.playlist-item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--vp-c-text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.playlist-item-time {
+    font-size: 11px;
+    color: var(--vp-c-text-2);
+    margin-top: 2px;
+}
+
+.saved-position {
+    color: var(--vp-c-brand);
+}
+
+.playlist-item-playing {
+    display: flex;
+    align-items: center;
+    color: var(--vp-c-brand);
+    flex-shrink: 0;
+}
+
+.playlist-item-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    color: var(--vp-c-text-3);
+    cursor: pointer;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.playlist-item:hover .playlist-item-remove {
+    opacity: 1;
+}
+
+.playlist-item-remove:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.playlist-controls {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--vp-c-divider);
+}
+
+.playlist-mode-btn,
+.playlist-clear-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 6px 12px;
+    background: var(--vp-c-bg);
+    border: 1px solid var(--vp-c-divider);
+    color: var(--vp-c-text-1);
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.playlist-mode-btn:hover,
+.playlist-clear-btn:hover {
+    background: var(--vp-c-bg-alt);
+    border-color: var(--vp-c-brand);
+}
+
+.playlist-clear-btn {
+    margin-left: auto;
+}
+
+.control-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.control-btn:disabled:hover {
+    background: transparent;
 }
 
 /* Responsive */

@@ -26,8 +26,11 @@ export class PlaybackController {
   private lastFrameTime = 0;
   private syncIntervalId: number | null = null;
   private renderIntervalId: number | null = null;
+  private isWaiting = false;
   private onTimeUpdate?: (time: number) => void;
   private onEnded?: () => void;
+  private onWaiting?: () => void;
+  private onPlaying?: () => void;
 
   constructor(options: PlaybackControllerOptions = {}) {
     this.videoRenderer = new VideoRenderer({
@@ -133,6 +136,14 @@ export class PlaybackController {
 
     this.playing = false;
 
+    // Clear waiting state
+    if (this.isWaiting) {
+      this.isWaiting = false;
+      if (this.onPlaying) {
+        this.onPlaying();
+      }
+    }
+
     // Pause audio
     this.audioManager.pause();
 
@@ -191,7 +202,20 @@ export class PlaybackController {
       }
 
       // Update video frame synchronously
-      this.videoRenderer.updateFrame(this.currentTime);
+      const { isStarving } = this.videoRenderer.updateFrame(this.currentTime);
+
+      // Handle buffering state changes
+      if (isStarving && !this.isWaiting) {
+        this.isWaiting = true;
+        if (this.onWaiting) {
+          this.onWaiting();
+        }
+      } else if (!isStarving && this.isWaiting) {
+        this.isWaiting = false;
+        if (this.onPlaying) {
+          this.onPlaying();
+        }
+      }
 
       // Schedule next frame
       if (requestNextFrame) {
@@ -305,6 +329,18 @@ export class PlaybackController {
     this.onEnded = callback;
   }
 
+  setWaitingCallback(callback: () => void): void {
+    this.onWaiting = callback;
+  }
+
+  setPlayingCallback(callback: () => void): void {
+    this.onPlaying = callback;
+  }
+
+  isBuffering(): boolean {
+    return this.isWaiting;
+  }
+
   async screenshot(options?: { format?: 'png' | 'jpeg' | 'webp'; quality?: number }): Promise<Blob | null> {
     return this.videoRenderer.screenshot(this.currentTime, options);
   }
@@ -343,22 +379,23 @@ export class PlaybackController {
     // Stop playback completely
     this.pause();
 
+    // Clear any pending animation frames/intervals first
+    this.stopRenderLoop();
+    this.stopSyncInterval();
+
     // Reset time to beginning
     this.currentTime = 0;
     this.duration = 0;
 
-    // Reset video renderer frame state to clear iterators
-    if (this.videoRenderer) {
-      await this.videoRenderer.seek(0);
-    }
+    // Clear iterators to stop in-flight async operations before input is disposed
+    await Promise.all([
+      this.videoRenderer.clearIterators(),
+      this.audioManager.clearIterators(),
+    ]);
 
     // Reset playback rate to default
     this.playbackRate = 1;
     this.lastFrameTime = 0;
-
-    // Clear any pending animation frames/intervals
-    this.stopRenderLoop();
-    this.stopSyncInterval();
   }
 
   dispose(): void {
@@ -367,6 +404,8 @@ export class PlaybackController {
     this.audioManager.dispose();
     this.onTimeUpdate = undefined;
     this.onEnded = undefined;
+    this.onWaiting = undefined;
+    this.onPlaying = undefined;
   }
 
   destroy(): void {

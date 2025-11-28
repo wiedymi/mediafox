@@ -27,6 +27,8 @@ export { RendererFactory } from './playback/renderers';
 // Source management
 export { SourceManager } from './sources/manager';
 export type { SourceInfo, SourceManagerOptions } from './sources/types';
+export { Source } from './sources/source';
+export type { SourceOptions, SourceItem } from './sources/source';
 // State management
 export { Store } from './state/store';
 export type { StateListener, StateStore, StateUnsubscribe } from './state/types';
@@ -49,6 +51,10 @@ export type {
   PlayerOptions,
   PlayerState,
   PlayerStateData,
+  // Playlist types
+  Playlist,
+  PlaylistItem,
+  PlaylistMode,
   QualityLevel,
   RendererType,
   ScreenshotOptions,

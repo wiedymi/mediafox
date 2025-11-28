@@ -85,6 +85,7 @@ export default defineConfig({
             { text: "State Management", link: "/guide/state-management" },
             { text: "Event Handling", link: "/guide/events" },
             { text: "Track Management", link: "/guide/tracks" },
+            { text: "Playlists", link: "/guide/playlists" },
             { text: "Performance", link: "/guide/performance" },
           ],
         },

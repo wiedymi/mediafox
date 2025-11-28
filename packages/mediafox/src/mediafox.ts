@@ -8,6 +8,7 @@ import { RendererFactory } from './playback/renderers';
 import { SourceManager } from './sources/manager';
 import { Store } from './state/store';
 import { TrackManager } from './tracks/manager';
+import { PlaylistManager } from './playlist/manager';
 import type { SubtitleTrackRegistration, SubtitleTrackResource } from './tracks/types';
 import type {
   AudioTrackInfo,
@@ -17,6 +18,8 @@ import type {
   PlayerEventMap,
   PlayerOptions,
   PlayerStateData,
+  PlaylistItem,
+  PlaylistMode,
   RendererType,
   ScreenshotOptions,
   SeekOptions,
@@ -33,6 +36,7 @@ export class MediaFox {
   private sourceManager: SourceManager;
   private playbackController: PlaybackController;
   private trackManager: TrackManager;
+  private playlistManager: PlaylistManager;
   private options: PlayerOptions;
   private disposed = false;
   private getCurrentInput = () => this.sourceManager.getCurrentSource()?.input ?? null;
@@ -66,6 +70,18 @@ export class MediaFox {
       rendererType: this.options.renderer,
     });
     this.trackManager = new TrackManager();
+    this.playlistManager = new PlaylistManager(
+      this.store,
+      this.emitter,
+      async (item, autoplay) => {
+        await this.core.load(item.mediaSource, {
+          startTime: item.savedPosition ?? 0,
+          autoplay,
+          playlistItemId: item.id,
+        });
+      },
+      this.sourceManager
+    );
 
     this.trackSwitcher = new TrackSwitcher({
       sourceManager: this.sourceManager,
@@ -106,6 +122,16 @@ export class MediaFox {
     this.playbackController.setEndedCallback(() => {
       this.state.updateEndedState(true);
       this.emit('ended', undefined);
+      const state = this.getState();
+      if (
+        state.playlistMode === 'sequential' &&
+        state.playlist.length > 1 &&
+        state.currentPlaylistIndex !== null &&
+        state.currentPlaylistIndex < state.playlist.length - 1
+      ) {
+        // Auto advance to next
+        queueMicrotask(async () => await this.playlistManager.next());
+      }
     });
 
     // Track manager listeners
@@ -115,6 +141,20 @@ export class MediaFox {
         type: event.type,
         trackId: event.newTrackId,
       });
+    });
+
+    // Waiting/buffering callbacks
+    this.playbackController.setWaitingCallback(() => {
+      this.state.updateWaitingState(true);
+      this.emit('waiting', undefined);
+    });
+
+    this.playbackController.setPlayingCallback(() => {
+      const state = this.getState();
+      if (state.waiting) {
+        this.state.updateWaitingState(false);
+        this.emit('playing', undefined);
+      }
     });
 
     // Renderer callbacks
@@ -139,9 +179,38 @@ export class MediaFox {
    * Load a media source and prepare playback.
    * Emits: loadstart, loadedmetadata, loadeddata, canplay, canplaythrough (or error)
    */
-  async load(source: MediaSource, options: LoadOptions = {}): Promise<void> {
+  async load(source: MediaSource, options: LoadOptions & { replacePlaylist?: boolean } = {}): Promise<void> {
     this.checkDisposed();
-    return this.core.load(source, {
+    const state = this.getState();
+
+    if (state.playlist.length === 0 || options.replacePlaylist) {
+      await this.playlistManager.loadPlaylist([{ mediaSource: source }]);
+      return;
+    } else if (state.currentPlaylistIndex !== null && state.playlist.length > 0) {
+      // Replace current item
+      const currentIndex = state.currentPlaylistIndex;
+      const oldItem = state.playlist[currentIndex];
+      const newItem: PlaylistItem = {
+        ...oldItem,
+        mediaSource: source,
+        savedPosition: 0, // Reset for new source
+        duration: null,
+      };
+      const newPlaylist = [...state.playlist];
+      newPlaylist[currentIndex] = newItem;
+      this.store.updatePlaylist(newPlaylist, currentIndex);
+      this.emitter.emit('playlistchange', { playlist: newPlaylist });
+
+      // Load the new source
+      await this.core.load(source, {
+        startTime: 0,
+        autoplay: false,
+      });
+      return;
+    }
+
+    // Fallback for no playlist logic
+    await this.core.load(source, {
       autoplay: options.autoplay ?? this.options.autoplay,
       startTime: options.startTime,
     });
@@ -235,6 +304,10 @@ export class MediaFox {
     return this.state.getState().seeking;
   }
 
+  get waiting(): boolean {
+    return this.state.getState().waiting;
+  }
+
   // Track management
 
   getVideoTracks(): VideoTrackInfo[] {
@@ -310,6 +383,68 @@ export class MediaFox {
     await this.playbackController.setCanvas(canvas);
   }
 
+  // Playlist API
+  async loadPlaylist(
+    items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>
+  ): Promise<void> {
+    this.checkDisposed();
+    await this.playlistManager.loadPlaylist(items);
+  }
+
+  addToPlaylist(
+    item: MediaSource | { mediaSource: MediaSource; title?: string; poster?: string },
+    index?: number
+  ): void {
+    this.checkDisposed();
+    this.playlistManager.addToPlaylist(item, index);
+  }
+
+  async removeFromPlaylist(index: number): Promise<void> {
+    this.checkDisposed();
+    await this.playlistManager.removeFromPlaylist(index);
+  }
+
+  clearPlaylist(): void {
+    this.checkDisposed();
+    this.playlistManager.clearPlaylist();
+  }
+
+  async next(): Promise<void> {
+    this.checkDisposed();
+    await this.playlistManager.next();
+  }
+
+  async prev(): Promise<void> {
+    this.checkDisposed();
+    await this.playlistManager.prev();
+  }
+
+  async jumpTo(index: number): Promise<void> {
+    this.checkDisposed();
+    await this.playlistManager.jumpTo(index);
+  }
+
+  get playlist() {
+    return this.playlistManager.playlist;
+  }
+
+  get playlistIndex() {
+    return this.playlistManager.currentIndex;
+  }
+
+  get nowPlaying() {
+    return this.playlistManager.currentItem;
+  }
+
+  get playlistMode() {
+    return this.playlistManager.mode;
+  }
+
+  set playlistMode(mode: PlaylistMode) {
+    this.checkDisposed();
+    this.playlistManager.setMode(mode);
+  }
+
   getRendererType(): RendererType {
     return this.playbackController.getRendererType();
   }
@@ -376,6 +511,7 @@ export class MediaFox {
     // Dispose components
     this.playbackController.dispose();
     this.trackManager.dispose();
+    this.playlistManager?.dispose(); // If manager has dispose
     this.sourceManager.dispose();
     this.state.reset();
     this.emitter.removeAllListeners();

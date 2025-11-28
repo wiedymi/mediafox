@@ -100,10 +100,11 @@ export class AudioManager {
   }
 
   private async scheduleAudioBuffers(playbackId: number): Promise<void> {
-    if (!this.bufferIterator || !this.gainNode) return;
+    const iterator = this.bufferIterator;
+    if (!iterator || !this.gainNode) return;
 
     try {
-      for await (const { buffer, timestamp } of this.bufferIterator) {
+      for await (const { buffer, timestamp } of iterator) {
         if (playbackId !== this.playbackId || this.disposed || !this.playing) {
           break;
         }
@@ -137,8 +138,8 @@ export class AudioManager {
           await this.waitForCatchup(timestamp);
         }
       }
-    } catch (error) {
-      console.error('Error scheduling audio buffers:', error);
+    } catch {
+      // Iterator was closed or disposed during scheduling
     }
   }
 
@@ -273,13 +274,31 @@ export class AudioManager {
     this.queuedNodes.clear();
   }
 
+  /**
+   * Clears iterators to stop any in-flight async operations.
+   * Called before disposing the input to prevent accessing disposed resources.
+   */
+  async clearIterators(): Promise<void> {
+    this.playbackId++;
+    this.stop();
+
+    if (this.bufferIterator) {
+      try {
+        await this.bufferIterator.return();
+      } catch {
+        // Iterator may already be closed
+      }
+      this.bufferIterator = null;
+    }
+  }
+
   dispose(): void {
     this.disposed = true;
     this.playbackId++;
     this.stop();
 
     if (this.bufferIterator) {
-      this.bufferIterator.return();
+      void this.bufferIterator.return();
       this.bufferIterator = null;
     }
 

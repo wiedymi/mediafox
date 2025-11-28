@@ -1,5 +1,6 @@
 import type { PlaybackController } from '../playback/controller';
-import type { SourceManager } from '../sources/manager';
+import { registerPrefetchedVideoData } from '../playback/renderer';
+import type { PrefetchedTrackData, SourceManager } from '../sources/manager';
 import type { TrackManager } from '../tracks/manager';
 import type { LoadOptions, MediaInfo, MediaSource, PlayerEventMap } from '../types';
 import { logger } from '../utils/logger';
@@ -25,13 +26,48 @@ export class PlayerCore {
       // Reset playback controller first to stop any active playback
       await this.deps.playbackController.reset();
 
-      // Reset state
-      this.deps.state.reset();
-      this.deps.state.updateLoadingState();
+      // Dispose previous source
+      this.deps.sourceManager.disposeCurrent();
+
+      // Reset state (but preserve playlist if not replacing)
+      const currentState = this.deps.state.getState();
+      if (!options.replacePlaylist) {
+        // Keep playlist state
+        this.deps.state.setState({
+          ...currentState,
+          state: 'loading',
+          currentTime: options.startTime ?? 0,
+          playing: false,
+          paused: true,
+          ended: false,
+          seeking: false,
+          error: null,
+          mediaInfo: null,
+          videoTracks: [],
+          audioTracks: [],
+          subtitleTracks: [],
+          selectedVideoTrack: null,
+          selectedAudioTrack: null,
+          selectedSubtitleTrack: null,
+          buffered: [],
+          canPlay: false,
+          canPlayThrough: false,
+        });
+      } else {
+        this.deps.state.reset();
+        this.deps.state.updateLoadingState();
+      }
       this.deps.emit('loadstart', undefined);
 
-      // Create source and input
-      const sourceInfo = await this.deps.sourceManager.createSource(source);
+      // Try to use prefetched source if available, otherwise create new
+      let sourceInfo = options.playlistItemId
+        ? this.deps.sourceManager.promoteQueuedSource(options.playlistItemId)
+        : null;
+
+      if (!sourceInfo) {
+        sourceInfo = await this.deps.sourceManager.createSource(source);
+      }
+
       const input = sourceInfo.input;
       if (!input) throw new Error('Failed to create input from source');
 
@@ -67,8 +103,19 @@ export class PlayerCore {
       this.deps.playbackController.setDuration(duration);
 
       // Setup initial tracks using switcher
-      const videoTrack = this.deps.trackManager.getPrimaryVideoTrack();
-      const audioTrack = this.deps.trackManager.getPrimaryAudioTrack();
+      // Use prefetched tracks if available
+      const prefetchedData = sourceInfo.prefetchedData as PrefetchedTrackData | undefined;
+      const videoTrack = prefetchedData?.videoTrack ?? this.deps.trackManager.getPrimaryVideoTrack();
+      const audioTrack = prefetchedData?.audioTrack ?? this.deps.trackManager.getPrimaryAudioTrack();
+
+      // Register prefetched video data for the track (will be consumed internally by renderer)
+      if (videoTrack && prefetchedData?.canvasSink && prefetchedData?.firstFrame) {
+        registerPrefetchedVideoData(videoTrack, {
+          canvasSink: prefetchedData.canvasSink,
+          firstFrame: prefetchedData.firstFrame,
+        });
+      }
+
       let warningMessage = '';
       let videoSupported = false;
       let audioSupported = false;
@@ -98,6 +145,9 @@ export class PlayerCore {
       this.deps.emit('loadeddata', undefined);
       this.deps.emit('canplay', undefined);
       this.deps.emit('canplaythrough', undefined);
+
+      // Update playlist item duration if in a playlist
+      this.updateCurrentPlaylistItemDuration(duration);
 
       if (options.autoplay) await this.play();
       if (options.startTime !== undefined) await this.seek(options.startTime);
@@ -161,5 +211,18 @@ export class PlayerCore {
     this.deps.state.updateError(error);
     this.deps.emit('error', error);
     logger.error('Player error:', error);
+  }
+
+  private updateCurrentPlaylistItemDuration(duration: number): void {
+    const state = this.deps.state.getState();
+    const currentIndex = state.currentPlaylistIndex;
+    if (currentIndex !== null && state.playlist.length > 0) {
+      const playlist = [...state.playlist];
+      const currentItem = playlist[currentIndex];
+      if (currentItem) {
+        playlist[currentIndex] = { ...currentItem, duration };
+        this.deps.state.updatePlaylist(playlist, currentIndex);
+      }
+    }
   }
 }

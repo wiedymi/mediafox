@@ -35,7 +35,7 @@
     "@webgpu/types": "^0.1.65"
   },
   "peerDependencies": {
-    "mediabunny": "^1.23.0",
+    "mediabunny": "^1.25.3",
     "typescript": ">=5.0.0"
   },
   "keywords": [

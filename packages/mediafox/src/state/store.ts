@@ -4,6 +4,9 @@ import type {
   MediaInfo,
   PlayerState,
   PlayerStateData,
+  Playlist,
+  PlaylistItem,
+  PlaylistMode,
   SubtitleTrackInfo,
   TimeRange,
   VideoTrackInfo,
@@ -38,6 +41,7 @@ export class Store implements StateStore {
       paused: true,
       ended: false,
       seeking: false,
+      waiting: false,
       error: null,
       mediaInfo: null,
       videoTracks: [],
@@ -50,6 +54,9 @@ export class Store implements StateStore {
       canPlayThrough: false,
       isLive: false,
       rendererType: defaultRenderer,
+      playlist: [],
+      currentPlaylistIndex: null,
+      playlistMode: null,
     };
   }
 
@@ -188,6 +195,10 @@ export class Store implements StateStore {
     this.setState({ seeking });
   }
 
+  updateWaitingState(waiting: boolean): void {
+    this.setState({ waiting });
+  }
+
   updateReadyState(canPlay: boolean, canPlayThrough: boolean): void {
     this.setState({
       canPlay,
@@ -217,5 +228,69 @@ export class Store implements StateStore {
 
   updateRendererType(rendererType: import('../types').RendererType): void {
     this.setState({ rendererType });
+  }
+
+  updatePlaylist(playlist: Playlist, currentIndex: number | null = null): void {
+    this.setState({ playlist, currentPlaylistIndex: currentIndex });
+  }
+
+  updateCurrentPlaylistIndex(index: number): void {
+    this.setState({ currentPlaylistIndex: index });
+  }
+
+  updatePlaylistMode(mode: PlaylistMode): void {
+    this.setState({ playlistMode: mode });
+  }
+
+  addToPlaylist(item: PlaylistItem, insertIndex?: number): void {
+    const currentPlaylist = this.state.playlist;
+    let newPlaylist: Playlist;
+    let newCurrentIndex = this.state.currentPlaylistIndex;
+
+    if (insertIndex !== undefined && insertIndex >= 0 && insertIndex <= currentPlaylist.length) {
+      newPlaylist = [...currentPlaylist.slice(0, insertIndex), item, ...currentPlaylist.slice(insertIndex)];
+      if (newCurrentIndex !== null && newCurrentIndex >= insertIndex) {
+        newCurrentIndex += 1;
+      }
+    } else {
+      newPlaylist = [...currentPlaylist, item];
+    }
+
+    this.setState({ playlist: newPlaylist, currentPlaylistIndex: newCurrentIndex });
+  }
+
+  removeFromPlaylist(removeIndex: number): void {
+    const currentPlaylist = this.state.playlist;
+    if (removeIndex < 0 || removeIndex >= currentPlaylist.length) {
+      return;
+    }
+
+    const newPlaylist = currentPlaylist.filter((_, i) => i !== removeIndex);
+    let newCurrentIndex = this.state.currentPlaylistIndex;
+
+    if (newCurrentIndex === removeIndex) {
+      newCurrentIndex = newPlaylist.length > 0 ? 0 : null;
+    } else if (newCurrentIndex !== null && newCurrentIndex > removeIndex) {
+      newCurrentIndex -= 1;
+    }
+
+    this.setState({ playlist: newPlaylist, currentPlaylistIndex: newCurrentIndex });
+  }
+
+  clearPlaylist(): void {
+    this.setState({
+      playlist: [],
+      currentPlaylistIndex: null,
+      state: 'idle',
+      currentTime: 0,
+      duration: 0,
+      mediaInfo: null,
+      videoTracks: [],
+      audioTracks: [],
+      subtitleTracks: [],
+      selectedVideoTrack: null,
+      selectedAudioTrack: null,
+      selectedSubtitleTrack: null,
+    });
   }
 }

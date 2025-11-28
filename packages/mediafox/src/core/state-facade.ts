@@ -1,5 +1,5 @@
 import type { Store } from '../state/store';
-import type { AudioTrackInfo, MediaInfo, PlayerStateData, SubtitleTrackInfo, VideoTrackInfo } from '../types';
+import type { AudioTrackInfo, MediaInfo, PlayerStateData, Playlist, SubtitleTrackInfo, VideoTrackInfo } from '../types';
 
 export class StateFacade {
   constructor(private readonly store: Store) {}
@@ -11,6 +11,11 @@ export class StateFacade {
 
   subscribe(listener: (state: PlayerStateData) => void): () => void {
     return this.store.subscribe(listener);
+  }
+
+  // Generic state update
+  setState(updates: Partial<PlayerStateData>): void {
+    this.store.setState(updates);
   }
 
   // Lifecycle
@@ -37,6 +42,10 @@ export class StateFacade {
 
   updateSeekingState(seeking: boolean): void {
     this.store.updateSeekingState(seeking);
+  }
+
+  updateWaitingState(waiting: boolean): void {
+    this.store.updateWaitingState(waiting);
   }
 
   updateEndedState(ended: boolean): void {
@@ -81,5 +90,9 @@ export class StateFacade {
 
   updateRendererType(rendererType: import('../types').RendererType): void {
     this.store.updateRendererType(rendererType);
+  }
+
+  updatePlaylist(playlist: Playlist, currentIndex: number | null = null): void {
+    this.store.updatePlaylist(playlist, currentIndex);
   }
 }
