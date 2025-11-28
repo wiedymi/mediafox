@@ -717,7 +717,7 @@ if (resource) {
 
 ### Playlist Management
 
-#### `loadPlaylist(items)`
+#### `loadPlaylist(items, options?)`
 
 Loads a playlist of media items.
 
@@ -725,7 +725,8 @@ Loads a playlist of media items.
 
 ```typescript
 async loadPlaylist(
-  items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>
+  items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>,
+  options?: { autoplay?: boolean; startTime?: number }
 ): Promise<void>
 ```
 
@@ -733,15 +734,24 @@ async loadPlaylist(
 
 **Parameters:**
 - `items`: Array of media sources or playlist item configurations
+- `options.autoplay`: Whether to start playing immediately (default: false)
+- `options.startTime`: Start time in seconds for the first item (default: 0)
 
 **Example:**
 
 ```typescript
+// Basic playlist
 await player.loadPlaylist([
   { mediaSource: 'video1.mp4', title: 'First Video' },
   { mediaSource: 'video2.mp4', title: 'Second Video' },
   'video3.mp4' // Simple URL also works
 ]);
+
+// With autoplay and start time
+await player.loadPlaylist(
+  [{ mediaSource: 'video.mp4', title: 'My Video' }],
+  { autoplay: true, startTime: 30 }
+);
 ```
 
 #### `addToPlaylist(item, index?)`

@@ -61,7 +61,7 @@ export interface UseMediaFoxReturn {
   switchRenderer: (type: RendererType) => Promise<void>;
   rendererType: RendererType | null;
   // Playlist
-  loadPlaylist: (items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>) => Promise<void>;
+  loadPlaylist: (items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>, options?: { autoplay?: boolean; startTime?: number }) => Promise<void>;
   addToPlaylist: (item: MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }, index?: number) => void;
   removeFromPlaylist: (index: number) => Promise<void>;
   clearPlaylist: () => void;
@@ -302,9 +302,9 @@ export function useMediaFox(options: UseMediaFoxOptions = {}): UseMediaFoxReturn
   }, []);
 
   // Playlist methods
-  const loadPlaylist = useCallback(async (items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>) => {
+  const loadPlaylist = useCallback(async (items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>, options?: { autoplay?: boolean; startTime?: number }) => {
     if (!playerRef.current) throw new Error('Player not initialized');
-    return playerRef.current.loadPlaylist(items);
+    return playerRef.current.loadPlaylist(items, options);
   }, []);
 
   const addToPlaylist = useCallback((item: MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }, index?: number) => {

@@ -184,7 +184,10 @@ export class MediaFox {
     const state = this.getState();
 
     if (state.playlist.length === 0 || options.replacePlaylist) {
-      await this.playlistManager.loadPlaylist([{ mediaSource: source }]);
+      await this.playlistManager.loadPlaylist([{ mediaSource: source }], {
+        autoplay: options.autoplay ?? this.options.autoplay,
+        startTime: options.startTime,
+      });
       return;
     } else if (state.currentPlaylistIndex !== null && state.playlist.length > 0) {
       // Replace current item
@@ -203,8 +206,8 @@ export class MediaFox {
 
       // Load the new source
       await this.core.load(source, {
-        startTime: 0,
-        autoplay: false,
+        startTime: options.startTime ?? 0,
+        autoplay: options.autoplay ?? this.options.autoplay,
       });
       return;
     }
@@ -385,10 +388,11 @@ export class MediaFox {
 
   // Playlist API
   async loadPlaylist(
-    items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>
+    items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>,
+    options?: { autoplay?: boolean; startTime?: number }
   ): Promise<void> {
     this.checkDisposed();
-    await this.playlistManager.loadPlaylist(items);
+    await this.playlistManager.loadPlaylist(items, options);
   }
 
   addToPlaylist(

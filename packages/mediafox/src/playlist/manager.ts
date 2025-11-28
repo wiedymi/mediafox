@@ -34,7 +34,10 @@ export class PlaylistManager {
     this.sourceManager = sourceManager;
   }
 
-  async loadPlaylist(items: Array<MediaSource | PlaylistItemConfig>): Promise<void> {
+  async loadPlaylist(
+    items: Array<MediaSource | PlaylistItemConfig>,
+    options: { autoplay?: boolean; startTime?: number } = {}
+  ): Promise<void> {
     const playlist: Playlist = items.map((item) => {
       // Check if it's a PlaylistItemConfig (has mediaSource property)
       if (item && typeof item === 'object' && 'mediaSource' in item) {
@@ -62,7 +65,12 @@ export class PlaylistManager {
     this.emitter.emit('playlistchange', { playlist });
 
     if (playlist.length > 0 && this.switchSource) {
-      await this.switchSource(playlist[0], false);
+      const firstItem = playlist[0];
+      // Override savedPosition with startTime if provided
+      if (options.startTime !== undefined) {
+        firstItem.savedPosition = options.startTime;
+      }
+      await this.switchSource(firstItem, options.autoplay ?? false);
     }
   }
 
