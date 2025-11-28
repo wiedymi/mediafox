@@ -123,14 +123,24 @@ export class MediaFox {
       this.state.updateEndedState(true);
       this.emit('ended', undefined);
       const state = this.getState();
-      if (
-        state.playlistMode === 'sequential' &&
-        state.playlist.length > 1 &&
-        state.currentPlaylistIndex !== null &&
-        state.currentPlaylistIndex < state.playlist.length - 1
-      ) {
-        // Auto advance to next
-        queueMicrotask(async () => await this.playlistManager.next());
+
+      // Handle playlist modes that auto-advance or repeat
+      if (state.playlist.length > 0 && state.currentPlaylistIndex !== null) {
+        const mode = state.playlistMode;
+
+        if (mode === 'repeat-one') {
+          // Restart current item
+          queueMicrotask(async () => {
+            await this.seek(0);
+            await this.play();
+          });
+        } else if (mode === 'repeat') {
+          // Advance to next, loop to start if at end
+          queueMicrotask(async () => await this.playlistManager.next());
+        } else if (mode === 'sequential' && state.currentPlaylistIndex < state.playlist.length - 1) {
+          // Advance to next if not at end
+          queueMicrotask(async () => await this.playlistManager.next());
+        }
       }
     });
 
