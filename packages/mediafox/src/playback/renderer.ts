@@ -488,9 +488,13 @@ export class VideoRenderer {
       if (this.currentFrame.canvas.width > 0 && this.currentFrame.canvas.height > 0) {
         this.renderFrame(this.currentFrame);
       } else {
-        this.retryUntilCanvasReady(this.currentFrame, () => {
-          if (this.currentFrame) this.renderFrame(this.currentFrame);
-        }, 30);
+        this.retryUntilCanvasReady(
+          this.currentFrame,
+          () => {
+            if (this.currentFrame) this.renderFrame(this.currentFrame);
+          },
+          30
+        );
       }
 
       // Start iterator from 0 for next frames

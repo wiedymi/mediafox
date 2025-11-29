@@ -26,9 +26,9 @@ export type { IRenderer, RendererCreationResult } from './playback/renderers';
 export { RendererFactory } from './playback/renderers';
 // Source management
 export { SourceManager } from './sources/manager';
-export type { SourceInfo, SourceManagerOptions } from './sources/types';
+export type { SourceItem, SourceOptions } from './sources/source';
 export { Source } from './sources/source';
-export type { SourceOptions, SourceItem } from './sources/source';
+export type { SourceInfo, SourceManagerOptions } from './sources/types';
 // State management
 export { Store } from './state/store';
 export type { StateListener, StateStore, StateUnsubscribe } from './state/types';

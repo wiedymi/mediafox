@@ -383,10 +383,7 @@ export class PlaybackController {
     this.duration = 0;
 
     // Clear iterators to stop in-flight async operations before input is disposed
-    await Promise.all([
-      this.videoRenderer.clearIterators(),
-      this.audioManager.clearIterators(),
-    ]);
+    await Promise.all([this.videoRenderer.clearIterators(), this.audioManager.clearIterators()]);
 
     // Reset playback rate to default
     this.playbackRate = 1;

@@ -5,10 +5,10 @@ import { EventEmitter } from './events/emitter';
 import type { UnsubscribeFn } from './events/types';
 import { PlaybackController } from './playback/controller';
 import { RendererFactory } from './playback/renderers';
+import { PlaylistManager } from './playlist/manager';
 import { SourceManager } from './sources/manager';
 import { Store } from './state/store';
 import { TrackManager } from './tracks/manager';
-import { PlaylistManager } from './playlist/manager';
 import type { SubtitleTrackRegistration, SubtitleTrackResource } from './tracks/types';
 import type {
   AudioTrackInfo,
@@ -127,19 +127,39 @@ export class MediaFox {
       // Handle playlist modes that auto-advance or repeat
       if (state.playlist.length > 0 && state.currentPlaylistIndex !== null) {
         const mode = state.playlistMode;
+        const currentIndex = state.currentPlaylistIndex;
 
         if (mode === 'repeat-one') {
           // Restart current item
+          const targetIndex = currentIndex;
           queueMicrotask(async () => {
-            await this.seek(0);
-            await this.play();
+            try {
+              await this.seek(0);
+              await this.play();
+            } catch (error) {
+              this.emitter.emit('playlistitemerror', { index: targetIndex, error: error as Error });
+            }
           });
         } else if (mode === 'repeat') {
           // Advance to next, loop to start if at end
-          queueMicrotask(async () => await this.playlistManager.next());
-        } else if (mode === 'sequential' && state.currentPlaylistIndex < state.playlist.length - 1) {
+          const targetIndex = currentIndex < state.playlist.length - 1 ? currentIndex + 1 : 0;
+          queueMicrotask(async () => {
+            try {
+              await this.playlistManager.next();
+            } catch (error) {
+              this.emitter.emit('playlistitemerror', { index: targetIndex, error: error as Error });
+            }
+          });
+        } else if (mode === 'sequential' && currentIndex < state.playlist.length - 1) {
           // Advance to next if not at end
-          queueMicrotask(async () => await this.playlistManager.next());
+          const targetIndex = currentIndex + 1;
+          queueMicrotask(async () => {
+            try {
+              await this.playlistManager.next();
+            } catch (error) {
+              this.emitter.emit('playlistitemerror', { index: targetIndex, error: error as Error });
+            }
+          });
         }
       }
     });

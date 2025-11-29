@@ -1,6 +1,6 @@
-import type { StateStore } from '../state/types';
 import type { TypedEventEmitter } from '../events/types';
 import type { SourceManager } from '../sources/manager';
+import type { StateStore } from '../state/types';
 import type { MediaSource, PlayerEventMap, Playlist, PlaylistItem, PlaylistMode } from '../types';
 
 // Simple ID generator (no uuid dep for now)
@@ -167,7 +167,9 @@ export class PlaylistManager {
   setMode(mode: PlaylistMode): void {
     const validModes: PlaylistMode[] = ['sequential', 'manual', 'repeat', 'repeat-one', null];
     if (!validModes.includes(mode)) {
-      throw new Error(`Invalid playlist mode: ${mode}. Valid modes: ${validModes.filter(m => m !== null).join(', ')}, null`);
+      throw new Error(
+        `Invalid playlist mode: ${mode}. Valid modes: ${validModes.filter((m) => m !== null).join(', ')}, null`
+      );
     }
     this.store.updatePlaylistMode(mode);
   }
