@@ -274,7 +274,24 @@ export class Store implements StateStore {
       newCurrentIndex -= 1;
     }
 
-    this.setState({ playlist: newPlaylist, currentPlaylistIndex: newCurrentIndex });
+    if (newPlaylist.length === 0) {
+      this.setState({
+        playlist: newPlaylist,
+        currentPlaylistIndex: null,
+        state: 'idle',
+        currentTime: 0,
+        duration: 0,
+        mediaInfo: null,
+        videoTracks: [],
+        audioTracks: [],
+        subtitleTracks: [],
+        selectedVideoTrack: null,
+        selectedAudioTrack: null,
+        selectedSubtitleTrack: null,
+      });
+    } else {
+      this.setState({ playlist: newPlaylist, currentPlaylistIndex: newCurrentIndex });
+    }
   }
 
   clearPlaylist(): void {

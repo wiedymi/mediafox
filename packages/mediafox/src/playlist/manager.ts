@@ -95,6 +95,12 @@ export class PlaylistManager {
     const newState = this.store.getState();
     const newCurrentIndex = newState.currentPlaylistIndex;
 
+    if (newState.playlist.length === 0) {
+      this.sourceManager?.disposeAll();
+      this.emitter.emit('playlistchange', { playlist: newState.playlist });
+      this.emitter.emit('playlistend', undefined);
+    }
+
     if (currentIndex === index && newCurrentIndex !== null && newCurrentIndex !== currentIndex && this.switchSource) {
       const newItem = newState.playlist[newCurrentIndex];
       try {
@@ -108,6 +114,7 @@ export class PlaylistManager {
   clearPlaylist(): void {
     this.store.clearPlaylist();
     this.emitter.emit('playlistchange', { playlist: [] });
+    this.emitter.emit('playlistend', undefined);
     // Dispose all sources
     this.sourceManager?.disposeAll();
   }
