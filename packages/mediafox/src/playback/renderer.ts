@@ -2,6 +2,29 @@ import { CanvasSink, type InputVideoTrack, type VideoSample, VideoSampleSink, ty
 import type { IRenderer, RendererType } from './renderers';
 import { Canvas2DRenderer, RendererFactory } from './renderers';
 
+/** @internal */
+interface PrefetchedVideoData {
+  canvasSink: CanvasSink;
+  firstFrame: WrappedCanvas | null;
+}
+
+// Internal registry for prefetched video data, keyed by track
+const prefetchedVideoDataRegistry = new WeakMap<InputVideoTrack, PrefetchedVideoData>();
+
+/** @internal */
+export function registerPrefetchedVideoData(track: InputVideoTrack, data: PrefetchedVideoData): void {
+  prefetchedVideoDataRegistry.set(track, data);
+}
+
+/** @internal */
+export function consumePrefetchedVideoData(track: InputVideoTrack): PrefetchedVideoData | undefined {
+  const data = prefetchedVideoDataRegistry.get(track);
+  if (data) {
+    prefetchedVideoDataRegistry.delete(track);
+  }
+  return data;
+}
+
 export interface VideoRendererOptions {
   canvas?: HTMLCanvasElement | OffscreenCanvas;
   width?: number;
@@ -359,7 +382,7 @@ export class VideoRenderer {
 
   async setVideoTrack(track: InputVideoTrack): Promise<void> {
     // Dispose only video track resources, not the renderer
-    this.disposeVideoResources();
+    await this.disposeVideoResources();
 
     // Check if we can decode before throwing
     if (track.codec === null) {
@@ -370,6 +393,9 @@ export class VideoRenderer {
     if (!canDecode) {
       throw new Error(`Cannot decode video track with codec: ${track.codec}`);
     }
+
+    // Check for prefetched data (internal optimization)
+    const prefetchedData = consumePrefetchedVideoData(track);
 
     // Calculate the video's aspect ratio from its dimensions (only once per track)
     if (!this.videoAspectRatio && track.displayWidth && track.displayHeight) {
@@ -434,26 +460,56 @@ export class VideoRenderer {
       // Otherwise ResizeObserver is handling dimensions automatically
     }
 
-    // Create sinks
-    // CanvasSink creates intermediate canvases at native video size
-    // Renderers handle scaling to display canvas (downscale or 1:1, never upscale beyond native)
-    this.canvasSink = new CanvasSink(track, {
-      // Use native video dimensions for maximum quality
-      // Renderers will letterbox when rendering to display canvas
-      rotation: this.options.rotation,
-      poolSize: this.options.poolSize,
-    });
+    // Use prefetched sink if available, otherwise create new
+    if (prefetchedData?.canvasSink) {
+      this.canvasSink = prefetchedData.canvasSink;
+    } else {
+      // Create sinks
+      // CanvasSink creates intermediate canvases at native video size
+      // Renderers handle scaling to display canvas (downscale or 1:1, never upscale beyond native)
+      this.canvasSink = new CanvasSink(track, {
+        // Use native video dimensions for maximum quality
+        // Renderers will letterbox when rendering to display canvas
+        rotation: this.options.rotation,
+        poolSize: this.options.poolSize,
+      });
+    }
 
     this.sampleSink = new VideoSampleSink(track);
 
     // Allow rendering again now that resources are initialized
     this.disposed = false;
 
-    // Initialize the first frame
-    try {
-      await this.seek(0);
-    } catch (err) {
-      if (this.debug) console.error('Initial seek failed:', err);
+    // Use prefetched first frame if available for instant display
+    if (prefetchedData?.firstFrame) {
+      this.currentFrame = prefetchedData.firstFrame;
+
+      // Render immediately
+      if (this.currentFrame.canvas.width > 0 && this.currentFrame.canvas.height > 0) {
+        this.renderFrame(this.currentFrame);
+      } else {
+        this.retryUntilCanvasReady(
+          this.currentFrame,
+          () => {
+            if (this.currentFrame) this.renderFrame(this.currentFrame);
+          },
+          30
+        );
+      }
+
+      // Start iterator from 0 for next frames
+      this.frameIterator = this.canvasSink.canvases(0);
+      // Skip first frame since we already have it
+      void this.frameIterator.next().then(() => {
+        void this.fetchNextFrame();
+      });
+    } else {
+      // Initialize the first frame normally
+      try {
+        await this.seek(0);
+      } catch (err) {
+        if (this.debug) console.error('Initial seek failed:', err);
+      }
     }
 
     // Single render attempt after layout
@@ -478,18 +534,27 @@ export class VideoRenderer {
 
     // Dispose current iterator
     if (this.frameIterator) {
-      await this.frameIterator.return();
+      try {
+        await this.frameIterator.return();
+      } catch {
+        // Iterator may already be closed
+      }
       this.frameIterator = null;
     }
 
     // Create a new iterator starting from the timestamp
-    this.frameIterator = this.canvasSink.canvases(timestamp);
+    const iterator = this.canvasSink.canvases(timestamp);
+    this.frameIterator = iterator;
 
-    // Get the first two frames
-    const firstResult = await this.frameIterator.next();
-    const secondResult = await this.frameIterator.next();
+    try {
+      // Get the first two frames
+      const firstResult = await iterator.next();
+      const secondResult = await iterator.next();
 
-    if (currentRenderingId === this.renderingId) {
+      if (currentRenderingId !== this.renderingId) {
+        return;
+      }
+
       const firstFrame = firstResult.value ?? null;
       const secondFrame = secondResult.value ?? null;
 
@@ -497,21 +562,11 @@ export class VideoRenderer {
       if (firstFrame) {
         this.currentFrame = firstFrame;
 
-        // Wait a tick to ensure renderer is ready if it was just switched
-        await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
-
-        // Draw the first frame
-        // Ensure canvas has dimensions before rendering
-        if (firstFrame.canvas.width === 0 || firstFrame.canvas.height === 0) {
-          this.retryUntilCanvasReady(
-            firstFrame,
-            () => {
-              this.renderFrame(firstFrame);
-            },
-            30
-          ); // About 0.5 seconds at 60fps
-        } else {
+        // Draw the first frame immediately if canvas has dimensions
+        if (firstFrame.canvas.width > 0 && firstFrame.canvas.height > 0) {
           this.renderFrame(firstFrame);
+        } else {
+          this.retryUntilCanvasReady(firstFrame, () => this.renderFrame(firstFrame), 30);
         }
       }
 
@@ -522,19 +577,22 @@ export class VideoRenderer {
       if (!this.nextFrame) {
         void this.fetchNextFrame();
       }
+    } catch {
+      // Iterator was closed or disposed during seek
     }
   }
 
-  updateFrame(currentTime: number): boolean {
-    if (this.disposed) return false;
+  updateFrame(currentTime: number): { frameUpdated: boolean; isStarving: boolean } {
+    if (this.disposed) return { frameUpdated: false, isStarving: false };
 
-    // If we don't have a next frame, request one
-    if (!this.nextFrame && this.frameIterator) {
-      void this.fetchNextFrame();
-      return false;
+    // If we don't have a next frame, request one (if iterator exists)
+    // This is frame starvation - we're playing but have no frame ready
+    if (!this.nextFrame) {
+      if (this.frameIterator) {
+        void this.fetchNextFrame();
+      }
+      return { frameUpdated: false, isStarving: true };
     }
-
-    if (!this.nextFrame) return false;
 
     // Check if the current playback time has caught up to the next frame
     if (this.nextFrame.timestamp <= currentTime) {
@@ -545,29 +603,36 @@ export class VideoRenderer {
       // Draw the frame (renderer might not be ready yet)
       this.renderFrame(this.currentFrame);
 
-      // Request the next frame asynchronously
-      void this.fetchNextFrame();
-      return true;
+      // Request the next frame asynchronously (only if iterator still exists)
+      if (this.frameIterator) {
+        void this.fetchNextFrame();
+      }
+      return { frameUpdated: true, isStarving: false };
     }
 
-    return false;
+    return { frameUpdated: false, isStarving: false };
   }
 
   private async fetchNextFrame(): Promise<void> {
-    if (!this.frameIterator || this.disposed) return;
+    const iterator = this.frameIterator;
+    if (!iterator || this.disposed) return;
 
     const currentRenderingId = this.renderingId;
 
-    // Get the next frame from iterator
-    const result = await this.frameIterator.next();
-    const frame = result.value ?? null;
+    try {
+      // Get the next frame from iterator
+      const result = await iterator.next();
+      const frame = result.value ?? null;
 
-    if (!frame || currentRenderingId !== this.renderingId || this.disposed) {
-      return;
+      if (!frame || currentRenderingId !== this.renderingId || this.disposed) {
+        return;
+      }
+
+      // Store the frame for later use
+      this.nextFrame = frame;
+    } catch {
+      // Iterator was closed or disposed during fetch
     }
-
-    // Store the frame for later use
-    this.nextFrame = frame;
   }
 
   private renderFrame(frame: WrappedCanvas): void {
@@ -836,13 +901,36 @@ export class VideoRenderer {
     return RendererFactory.getSupportedRenderers();
   }
 
-  private disposeVideoResources(): void {
+  /**
+   * Clears iterators to stop any in-flight async operations.
+   * Called before disposing the input to prevent accessing disposed resources.
+   */
+  async clearIterators(): Promise<void> {
+    this.renderingId++;
+
+    if (this.frameIterator) {
+      try {
+        await this.frameIterator.return();
+      } catch {
+        // Iterator may already be closed
+      }
+      this.frameIterator = null;
+    }
+
+    this.currentFrame = null;
+    this.nextFrame = null;
+  }
+
+  private async disposeVideoResources(): Promise<void> {
     this.disposed = true;
     this.renderingId++;
 
     if (this.frameIterator) {
-      // fire-and-forget – safe cleanup without throwing
-      void this.frameIterator.return();
+      try {
+        await this.frameIterator.return();
+      } catch {
+        // Iterator may already be closed
+      }
       this.frameIterator = null;
     }
 

@@ -715,6 +715,226 @@ if (resource) {
 }
 ```
 
+### Playlist Management
+
+#### `loadPlaylist(items, options?)`
+
+Loads a playlist of media items.
+
+<div class="method-signature">
+
+```typescript
+async loadPlaylist(
+  items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>,
+  options?: { autoplay?: boolean; startTime?: number }
+): Promise<void>
+```
+
+</div>
+
+**Parameters:**
+- `items`: Array of media sources or playlist item configurations
+- `options.autoplay`: Whether to start playing immediately (default: false)
+- `options.startTime`: Start time in seconds for the first item (default: 0)
+
+**Example:**
+
+```typescript
+// Basic playlist
+await player.loadPlaylist([
+  { mediaSource: 'video1.mp4', title: 'First Video' },
+  { mediaSource: 'video2.mp4', title: 'Second Video' },
+  'video3.mp4' // Simple URL also works
+]);
+
+// With autoplay and start time
+await player.loadPlaylist(
+  [{ mediaSource: 'video.mp4', title: 'My Video' }],
+  { autoplay: true, startTime: 30 }
+);
+```
+
+#### `addToPlaylist(item, index?)`
+
+Adds an item to the playlist.
+
+<div class="method-signature">
+
+```typescript
+addToPlaylist(
+  item: MediaSource | { mediaSource: MediaSource; title?: string; poster?: string },
+  index?: number
+): void
+```
+
+</div>
+
+**Parameters:**
+- `item`: Media source or playlist item configuration
+- `index`: Position to insert at (optional, defaults to end)
+
+**Example:**
+
+```typescript
+// Add to end
+player.addToPlaylist({ mediaSource: 'new.mp4', title: 'New Video' });
+
+// Add at specific position
+player.addToPlaylist('video.mp4', 0); // Add at start
+```
+
+#### `removeFromPlaylist(index)`
+
+Removes an item from the playlist.
+
+<div class="method-signature">
+
+```typescript
+async removeFromPlaylist(index: number): Promise<void>
+```
+
+</div>
+
+**Parameters:**
+- `index`: Index of item to remove
+
+**Example:**
+
+```typescript
+await player.removeFromPlaylist(2); // Remove third item
+```
+
+#### `clearPlaylist()`
+
+Clears the entire playlist.
+
+<div class="method-signature">
+
+```typescript
+clearPlaylist(): void
+```
+
+</div>
+
+**Example:**
+
+```typescript
+player.clearPlaylist();
+```
+
+#### `next()`
+
+Advances to the next playlist item.
+
+<div class="method-signature">
+
+```typescript
+async next(): Promise<void>
+```
+
+</div>
+
+**Example:**
+
+```typescript
+await player.next();
+```
+
+#### `prev()`
+
+Goes to the previous playlist item.
+
+<div class="method-signature">
+
+```typescript
+async prev(): Promise<void>
+```
+
+</div>
+
+**Example:**
+
+```typescript
+await player.prev();
+```
+
+#### `jumpTo(index)`
+
+Jumps to a specific playlist item.
+
+<div class="method-signature">
+
+```typescript
+async jumpTo(index: number): Promise<void>
+```
+
+</div>
+
+**Parameters:**
+- `index`: Index of item to jump to
+
+**Example:**
+
+```typescript
+await player.jumpTo(2); // Jump to third item
+```
+
+### Playlist Properties
+
+| Property | Type | Read/Write | Description |
+|----------|------|------------|-------------|
+| `playlist` | `PlaylistItem[]` | R | Current playlist items |
+| `playlistIndex` | `number \| null` | R | Index of currently playing item |
+| `nowPlaying` | `PlaylistItem \| null` | R | Currently playing item |
+| `playlistMode` | `PlaylistMode` | R/W | Playlist playback mode |
+
+#### Playlist Modes
+
+```typescript
+type PlaylistMode = 'sequential' | 'manual' | 'repeat' | 'repeat-one' | null;
+```
+
+- `null` (default): No playlist behavior (single source)
+- `'manual'`: Navigation via `next()`/`prev()`/`jumpTo()` only
+- `'sequential'`: Auto-advance to next item on end
+- `'repeat'`: Loop entire playlist
+- `'repeat-one'`: Repeat current item continuously
+
+**Example:**
+
+```typescript
+// Set playlist mode
+player.playlistMode = 'sequential';
+
+// Access playlist data
+console.log(player.playlist);       // Array of items
+console.log(player.playlistIndex);  // Current index
+console.log(player.nowPlaying);     // Current item
+```
+
+### Playlist Events
+
+| Event | Data Type | Description |
+|-------|-----------|-------------|
+| `playlistchange` | `{ playlist: Playlist }` | Playlist was loaded or cleared |
+| `playlistitemchange` | `{ index: number, item: PlaylistItem, previousIndex?: number }` | Current item changed |
+| `playlistend` | `void` | End of playlist reached (sequential/manual) |
+| `playlistadd` | `{ item: PlaylistItem, index: number }` | Item added to playlist |
+| `playlistremove` | `{ index: number }` | Item removed from playlist |
+| `playlistitemerror` | `{ index: number, error: Error }` | Failed to load playlist item |
+
+**Example:**
+
+```typescript
+player.on('playlistitemchange', ({ index, item, previousIndex }) => {
+  console.log(`Now playing: ${item.title} (${index + 1}/${player.playlist.length})`);
+});
+
+player.on('playlistend', () => {
+  console.log('Playlist finished');
+});
+```
+
 ### Advanced Features
 
 #### `screenshot(options?)`
@@ -1264,3 +1484,32 @@ type RendererType = 'webgpu' | 'webgl' | 'canvas2d';
 - **`webgpu`**: Modern GPU-accelerated rendering using WebGPU API (best performance)
 - **`webgl`**: Hardware-accelerated rendering using WebGL (broad compatibility)
 - **`canvas2d`**: Software rendering using Canvas 2D API (universal fallback)
+
+### PlaylistItem
+
+Information about a playlist item.
+
+```typescript
+interface PlaylistItem {
+  id: string;                      // Unique identifier
+  mediaSource: MediaSource;        // The media source
+  title?: string;                  // Display title
+  poster?: string;                 // Poster/thumbnail URL
+  savedPosition: number | null;    // Saved playback position
+  duration: number | null;         // Duration (populated after loading)
+}
+```
+
+### PlaylistMode
+
+Playlist playback behavior.
+
+```typescript
+type PlaylistMode = 'sequential' | 'manual' | 'repeat' | 'repeat-one' | null;
+```
+
+- **`null`**: No playlist behavior (default)
+- **`'sequential'`**: Auto-advance to next item when current ends
+- **`'manual'`**: Only advance via explicit `next()`/`prev()`/`jumpTo()` calls
+- **`'repeat'`**: Loop entire playlist (after last item, go to first)
+- **`'repeat-one'`**: Repeat current item continuously

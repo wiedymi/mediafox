@@ -19,6 +19,14 @@ export class TrackManager {
   private onTrackChange?: (event: TrackSelectionEvent) => void;
 
   async initialize(input: Input): Promise<void> {
+    // Clear old tracks before loading new ones
+    this.videoTracks.clear();
+    this.audioTracks.clear();
+    this.videoTrackInfos = [];
+    this.audioTrackInfos = [];
+    this.selectedVideoTrack = null;
+    this.selectedAudioTrack = null;
+
     this.input = input;
     await this.loadTracks();
   }

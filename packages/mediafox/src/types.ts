@@ -77,6 +77,7 @@ export interface PlayerStateData {
   paused: boolean;
   ended: boolean;
   seeking: boolean;
+  waiting: boolean;
   error: Error | null;
   mediaInfo: MediaInfo | null;
   videoTracks: VideoTrackInfo[];
@@ -89,6 +90,9 @@ export interface PlayerStateData {
   canPlayThrough: boolean;
   isLive: boolean;
   rendererType: RendererType;
+  playlist: Playlist;
+  currentPlaylistIndex: number | null;
+  playlistMode: PlaylistMode;
 }
 
 export interface TimeRange {
@@ -104,6 +108,9 @@ export interface SeekOptions {
 export interface LoadOptions {
   autoplay?: boolean;
   startTime?: number;
+  replacePlaylist?: boolean;
+  /** Playlist item id for prefetch optimization */
+  playlistItemId?: string;
 }
 
 export interface ScreenshotOptions {
@@ -166,6 +173,12 @@ export type PlayerEventMap = {
     from: RendererType;
     to: RendererType;
   };
+  playlistchange: { playlist: Playlist };
+  playlistitemchange: { index: number; item: PlaylistItem; previousIndex?: number };
+  playlistend: undefined;
+  playlistadd: { item: PlaylistItem; index: number };
+  playlistremove: { index: number };
+  playlistitemerror: { index: number; error: Error };
 };
 
 export type PlayerEventListener<K extends keyof PlayerEventMap> = (event: PlayerEventMap[K]) => void;
@@ -199,3 +212,16 @@ export interface CuePoint {
   type: string;
   data?: unknown;
 }
+
+export type PlaylistMode = 'sequential' | 'manual' | 'repeat' | 'repeat-one' | null;
+
+export interface PlaylistItem {
+  id: string;
+  mediaSource: MediaSource;
+  title?: string;
+  poster?: string;
+  savedPosition: number | null;
+  duration: number | null;
+}
+
+export type Playlist = PlaylistItem[];

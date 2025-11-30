@@ -232,4 +232,45 @@ player.on('rendererfallback', ({ from, to }) => {
 </div>
 </div>
 
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;">
+<div style="font-size: 14px; position: relative;">
+
+```typescript
+// Load multiple media files
+await player.loadPlaylist([
+  { mediaSource: 'video1.mp4', title: 'Episode 1' },
+  { mediaSource: 'video2.mp4', title: 'Episode 2' },
+  { mediaSource: 'audio.mp3', title: 'Podcast' }
+]);
+
+// Set playback mode
+player.playlistMode = 'sequential'; // Auto-advance
+// Other modes: 'manual', 'repeat', 'repeat-one', null
+
+// Navigation
+player.next();  // Next item
+player.prev();  // Previous item
+player.jumpTo(2); // Jump to index 2
+
+// Position preservation
+console.log(player.currentItem?.savedPosition);
+// Returns to saved position when switching back
+
+// Listen to playlist events
+player.on('playlistitemchange', ({ item, index }) => {
+  console.log(`Now playing: ${item.title}`);
+});
+```
+
+</div>
+<div>
+<h1 style="background: -webkit-linear-gradient(-30deg, #3b82f6, #06b6d4); -webkit-background-clip: text; color: transparent; display: inline-block;">Playlist support</h1>
+<p style="font-size: 18px; line-height: 1.6;">Play multiple media files in sequence with automatic or manual navigation. Preserves playback position for each item, lazy-loads sources, and prefetches the next item for smooth transitions.</p>
+<a href="/guide/playlists" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: var(--vp-c-brand);">
+    Playlist guide
+    <span style="margin-left: 4px;">→</span>
+</a>
+</div>
+</div>
+
 </div>

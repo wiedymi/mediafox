@@ -6,6 +6,9 @@ import type {
   PlayerEventMap,
   PlayerOptions,
   PlayerStateData,
+  Playlist,
+  PlaylistItem,
+  PlaylistMode,
   RendererType,
   ScreenshotOptions,
   SeekOptions,
@@ -36,6 +39,13 @@ export interface UseMediaFoxOptions extends PlayerOptions {
   onStateChange?: PlayerEventListener<'statechange'>;
   onRendererChange?: PlayerEventListener<'rendererchange'>;
   onRendererFallback?: PlayerEventListener<'rendererfallback'>;
+  // Playlist events
+  onPlaylistChange?: PlayerEventListener<'playlistchange'>;
+  onPlaylistItemChange?: PlayerEventListener<'playlistitemchange'>;
+  onPlaylistEnd?: PlayerEventListener<'playlistend'>;
+  onPlaylistAdd?: PlayerEventListener<'playlistadd'>;
+  onPlaylistRemove?: PlayerEventListener<'playlistremove'>;
+  onPlaylistItemError?: PlayerEventListener<'playlistitemerror'>;
 }
 
 export interface UseMediaFoxReturn {
@@ -50,6 +60,25 @@ export interface UseMediaFoxReturn {
   setRenderTarget: (canvas: HTMLCanvasElement | OffscreenCanvas) => Promise<void>;
   switchRenderer: (type: RendererType) => Promise<void>;
   rendererType: RendererType | null;
+  // Playlist
+  loadPlaylist: (
+    items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>,
+    options?: { autoplay?: boolean; startTime?: number }
+  ) => Promise<void>;
+  addToPlaylist: (
+    item: MediaSource | { mediaSource: MediaSource; title?: string; poster?: string },
+    index?: number
+  ) => void;
+  removeFromPlaylist: (index: number) => Promise<void>;
+  clearPlaylist: () => void;
+  next: () => Promise<void>;
+  prev: () => Promise<void>;
+  jumpTo: (index: number) => Promise<void>;
+  setPlaylistMode: (mode: PlaylistMode) => void;
+  playlist: Playlist;
+  playlistIndex: number | null;
+  nowPlaying: PlaylistItem | null;
+  playlistMode: PlaylistMode;
 }
 
 /**
@@ -180,6 +209,13 @@ export function useMediaFox(options: UseMediaFoxOptions = {}): UseMediaFoxReturn
     registerHandler('statechange', options.onStateChange);
     registerHandler('rendererchange', options.onRendererChange);
     registerHandler('rendererfallback', options.onRendererFallback);
+    // Playlist events
+    registerHandler('playlistchange', options.onPlaylistChange);
+    registerHandler('playlistitemchange', options.onPlaylistItemChange);
+    registerHandler('playlistend', options.onPlaylistEnd);
+    registerHandler('playlistadd', options.onPlaylistAdd);
+    registerHandler('playlistremove', options.onPlaylistRemove);
+    registerHandler('playlistitemerror', options.onPlaylistItemError);
 
     return () => {
       for (const [event, handler] of handlers) {
@@ -210,6 +246,12 @@ export function useMediaFox(options: UseMediaFoxOptions = {}): UseMediaFoxReturn
     options.onStateChange,
     options.onRendererChange,
     options.onRendererFallback,
+    options.onPlaylistChange,
+    options.onPlaylistItemChange,
+    options.onPlaylistEnd,
+    options.onPlaylistAdd,
+    options.onPlaylistRemove,
+    options.onPlaylistItemError,
   ]);
 
   // useSyncExternalStore for optimal React 18+ performance
@@ -265,7 +307,61 @@ export function useMediaFox(options: UseMediaFoxOptions = {}): UseMediaFoxReturn
     return playerRef.current.switchRenderer(type);
   }, []);
 
+  // Playlist methods
+  const loadPlaylist = useCallback(
+    async (
+      items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>,
+      options?: { autoplay?: boolean; startTime?: number }
+    ) => {
+      if (!playerRef.current) throw new Error('Player not initialized');
+      return playerRef.current.loadPlaylist(items, options);
+    },
+    []
+  );
+
+  const addToPlaylist = useCallback(
+    (item: MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }, index?: number) => {
+      if (!playerRef.current) throw new Error('Player not initialized');
+      playerRef.current.addToPlaylist(item, index);
+    },
+    []
+  );
+
+  const removeFromPlaylist = useCallback(async (index: number) => {
+    if (!playerRef.current) throw new Error('Player not initialized');
+    return playerRef.current.removeFromPlaylist(index);
+  }, []);
+
+  const clearPlaylist = useCallback(() => {
+    if (!playerRef.current) throw new Error('Player not initialized');
+    playerRef.current.clearPlaylist();
+  }, []);
+
+  const next = useCallback(async () => {
+    if (!playerRef.current) throw new Error('Player not initialized');
+    return playerRef.current.next();
+  }, []);
+
+  const prev = useCallback(async () => {
+    if (!playerRef.current) throw new Error('Player not initialized');
+    return playerRef.current.prev();
+  }, []);
+
+  const jumpTo = useCallback(async (index: number) => {
+    if (!playerRef.current) throw new Error('Player not initialized');
+    return playerRef.current.jumpTo(index);
+  }, []);
+
+  const setPlaylistMode = useCallback((mode: PlaylistMode) => {
+    if (!playerRef.current) throw new Error('Player not initialized');
+    playerRef.current.playlistMode = mode;
+  }, []);
+
   const rendererType = state?.rendererType ?? null;
+  const playlist = state?.playlist ?? [];
+  const playlistIndex = state?.currentPlaylistIndex ?? null;
+  const nowPlaying = playlistIndex !== null ? (playlist[playlistIndex] ?? null) : null;
+  const playlistMode = state?.playlistMode ?? null;
 
   return {
     player: playerRef.current,
@@ -279,5 +375,18 @@ export function useMediaFox(options: UseMediaFoxOptions = {}): UseMediaFoxReturn
     setRenderTarget,
     switchRenderer,
     rendererType,
+    // Playlist
+    loadPlaylist,
+    addToPlaylist,
+    removeFromPlaylist,
+    clearPlaylist,
+    next,
+    prev,
+    jumpTo,
+    setPlaylistMode,
+    playlist,
+    playlistIndex,
+    nowPlaying,
+    playlistMode,
   };
 }

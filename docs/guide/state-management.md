@@ -28,6 +28,7 @@ interface PlayerState {
   // Loading state
   loading: boolean;
   seeking: boolean;
+  waiting: boolean;  // true when buffering/waiting for frames
   readyState: number;
 
   // Media information

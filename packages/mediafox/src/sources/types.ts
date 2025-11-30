@@ -12,4 +12,6 @@ export interface SourceInfo {
   input: Input | null;
   type: 'blob' | 'buffer' | 'url' | 'file' | 'stream';
   originalSource: MediaSource;
+  /** @internal */
+  prefetchedData?: unknown;
 }
