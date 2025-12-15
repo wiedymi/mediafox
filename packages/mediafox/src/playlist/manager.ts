@@ -5,9 +5,8 @@ import type { MediaSource, PlayerEventMap, Playlist, PlaylistItem, PlaylistMode 
 
 // Simple ID generator (no uuid dep for now)
 function generateId(): string {
-  return typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : Date.now().toString(36) + Math.random().toString(36).substr(2);
+  return crypto?.randomUUID?.()
+    ?? Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
 interface PlaylistItemConfig {

@@ -273,4 +273,48 @@ player.on('playlistitemchange', ({ item, index }) => {
 </div>
 </div>
 
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;">
+<div>
+<h1 style="background: -webkit-linear-gradient(-30deg, #3b82f6, #06b6d4); -webkit-background-clip: text; color: transparent; display: inline-block;">Plugin system</h1>
+<p style="font-size: 18px; line-height: 1.6;">Extend MediaFox with a powerful plugin system. Add watermarks, overlays, analytics, and custom effects. Hooks into lifecycle, rendering, state, and events with full TypeScript support.</p>
+<a href="/guide/plugins" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: var(--vp-c-brand);">
+    Plugin guide
+    <span style="margin-left: 4px;">→</span>
+</a>
+</div>
+<div style="font-size: 14px; position: relative;">
+
+```typescript
+import { MediaFoxPlugin } from '@mediafox/core';
+
+// Create a watermark plugin
+const watermarkPlugin: MediaFoxPlugin = {
+  name: 'watermark',
+  hooks: {
+    render: {
+      onOverlay: {
+        zIndex: 10,
+        render(ctx, time, { width, height }) {
+          ctx.font = 'bold 16px sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.fillText('© My App', width - 100, height - 20);
+        }
+      }
+    }
+  },
+  install(context) {
+    context.log('Watermark enabled');
+  }
+};
+
+// Use the plugin
+await player.use(watermarkPlugin);
+
+// Remove when needed
+await player.unuse('watermark');
+```
+
+</div>
+</div>
+
 </div>

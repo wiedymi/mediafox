@@ -356,6 +356,7 @@
                                         v-model.number="volume"
                                         @input="updateVolume"
                                         class="volume-slider"
+                                        title="Volume"
                                     />
                                 </div>
                             </div>
@@ -547,7 +548,7 @@
                             </div>
 
                             <!-- Playback speed -->
-                            <div class="speed-selector">
+                            <div class="speed-selector" title="Playback Speed">
                                 <select
                                     v-model="playbackRate"
                                     @change="updatePlaybackRate"
@@ -562,6 +563,63 @@
                                     <option :value="2">2x</option>
                                 </select>
                             </div>
+
+                            <!-- Watermark toggle -->
+                            <button
+                                @click="toggleWatermark"
+                                class="control-btn"
+                                :class="{ active: watermarkEnabled }"
+                                :title="watermarkEnabled ? 'Hide Watermark' : 'Show Watermark'"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M10.08 10.86c.05-.33.16-.62.3-.87s.34-.46.59-.62c.24-.15.54-.22.91-.23.23.01.44.05.63.13.2.09.38.21.52.36s.25.33.34.53.13.42.14.64h1.79c-.02-.47-.11-.9-.28-1.29s-.4-.73-.7-1.01-.66-.5-1.08-.66-.88-.23-1.39-.23c-.65 0-1.22.11-1.7.34s-.88.53-1.2.92-.56.84-.71 1.36S8 11.29 8 11.87v.27c0 .58.08 1.12.23 1.64s.39.97.71 1.35.72.69 1.2.91 1.05.34 1.7.34c.47 0 .91-.08 1.32-.23s.77-.36 1.08-.63.56-.58.74-.94.29-.74.3-1.15h-1.79c-.01.21-.06.4-.15.58s-.21.33-.36.46-.32.23-.52.3c-.19.07-.39.09-.6.1-.36-.01-.66-.08-.89-.23-.25-.16-.45-.37-.59-.62s-.25-.55-.3-.88-.08-.67-.08-1v-.27c0-.35.03-.68.08-1.01zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                                    />
+                                </svg>
+                            </button>
+
+                            <!-- Bass Boost toggle -->
+                            <button
+                                @click="toggleBassBoost"
+                                class="control-btn"
+                                :class="{ active: bassBoostEnabled }"
+                                :title="bassBoostEnabled ? 'Disable Bass Boost' : 'Enable Bass Boost'"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"
+                                    />
+                                </svg>
+                            </button>
+
+                            <!-- Visualizer toggle -->
+                            <button
+                                @click="toggleVisualizer"
+                                class="control-btn"
+                                :class="{ active: visualizerEnabled }"
+                                :title="visualizerEnabled ? 'Hide Visualizer' : 'Show Visualizer'"
+                            >
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M3 10v4h4v-4H3zm6-4v12h4V6H9zm6 6v6h4v-6h-4z"
+                                    />
+                                </svg>
+                            </button>
 
                             <!-- Screenshot -->
                             <button
@@ -747,8 +805,197 @@ import {
     type RendererType,
     type PlaylistItem,
     type PlaylistMode,
+    type MediaFoxPlugin,
 } from "@mediafox/core";
 import { withBase } from "vitepress";
+
+// Watermark Plugin - demonstrates the plugin system
+const createWatermarkPlugin = (options: {
+    text: string;
+    position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    opacity?: number;
+}): MediaFoxPlugin => ({
+    name: 'demo-watermark',
+    version: '1.0.0',
+
+    hooks: {
+        render: {
+            onOverlay: {
+                zIndex: 50,
+                render(ctx, time, { width, height }) {
+                    const { text, position = 'bottom-right', opacity = 0.6 } = options;
+
+                    ctx.save();
+                    ctx.font = 'bold 14px system-ui, sans-serif';
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                    ctx.shadowBlur = 4;
+                    ctx.shadowOffsetX = 1;
+                    ctx.shadowOffsetY = 1;
+
+                    const padding = 16;
+                    const textMetrics = ctx.measureText(text);
+
+                    let x: number, y: number;
+                    switch (position) {
+                        case 'top-left':
+                            x = padding;
+                            y = padding + 14;
+                            break;
+                        case 'top-right':
+                            x = width - textMetrics.width - padding;
+                            y = padding + 14;
+                            break;
+                        case 'bottom-left':
+                            x = padding;
+                            y = height - padding;
+                            break;
+                        case 'bottom-right':
+                        default:
+                            x = width - textMetrics.width - padding;
+                            y = height - padding;
+                            break;
+                    }
+
+                    ctx.fillText(text, x, y);
+                    ctx.restore();
+                }
+            }
+        }
+    },
+
+    install(context) {
+        context.log('Watermark plugin installed');
+    },
+
+    uninstall() {
+        console.log('[MediaFox:demo-watermark] Watermark plugin uninstalled');
+    }
+});
+
+// Bass boost plugin factory
+const createBassBoostPlugin = (options: {
+    gain?: number;
+}): MediaFoxPlugin => ({
+    name: 'demo-bass-boost',
+    version: '1.0.0',
+
+    hooks: {
+        audio: {
+            onAudioNode(audioContext, gainNode) {
+                const { gain = 15 } = options;
+
+                // Create a low-shelf filter for bass boost
+                const bassFilter = audioContext.createBiquadFilter();
+                bassFilter.type = 'lowshelf';
+                bassFilter.frequency.value = 250; // Boost frequencies below 250Hz
+                bassFilter.gain.value = gain;
+
+                // Connect: gainNode -> bassFilter -> (output)
+                gainNode.connect(bassFilter);
+
+                return bassFilter;
+            }
+        }
+    },
+
+    install(context) {
+        context.log('Bass boost plugin installed');
+    },
+
+    uninstall() {
+        console.log('[MediaFox:demo-bass-boost] Bass boost plugin uninstalled');
+    }
+});
+
+// Audio visualizer plugin factory
+const createVisualizerPlugin = (): MediaFoxPlugin => {
+    let analyser: AnalyserNode | null = null;
+    let dataArray: Uint8Array | null = null;
+
+    return {
+        name: 'demo-visualizer',
+        version: '1.0.0',
+
+        hooks: {
+            audio: {
+                onAudioNode(audioContext, gainNode) {
+                    // Create analyser node
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    analyser.smoothingTimeConstant = 0.8;
+
+                    const bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+
+                    // Connect: gainNode -> analyser -> (output)
+                    gainNode.connect(analyser);
+
+                    return analyser;
+                }
+            },
+            render: {
+                onOverlay: {
+                    zIndex: 5,
+                    render(ctx, _time, { width, height }) {
+                        if (!analyser || !dataArray) return;
+
+                        // Get frequency data
+                        analyser.getByteFrequencyData(dataArray);
+
+                        const barCount = 32;
+                        const barWidth = width / barCount;
+                        const barGap = 2;
+                        const maxBarHeight = height * 0.4;
+                        const bottomMargin = 60;
+
+                        ctx.save();
+
+                        // Draw frequency bars from bottom
+                        for (let i = 0; i < barCount; i++) {
+                            // Sample from the frequency data
+                            const dataIndex = Math.floor((i / barCount) * dataArray.length);
+                            const value = dataArray[dataIndex];
+                            const barHeight = (value / 255) * maxBarHeight;
+
+                            // Color gradient based on frequency (bass = warm, treble = cool)
+                            const hue = 200 + (i / barCount) * 60; // Blue to cyan
+                            const saturation = 80;
+                            const lightness = 50 + (value / 255) * 20;
+
+                            ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.7)`;
+
+                            const x = i * barWidth + barGap / 2;
+                            const y = height - bottomMargin - barHeight;
+
+                            ctx.fillRect(x, y, barWidth - barGap, barHeight);
+
+                            // Add glow effect for bass frequencies
+                            if (i < 8 && value > 150) {
+                                ctx.shadowColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.5)`;
+                                ctx.shadowBlur = 10;
+                                ctx.fillRect(x, y, barWidth - barGap, barHeight);
+                                ctx.shadowBlur = 0;
+                            }
+                        }
+
+                        ctx.restore();
+                    }
+                }
+            }
+        },
+
+        install(context) {
+            context.log('Visualizer plugin installed');
+        },
+
+        uninstall() {
+            analyser = null;
+            dataArray = null;
+            console.log('[MediaFox:demo-visualizer] Visualizer plugin uninstalled');
+        }
+    };
+};
 
 // Refs
 const canvasRef = ref<HTMLCanvasElement>();
@@ -786,6 +1033,11 @@ const availableRenderers = ref<RendererType[]>([]);
 const playlist = ref<PlaylistItem[]>([]);
 const playlistIndex = ref<number | null>(null);
 const playlistMode = ref<PlaylistMode>(null);
+
+// Plugin state
+const watermarkEnabled = ref(true);
+const bassBoostEnabled = ref(false);
+const visualizerEnabled = ref(false);
 
 const SUBTITLE_DEFINITIONS = {
     vtt: {
@@ -1122,6 +1374,70 @@ const clearPlaylistFn = () => {
     ready.value = false;
 };
 
+// Plugin methods
+const toggleWatermark = async () => {
+    if (!player.value) return;
+
+    if (watermarkEnabled.value) {
+        // Uninstall watermark plugin
+        try {
+            await player.value.unuse('demo-watermark');
+            watermarkEnabled.value = false;
+        } catch (e) {
+            console.warn('Watermark plugin not installed');
+        }
+    } else {
+        // Install watermark plugin
+        const watermarkPlugin = createWatermarkPlugin({
+            text: '© MediaFox Demo',
+            position: 'bottom-right',
+            opacity: 0.6
+        });
+        await player.value.use(watermarkPlugin);
+        watermarkEnabled.value = true;
+    }
+};
+
+const toggleBassBoost = async () => {
+    if (!player.value) return;
+
+    if (bassBoostEnabled.value) {
+        // Uninstall bass boost plugin
+        try {
+            await player.value.unuse('demo-bass-boost');
+            bassBoostEnabled.value = false;
+        } catch (e) {
+            console.warn('Bass boost plugin not installed');
+        }
+    } else {
+        // Install bass boost plugin
+        const bassBoostPlugin = createBassBoostPlugin({
+            gain: 15
+        });
+        await player.value.use(bassBoostPlugin);
+        bassBoostEnabled.value = true;
+    }
+};
+
+const toggleVisualizer = async () => {
+    if (!player.value) return;
+
+    if (visualizerEnabled.value) {
+        // Uninstall visualizer plugin
+        try {
+            await player.value.unuse('demo-visualizer');
+            visualizerEnabled.value = false;
+        } catch (e) {
+            console.warn('Visualizer plugin not installed');
+        }
+    } else {
+        // Install visualizer plugin
+        const visualizerPlugin = createVisualizerPlugin();
+        await player.value.use(visualizerPlugin);
+        visualizerEnabled.value = true;
+    }
+};
+
 const takeScreenshot = async () => {
     if (!player.value) return;
 
@@ -1222,6 +1538,14 @@ onMounted(async () => {
     });
 
     player.value = p;
+
+    // Install watermark plugin by default
+    const watermarkPlugin = createWatermarkPlugin({
+        text: '© MediaFox Demo',
+        position: 'bottom-right',
+        opacity: 0.6
+    });
+    await p.use(watermarkPlugin);
 
     subtitleTracks.value = p.getSubtitleTracks();
     selectedSubtitleTrackId.value = p.getState().selectedSubtitleTrack ?? null;
@@ -1665,6 +1989,10 @@ onUnmounted(() => {
 
 .control-btn.primary:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn.active {
+    color: var(--vp-c-brand);
 }
 
 /* Volume */

@@ -1,4 +1,5 @@
 import { RendererFactory } from '../playback/renderers';
+import type { PluginManager } from '../plugins/manager';
 import type {
   AudioTrackInfo,
   MediaInfo,
@@ -16,12 +17,19 @@ import type { StateListener, StateStore, StateUnsubscribe } from './types';
 
 export class Store implements StateStore {
   private state: PlayerStateData;
+  private previousState: PlayerStateData;
   private listeners: Set<StateListener> = new Set();
   private updateScheduled = false;
   private pendingUpdates: Partial<PlayerStateData> = {};
+  private pluginManager: PluginManager | null = null;
 
   constructor() {
     this.state = this.getInitialState();
+    this.previousState = { ...this.state };
+  }
+
+  setPluginManager(pluginManager: PluginManager): void {
+    this.pluginManager = pluginManager;
   }
 
   private getInitialState(): PlayerStateData {
@@ -65,6 +73,13 @@ export class Store implements StateStore {
   }
 
   setState(updates: Partial<PlayerStateData>): void {
+    // Execute beforeStateUpdate hooks
+    if (this.pluginManager) {
+      const result = this.pluginManager.executeBeforeStateUpdate(updates);
+      if (result === null) return; // Cancelled
+      updates = result;
+    }
+
     Object.assign(this.pendingUpdates, updates);
 
     if (!this.updateScheduled) {
@@ -79,7 +94,7 @@ export class Store implements StateStore {
       return;
     }
 
-    const previousState = { ...this.state };
+    this.previousState = { ...this.state };
     this.state = { ...this.state, ...this.pendingUpdates };
     this.pendingUpdates = {};
     this.updateScheduled = false;
@@ -87,10 +102,15 @@ export class Store implements StateStore {
     // Check if anything actually changed using deep-ish equality on updated keys only
     const changedKeys = Object.keys(this.pendingUpdates) as Array<keyof PlayerStateData>;
     const keysToCheck = changedKeys.length ? changedKeys : (Object.keys(this.state) as Array<keyof PlayerStateData>);
-    const hasChanges = keysToCheck.some((key) => !isDeepEqual(this.state[key], previousState[key]));
+    const hasChanges = keysToCheck.some((key) => !isDeepEqual(this.state[key], this.previousState[key]));
 
     if (hasChanges) {
       this.notifyListeners();
+
+      // Execute onStateChange hooks
+      if (this.pluginManager) {
+        this.pluginManager.executeOnStateChange(this.state, this.previousState);
+      }
     }
   }
 

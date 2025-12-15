@@ -1,4 +1,5 @@
 import { CanvasSink, type InputVideoTrack, type VideoSample, VideoSampleSink, type WrappedCanvas } from 'mediabunny';
+import type { PluginManager } from '../plugins/manager';
 import type { IRenderer, RendererType } from './renderers';
 import { Canvas2DRenderer, RendererFactory } from './renderers';
 
@@ -57,6 +58,10 @@ export class VideoRenderer {
   private lastObservedHeight = 0;
   private videoAspectRatio: string | null = null;
   private debug = false;
+  private pluginManager: PluginManager | null = null;
+  private overlayCanvas: HTMLCanvasElement | null = null;
+  private overlayCtx: CanvasRenderingContext2D | null = null;
+  private lastOverlayTime = 0;
 
   constructor(options: VideoRendererOptions = {}) {
     this.options = {
@@ -345,6 +350,9 @@ export class VideoRenderer {
   }
 
   async setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas): Promise<void> {
+    // Clean up old overlay canvas before switching
+    this.cleanupOverlayCanvas();
+
     this.canvas = canvas;
 
     // Clean up old renderer
@@ -646,7 +654,7 @@ export class VideoRenderer {
         this.initPromise.then(() => {
           if (this.currentFrame === frame && this.renderer && this.renderer.isReady()) {
             if (this.debug) console.log('Rendering frame after renderer initialization');
-            this.renderer.render(frame.canvas);
+            this.renderFrameWithPlugins(frame);
           }
         });
       }
@@ -658,22 +666,42 @@ export class VideoRenderer {
       return;
     }
 
+    this.renderFrameWithPlugins(frame);
+  }
+
+  private renderFrameWithPlugins(frame: WrappedCanvas): void {
+    if (!this.renderer || !this.canvas) return;
+
+    const time = frame.timestamp;
+
+    // Execute beforeRender hooks
+    if (this.pluginManager) {
+      const result = this.pluginManager.executeBeforeRender(frame, time);
+      if (result?.skip) return;
+    }
+
+    // Execute transformFrame hooks
+    let processedFrame = frame;
+    if (this.pluginManager) {
+      processedFrame = this.pluginManager.executeTransformFrame(frame);
+    }
+
     // Use renderer to draw frame
-    const success = this.renderer.render(frame.canvas);
+    const success = this.renderer.render(processedFrame.canvas);
     if (!success) {
       if (this.debug) {
         console.warn(
-          `Failed to render frame with ${this.rendererType} (canvas: ${frame.canvas.width}x${frame.canvas.height})`
+          `Failed to render frame with ${this.rendererType} (canvas: ${processedFrame.canvas.width}x${processedFrame.canvas.height})`
         );
       }
 
       // If render failed due to zero dimensions, retry on next frame
-      if (frame.canvas.width === 0 || frame.canvas.height === 0) {
+      if (processedFrame.canvas.width === 0 || processedFrame.canvas.height === 0) {
         this.retryUntilCanvasReady(
-          frame,
+          processedFrame,
           () => {
             if (this.currentFrame === frame && this.renderer && this.renderer.isReady()) {
-              const retrySuccess = this.renderer.render(frame.canvas);
+              const retrySuccess = this.renderer.render(processedFrame.canvas);
               if (!retrySuccess && this.debug) {
                 console.warn('Retry render also failed');
               }
@@ -682,6 +710,112 @@ export class VideoRenderer {
           1
         ); // Just one retry for render failures
       }
+      return;
+    }
+
+    // Execute overlay hooks
+    this.executeOverlays(time);
+
+    // Execute afterRender hooks
+    if (this.pluginManager) {
+      this.pluginManager.executeAfterRender(this.canvas);
+    }
+  }
+
+  private executeOverlays(time: number): void {
+    if (!this.pluginManager || !this.canvas) return;
+
+    this.lastOverlayTime = time;
+    const dimensions = { width: this.canvas.width, height: this.canvas.height };
+
+    if (this.rendererType === 'canvas2d') {
+      // For canvas2d, we can draw directly on the canvas
+      const ctx = (this.canvas as HTMLCanvasElement).getContext('2d');
+      if (!ctx) return;
+
+      this.pluginManager.executeOverlays(ctx, time, dimensions);
+    } else {
+      // For WebGPU/WebGL, we use a separate overlay canvas positioned on top
+      // This is necessary because WebGPU/WebGL contexts don't support 2D drawing
+      this.ensureOverlayCanvas();
+      if (!this.overlayCanvas || !this.overlayCtx) return;
+
+      // Clear overlay canvas
+      this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+
+      // Execute overlay hooks on the overlay canvas
+      this.pluginManager.executeOverlays(this.overlayCtx, time, dimensions);
+    }
+  }
+
+  /**
+   * Refresh overlays immediately (e.g., when a plugin is installed/uninstalled).
+   * For WebGPU/WebGL, this clears and redraws the overlay canvas.
+   * For canvas2d, this triggers a frame re-render if a current frame exists.
+   */
+  refreshOverlays(): void {
+    if (!this.canvas) return;
+
+    if (this.rendererType === 'canvas2d') {
+      // For canvas2d, we need to re-render the current frame to update overlays
+      if (this.currentFrame && this.renderer?.isReady()) {
+        this.renderer.render(this.currentFrame.canvas);
+        this.executeOverlays(this.lastOverlayTime);
+      }
+    } else {
+      // For WebGPU/WebGL, just clear and redraw the overlay canvas
+      if (this.overlayCanvas && this.overlayCtx) {
+        this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+        if (this.pluginManager) {
+          const dimensions = { width: this.canvas.width, height: this.canvas.height };
+          this.pluginManager.executeOverlays(this.overlayCtx, this.lastOverlayTime, dimensions);
+        }
+      }
+    }
+  }
+
+  private ensureOverlayCanvas(): void {
+    if (!this.canvas || !(this.canvas instanceof HTMLCanvasElement)) return;
+
+    // Create overlay canvas if needed
+    if (!this.overlayCanvas) {
+      this.overlayCanvas = document.createElement('canvas');
+      this.overlayCanvas.style.position = 'absolute';
+      this.overlayCanvas.style.top = '0';
+      this.overlayCanvas.style.left = '0';
+      this.overlayCanvas.style.width = '100%';
+      this.overlayCanvas.style.height = '100%';
+      this.overlayCanvas.style.pointerEvents = 'none';
+      this.overlayCanvas.style.zIndex = '1'; // Ensure overlay appears above main canvas
+      this.overlayCtx = this.overlayCanvas.getContext('2d');
+
+      // Insert overlay canvas after the main canvas
+      const parent = this.canvas.parentElement;
+      if (parent) {
+        // Ensure parent has relative positioning for absolute overlay
+        const parentStyle = getComputedStyle(parent);
+        if (parentStyle.position === 'static') {
+          parent.style.position = 'relative';
+        }
+        parent.insertBefore(this.overlayCanvas, this.canvas.nextSibling);
+      }
+    }
+
+    // Sync dimensions (backing buffer size)
+    if (
+      this.overlayCanvas.width !== this.canvas.width ||
+      this.overlayCanvas.height !== this.canvas.height
+    ) {
+      this.overlayCanvas.width = this.canvas.width;
+      this.overlayCanvas.height = this.canvas.height;
+    }
+  }
+
+  private cleanupOverlayCanvas(): void {
+    if (this.overlayCanvas) {
+      this.overlayCanvas.remove();
+      this.overlayCanvas = null;
+      this.overlayCtx = null;
     }
   }
 
@@ -897,6 +1031,10 @@ export class VideoRenderer {
     this.onRendererFallback = callback;
   }
 
+  setPluginManager(pluginManager: PluginManager): void {
+    this.pluginManager = pluginManager;
+  }
+
   static getSupportedRenderers(): RendererType[] {
     return RendererFactory.getSupportedRenderers();
   }
@@ -958,6 +1096,9 @@ export class VideoRenderer {
 
     // Clean up resize observer
     this.cleanupResizeObserver();
+
+    // Clean up overlay canvas
+    this.cleanupOverlayCanvas();
 
     this.currentFrame = null;
     this.nextFrame = null;

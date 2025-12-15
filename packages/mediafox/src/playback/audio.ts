@@ -5,6 +5,7 @@ import {
   type InputAudioTrack,
   type WrappedAudioBuffer,
 } from 'mediabunny';
+import type { PluginManager } from '../plugins/manager';
 
 export interface AudioManagerOptions {
   audioContext?: AudioContext;
@@ -15,6 +16,7 @@ export interface AudioManagerOptions {
 export class AudioManager {
   private audioContext: AudioContext;
   private gainNode: GainNode | null = null;
+  private outputNode: AudioNode | null = null;
   private bufferSink: AudioBufferSink | null = null;
   private sampleSink: AudioSampleSink | null = null;
   private bufferIterator: AsyncGenerator<WrappedAudioBuffer, void, unknown> | null = null;
@@ -28,6 +30,7 @@ export class AudioManager {
   private disposed = false;
   private playbackId = 0;
   private playbackRate = 1;
+  private pluginManager: PluginManager | null = null;
 
   constructor(options: AudioManagerOptions = {}) {
     // Create or use provided AudioContext
@@ -50,8 +53,44 @@ export class AudioManager {
 
   private setupAudioGraph(): void {
     this.gainNode = this.audioContext.createGain();
-    this.gainNode.connect(this.audioContext.destination);
+
+    // Execute onAudioNode hooks to allow plugins to modify the audio graph
+    if (this.pluginManager) {
+      const result = this.pluginManager.executeOnAudioNode(this.audioContext, this.gainNode);
+      this.outputNode = result;
+    } else {
+      this.outputNode = this.gainNode;
+    }
+
+    this.outputNode.connect(this.audioContext.destination);
     this.updateGain();
+  }
+
+  setPluginManager(pluginManager: PluginManager): void {
+    this.pluginManager = pluginManager;
+    this.rebuildAudioGraph();
+  }
+
+  /**
+   * Rebuild the audio graph with current plugin hooks.
+   * Call this after installing/uninstalling audio plugins.
+   */
+  rebuildAudioGraph(): void {
+    if (!this.gainNode) return;
+
+    // Disconnect current output
+    this.outputNode?.disconnect();
+
+    // Execute plugin hooks to get new output node
+    if (this.pluginManager) {
+      const result = this.pluginManager.executeOnAudioNode(this.audioContext, this.gainNode);
+      this.outputNode = result;
+    } else {
+      this.outputNode = this.gainNode;
+    }
+
+    // Reconnect to destination
+    this.outputNode.connect(this.audioContext.destination);
   }
 
   async setAudioTrack(track: InputAudioTrack): Promise<void> {

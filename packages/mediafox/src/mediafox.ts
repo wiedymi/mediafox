@@ -6,6 +6,8 @@ import type { UnsubscribeFn } from './events/types';
 import { PlaybackController } from './playback/controller';
 import { RendererFactory } from './playback/renderers';
 import { PlaylistManager } from './playlist/manager';
+import { PluginManager } from './plugins/manager';
+import type { MediaFoxPlugin } from './plugins/types';
 import { SourceManager } from './sources/manager';
 import { Store } from './state/store';
 import { TrackManager } from './tracks/manager';
@@ -37,6 +39,7 @@ export class MediaFox {
   private playbackController: PlaybackController;
   private trackManager: TrackManager;
   private playlistManager: PlaylistManager;
+  private pluginManager: PluginManager;
   private options: PlayerOptions;
   private disposed = false;
   private getCurrentInput = () => this.sourceManager.getCurrentSource()?.input ?? null;
@@ -92,6 +95,9 @@ export class MediaFox {
       getCurrentInput: this.getCurrentInput,
     });
 
+    // Initialize plugin manager
+    this.pluginManager = new PluginManager(this);
+
     this.core = new PlayerCore({
       state: this.state,
       sourceManager: this.sourceManager,
@@ -99,7 +105,12 @@ export class MediaFox {
       playbackController: this.playbackController,
       trackSwitcher: this.trackSwitcher,
       emit: this.emit.bind(this),
+      pluginManager: this.pluginManager,
     });
+
+    // Pass plugin manager to components that need it
+    this.playbackController.setPluginManager(this.pluginManager);
+    this.store.setPluginManager(this.pluginManager);
 
     // Setup internal listeners
     this.setupInternalListeners();
@@ -416,6 +427,15 @@ export class MediaFox {
     await this.playbackController.setCanvas(canvas);
   }
 
+  getRenderTarget(): HTMLCanvasElement | OffscreenCanvas | null {
+    return this.playbackController.getCanvas();
+  }
+
+  /** @internal Refresh plugin overlays immediately */
+  refreshOverlays(): void {
+    this.playbackController.refreshOverlays();
+  }
+
   // Playlist API
   async loadPlaylist(
     items: Array<MediaSource | { mediaSource: MediaSource; title?: string; poster?: string }>,
@@ -525,8 +545,47 @@ export class MediaFox {
     this.emitter.off(event, listener);
   }
 
+  // Plugin API
+
+  /**
+   * Install a plugin.
+   * @param plugin The plugin to install
+   */
+  async use(plugin: MediaFoxPlugin): Promise<void> {
+    this.checkDisposed();
+    await this.pluginManager.install(plugin);
+
+    // Rebuild audio graph if plugin has audio hooks
+    if (plugin.hooks?.audio) {
+      this.playbackController.rebuildAudioGraph();
+    }
+  }
+
+  /**
+   * Uninstall a plugin by name.
+   * @param name The name of the plugin to uninstall
+   */
+  async unuse(name: string): Promise<void> {
+    this.checkDisposed();
+    await this.pluginManager.uninstall(name);
+
+    // Always rebuild audio graph after uninstalling (cheaper than checking)
+    this.playbackController.rebuildAudioGraph();
+  }
+
   private emit<K extends keyof PlayerEventMap>(event: K, data: PlayerEventMap[K]): void {
-    this.emitter.emit(event, data);
+    // Execute beforeEvent hooks
+    const result = this.pluginManager.executeBeforeEvent(event, data);
+    if (result?.cancel) return;
+
+    // Use modified data if provided
+    const finalData = result?.data ?? data;
+
+    // Emit the event
+    this.emitter.emit(event, finalData);
+
+    // Execute afterEvent hooks
+    this.pluginManager.executeAfterEvent(event, finalData);
   }
 
   private checkDisposed(): void {
@@ -541,6 +600,9 @@ export class MediaFox {
     if (this.disposed) return;
 
     this.disposed = true;
+
+    // Dispose plugins first
+    void this.pluginManager.dispose();
 
     // Dispose components
     this.playbackController.dispose();

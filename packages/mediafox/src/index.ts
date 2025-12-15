@@ -19,6 +19,20 @@ export { EventEmitter } from './events/emitter';
 export type { TypedEventEmitter, UnsubscribeFn } from './events/types';
 export { MediaFox } from './mediafox';
 export { AudioManager } from './playback/audio';
+// Plugin system
+export type {
+  AudioHooks,
+  EventHooks,
+  HookResult,
+  LifecycleHooks,
+  MaybePromise,
+  MediaFoxPlugin,
+  OverlayDimensions,
+  PluginContext,
+  PluginHooks,
+  RenderHooks,
+  StateHooks,
+} from './plugins';
 // Playback components
 export { PlaybackController } from './playback/controller';
 export { VideoRenderer } from './playback/renderer';

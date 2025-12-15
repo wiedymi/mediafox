@@ -1,4 +1,5 @@
 import type { InputAudioTrack, InputVideoTrack } from 'mediabunny';
+import type { PluginManager } from '../plugins/manager';
 import { AudioManager } from './audio';
 import { VideoRenderer } from './renderer';
 
@@ -368,6 +369,27 @@ export class PlaybackController {
     callback: (from: import('./renderers').RendererType, to: import('./renderers').RendererType) => void
   ): void {
     this.videoRenderer.setRendererFallbackCallback(callback);
+  }
+
+  setPluginManager(pluginManager: PluginManager): void {
+    this.videoRenderer.setPluginManager(pluginManager);
+    this.audioManager.setPluginManager(pluginManager);
+  }
+
+  getCanvas(): HTMLCanvasElement | OffscreenCanvas | null {
+    return this.videoRenderer.getCanvas();
+  }
+
+  refreshOverlays(): void {
+    this.videoRenderer.refreshOverlays();
+  }
+
+  /**
+   * Rebuild the audio graph with current plugin hooks.
+   * Call this after installing/uninstalling audio plugins.
+   */
+  rebuildAudioGraph(): void {
+    this.audioManager.rebuildAudioGraph();
   }
 
   async reset(): Promise<void> {

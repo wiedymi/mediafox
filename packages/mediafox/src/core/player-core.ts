@@ -1,5 +1,6 @@
 import type { PlaybackController } from '../playback/controller';
 import { registerPrefetchedVideoData } from '../playback/renderer';
+import type { PluginManager } from '../plugins/manager';
 import type { PrefetchedTrackData, SourceManager } from '../sources/manager';
 import type { TrackManager } from '../tracks/manager';
 import type { LoadOptions, MediaInfo, MediaSource, PlayerEventMap } from '../types';
@@ -16,6 +17,7 @@ export interface PlayerCoreDeps {
   playbackController: PlaybackController;
   trackSwitcher: TrackSwitcher;
   emit: EmitFn;
+  pluginManager: PluginManager;
 }
 
 export class PlayerCore {
@@ -23,6 +25,11 @@ export class PlayerCore {
 
   async load(source: MediaSource, options: LoadOptions = {}): Promise<void> {
     try {
+      // Execute beforeLoad hooks
+      const beforeResult = await this.deps.pluginManager.executeBeforeLoad(source);
+      if (beforeResult?.cancel) return;
+      if (beforeResult?.data !== undefined) source = beforeResult.data;
+
       // Reset playback controller first to stop any active playback
       await this.deps.playbackController.reset();
 
@@ -149,6 +156,9 @@ export class PlayerCore {
       // Update playlist item duration if in a playlist
       this.updateCurrentPlaylistItemDuration(duration);
 
+      // Execute afterLoad hooks
+      await this.deps.pluginManager.executeAfterLoad(mediaInfo);
+
       if (options.autoplay) await this.play();
       if (options.startTime !== undefined) await this.seek(options.startTime);
     } catch (error) {
@@ -162,20 +172,35 @@ export class PlayerCore {
       if (this.deps.state.getState().state === 'idle') {
         throw new Error('No media loaded');
       }
+
+      // Execute beforePlay hooks
+      const beforeResult = await this.deps.pluginManager.executeBeforePlay();
+      if (beforeResult?.cancel) return;
+
       await this.deps.playbackController.play();
       this.deps.state.updatePlaybackState(true);
       this.deps.emit('play', undefined);
       this.deps.emit('playing', undefined);
+
+      // Execute afterPlay hooks
+      this.deps.pluginManager.executeAfterPlay();
     } catch (error) {
       this.handleError(error as Error);
       throw error;
     }
   }
 
-  pause(): void {
+  async pause(): Promise<void> {
+    // Execute beforePause hooks
+    const beforeResult = await this.deps.pluginManager.executeBeforePause();
+    if (beforeResult?.cancel) return;
+
     this.deps.playbackController.pause();
     this.deps.state.updatePlaybackState(false);
     this.deps.emit('pause', undefined);
+
+    // Execute afterPause hooks
+    this.deps.pluginManager.executeAfterPause();
   }
 
   async seek(time: number): Promise<void> {
@@ -184,12 +209,21 @@ export class PlayerCore {
       if (s.state === 'idle') {
         throw new Error('No media loaded');
       }
+
+      // Execute beforeSeek hooks
+      const beforeResult = await this.deps.pluginManager.executeBeforeSeek(time);
+      if (beforeResult?.cancel) return;
+      if (beforeResult?.data !== undefined) time = beforeResult.data;
+
       this.deps.state.updateSeekingState(true);
       this.deps.emit('seeking', { currentTime: time });
       await this.deps.playbackController.seek(time);
       this.deps.state.updateSeekingState(false);
       this.deps.state.updateTime(this.deps.playbackController.getCurrentTime());
       this.deps.emit('seeked', { currentTime: this.deps.playbackController.getCurrentTime() });
+
+      // Execute afterSeek hooks
+      this.deps.pluginManager.executeAfterSeek(this.deps.playbackController.getCurrentTime());
     } catch (error) {
       this.deps.state.updateSeekingState(false);
       this.handleError(error as Error);
@@ -199,8 +233,15 @@ export class PlayerCore {
 
   async stop(): Promise<void> {
     try {
-      this.pause();
+      // Execute beforeStop hooks
+      const beforeResult = await this.deps.pluginManager.executeBeforeStop();
+      if (beforeResult?.cancel) return;
+
+      await this.pause();
       await this.seek(0);
+
+      // Execute afterStop hooks
+      this.deps.pluginManager.executeAfterStop();
     } catch (error) {
       this.handleError(error as Error);
       throw error;
@@ -208,6 +249,10 @@ export class PlayerCore {
   }
 
   private handleError(error: Error): void {
+    // Execute onError hooks
+    const handled = this.deps.pluginManager.executeOnError(error);
+    if (handled) return;
+
     this.deps.state.updateError(error);
     this.deps.emit('error', error);
     logger.error('Player error:', error);
