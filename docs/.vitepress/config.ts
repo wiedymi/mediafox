@@ -53,9 +53,11 @@ export default defineConfig({
         text: "API",
         items: [
           { text: "Player API", link: "/api/player" },
+          { text: "Compositor API", link: "/api/compositor" },
           { text: "Utilities", link: "/api/utilities" },
         ],
       },
+      { text: "Playground", link: "/playground" },
       { text: "GitHub", link: "https://github.com/wiedymi/mediafox" },
     ],
 
@@ -86,6 +88,7 @@ export default defineConfig({
             { text: "Event Handling", link: "/guide/events" },
             { text: "Track Management", link: "/guide/tracks" },
             { text: "Playlists", link: "/guide/playlists" },
+            { text: "Compositor", link: "/guide/compositor" },
             { text: "Plugins", link: "/guide/plugins" },
             { text: "Performance", link: "/guide/performance" },
           ],
@@ -96,6 +99,7 @@ export default defineConfig({
           text: "API Reference",
           items: [
             { text: "Player", link: "/api/player" },
+            { text: "Compositor", link: "/api/compositor" },
             { text: "Utilities", link: "/api/utilities" },
             { text: "Types", link: "/api/types" },
             { text: "Events", link: "/api/events" },

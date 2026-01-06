@@ -1,8 +1,9 @@
-import type { IRenderer } from './types';
+import type { IRenderer, Rotation } from './types';
 
 export interface WebGPURendererOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas;
   powerPreference?: 'high-performance' | 'low-power';
+  rotation?: Rotation;
 }
 
 export class WebGPURenderer implements IRenderer {
@@ -18,6 +19,7 @@ export class WebGPURenderer implements IRenderer {
   private textureWidth = 0;
   private textureHeight = 0;
   private powerPreference: 'high-performance' | 'low-power';
+  private rotation: Rotation = 0;
 
   private readonly vertexShaderSource = `
     struct VSOut {
@@ -47,6 +49,7 @@ export class WebGPURenderer implements IRenderer {
   constructor(options: WebGPURendererOptions) {
     this.canvas = options.canvas;
     this.powerPreference = options.powerPreference || 'high-performance';
+    this.rotation = options.rotation ?? 0;
     this.initialize().catch((err) => {
       console.error('WebGPU initialization failed:', err);
     });
@@ -205,7 +208,6 @@ export class WebGPURenderer implements IRenderer {
       const canvasWidth = this.canvas.width;
       const canvasHeight = this.canvas.height;
 
-      // Validate canvas dimensions before scaling
       if (canvasWidth === 0 || canvasHeight === 0) {
         console.warn(`WebGPU: Output canvas has zero dimensions (${canvasWidth}x${canvasHeight})`);
         return false;
@@ -220,7 +222,6 @@ export class WebGPURenderer implements IRenderer {
       if (!this.texture) return false;
 
       // Use copyExternalImageToTexture for better performance
-      // This works directly with the canvas without needing getImageData
       try {
         this.device.queue.copyExternalImageToTexture(
           { source },
@@ -260,36 +261,55 @@ export class WebGPURenderer implements IRenderer {
       renderPass.setPipeline(this.pipeline);
       if (this.bindGroup) renderPass.setBindGroup(0, this.bindGroup);
 
+      // For 90/270 rotation, swap source dimensions for aspect ratio calculation
+      const isRotated90or270 = this.rotation === 90 || this.rotation === 270;
+      const effectiveWidth = isRotated90or270 ? this.textureHeight : this.textureWidth;
+      const effectiveHeight = isRotated90or270 ? this.textureWidth : this.textureHeight;
+
       // Calculate letterbox dimensions to preserve aspect ratio
-      const scale = Math.min(canvasWidth / this.textureWidth, canvasHeight / this.textureHeight);
-      const drawW = Math.round(this.textureWidth * scale);
-      const drawH = Math.round(this.textureHeight * scale);
+      const scale = Math.min(canvasWidth / effectiveWidth, canvasHeight / effectiveHeight);
+      const drawW = Math.round(effectiveWidth * scale);
+      const drawH = Math.round(effectiveHeight * scale);
       const x = Math.round((canvasWidth - drawW) / 2);
       const y = Math.round((canvasHeight - drawH) / 2);
 
+      // Calculate clip-space coordinates
       const left = (x / canvasWidth) * 2 - 1;
       const right = ((x + drawW) / canvasWidth) * 2 - 1;
       const top = 1 - (y / canvasHeight) * 2;
       const bottom = 1 - ((y + drawH) / canvasHeight) * 2;
 
-      const quad = new Float32Array([
-        left,
-        bottom,
-        0.0,
-        1.0,
-        right,
-        bottom,
-        1.0,
-        1.0,
-        left,
-        top,
-        0.0,
-        0.0,
-        right,
-        top,
-        1.0,
-        0.0,
-      ]);
+      // Calculate center of quad
+      const cx = (left + right) / 2;
+      const cy = (top + bottom) / 2;
+      const hw = (right - left) / 2;
+      const hh = (top - bottom) / 2;
+
+      // Apply rotation by rotating vertex positions
+      const rad = (this.rotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+
+      // For rotated quads, we need to swap half-width/half-height
+      const rhw = isRotated90or270 ? hh : hw;
+      const rhh = isRotated90or270 ? hw : hh;
+
+      // Calculate rotated corner positions with texture coordinates
+      const corners: [number, number, number, number][] = [
+        [-rhw, -rhh, 0.0, 1.0], // bottom-left
+        [rhw, -rhh, 1.0, 1.0], // bottom-right
+        [-rhw, rhh, 0.0, 0.0], // top-left
+        [rhw, rhh, 1.0, 0.0], // top-right
+      ];
+
+      const quadData: number[] = [];
+      for (const [px, py, u, v] of corners) {
+        const rx = px * cos - py * sin + cx;
+        const ry = px * sin + py * cos + cy;
+        quadData.push(rx, ry, u, v);
+      }
+
+      const quad = new Float32Array(quadData);
 
       if (this.vertexBuffer) {
         this.device.queue.writeBuffer(this.vertexBuffer, 0, quad);
@@ -328,6 +348,14 @@ export class WebGPURenderer implements IRenderer {
       renderPass.end();
       this.device.queue.submit([commandEncoder.finish()]);
     } catch {}
+  }
+
+  public setRotation(rotation: Rotation): void {
+    this.rotation = rotation;
+  }
+
+  public getRotation(): Rotation {
+    return this.rotation;
   }
 
   public dispose(): void {

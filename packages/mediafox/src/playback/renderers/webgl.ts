@@ -1,4 +1,4 @@
-import type { IRenderer } from './types';
+import type { IRenderer, Rotation } from './types';
 
 export interface WebGLRendererOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas;
@@ -6,6 +6,7 @@ export interface WebGLRendererOptions {
   antialias?: boolean;
   preserveDrawingBuffer?: boolean;
   powerPreference?: 'high-performance' | 'low-power' | 'default';
+  rotation?: Rotation;
 }
 
 interface WebGLResources {
@@ -28,6 +29,7 @@ export class WebGLRenderer implements IRenderer {
   private options: WebGLRendererOptions;
   private boundHandleContextLost: ((event: Event) => void) | null = null;
   private boundHandleContextRestored: (() => void) | null = null;
+  private rotation: Rotation = 0;
 
   private readonly vertexShaderSource = `
     attribute vec2 a_position;
@@ -54,6 +56,7 @@ export class WebGLRenderer implements IRenderer {
   constructor(options: WebGLRendererOptions) {
     this.canvas = options.canvas;
     this.options = options;
+    this.rotation = options.rotation ?? 0;
     this.resources = {
       gl: null,
       program: null,
@@ -199,7 +202,6 @@ export class WebGLRenderer implements IRenderer {
       const canvasWidth = this.canvas.width;
       const canvasHeight = this.canvas.height;
 
-      // Validate canvas dimensions before scaling
       if (canvasWidth === 0 || canvasHeight === 0) {
         return false;
       }
@@ -221,19 +223,55 @@ export class WebGLRenderer implements IRenderer {
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
+      // For 90/270 rotation, swap source dimensions for aspect ratio calculation
+      const isRotated90or270 = this.rotation === 90 || this.rotation === 270;
+      const effectiveWidth = isRotated90or270 ? this.textureHeight : this.textureWidth;
+      const effectiveHeight = isRotated90or270 ? this.textureWidth : this.textureHeight;
+
       // Calculate letterbox dimensions to preserve aspect ratio
-      const scale = Math.min(canvasWidth / this.textureWidth, canvasHeight / this.textureHeight);
-      const drawW = Math.round(this.textureWidth * scale);
-      const drawH = Math.round(this.textureHeight * scale);
+      const scale = Math.min(canvasWidth / effectiveWidth, canvasHeight / effectiveHeight);
+      const drawW = Math.round(effectiveWidth * scale);
+      const drawH = Math.round(effectiveHeight * scale);
       const x = Math.round((canvasWidth - drawW) / 2);
       const y = Math.round((canvasHeight - drawH) / 2);
 
+      // Calculate clip-space coordinates
       const left = (x / canvasWidth) * 2 - 1;
       const right = ((x + drawW) / canvasWidth) * 2 - 1;
       const top = 1 - (y / canvasHeight) * 2;
       const bottom = 1 - ((y + drawH) / canvasHeight) * 2;
 
-      const positions = new Float32Array([left, bottom, right, bottom, left, top, right, top]);
+      // Calculate center of quad
+      const cx = (left + right) / 2;
+      const cy = (top + bottom) / 2;
+      const hw = (right - left) / 2;
+      const hh = (top - bottom) / 2;
+
+      // Apply rotation by rotating vertex positions
+      const rad = (this.rotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+
+      // For rotated quads, we need to swap half-width/half-height
+      const rhw = isRotated90or270 ? hh : hw;
+      const rhh = isRotated90or270 ? hw : hh;
+
+      // Calculate rotated corner positions
+      const corners = [
+        [-rhw, -rhh], // bottom-left
+        [rhw, -rhh], // bottom-right
+        [-rhw, rhh], // top-left
+        [rhw, rhh], // top-right
+      ];
+
+      const rotatedPositions: number[] = [];
+      for (const [px, py] of corners) {
+        const rx = px * cos - py * sin + cx;
+        const ry = px * sin + py * cos + cy;
+        rotatedPositions.push(rx, ry);
+      }
+
+      const positions = new Float32Array(rotatedPositions);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, this.resources.vertexBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
@@ -296,6 +334,14 @@ export class WebGLRenderer implements IRenderer {
     };
 
     this.isInitialized = false;
+  }
+
+  public setRotation(rotation: Rotation): void {
+    this.rotation = rotation;
+  }
+
+  public getRotation(): Rotation {
+    return this.rotation;
   }
 
   public dispose(): void {

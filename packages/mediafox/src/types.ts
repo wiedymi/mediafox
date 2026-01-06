@@ -6,6 +6,8 @@ export type PlayerState = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 
 
 export type PlaybackMode = 'normal' | 'loop' | 'loop-one';
 
+export type Rotation = 0 | 90 | 180 | 270;
+
 export type RendererType = 'webgpu' | 'webgl' | 'canvas2d';
 
 export interface PlayerOptions {
@@ -93,6 +95,8 @@ export interface PlayerStateData {
   playlist: Playlist;
   currentPlaylistIndex: number | null;
   playlistMode: PlaylistMode;
+  rotation: Rotation;
+  displaySize: { width: number; height: number };
 }
 
 export interface TimeRange {
@@ -167,6 +171,10 @@ export type PlayerEventMap = {
   resize: {
     width: number;
     height: number;
+  };
+  rotationchange: {
+    rotation: Rotation;
+    displaySize: { width: number; height: number };
   };
   rendererchange: RendererType;
   rendererfallback: {

@@ -1,4 +1,5 @@
 export type RendererType = 'webgpu' | 'webgl' | 'canvas2d';
+export type Rotation = 0 | 90 | 180 | 270;
 
 /**
  * Base interface for video renderers.
@@ -26,6 +27,17 @@ export interface IRenderer {
    * Dispose and clean up renderer resources
    */
   dispose(): void;
+
+  /**
+   * Set the rotation angle for rendering
+   * @param rotation - Rotation angle in degrees (0, 90, 180, 270)
+   */
+  setRotation(rotation: Rotation): void;
+
+  /**
+   * Get the current rotation angle
+   */
+  getRotation(): Rotation;
 }
 
 /**
