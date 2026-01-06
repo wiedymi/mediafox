@@ -23,6 +23,7 @@ import type {
   PlaylistItem,
   PlaylistMode,
   RendererType,
+  Rotation,
   ScreenshotOptions,
   SeekOptions,
   Subscription,
@@ -208,6 +209,12 @@ export class MediaFox {
       this.emit('rendererfallback', { from, to });
     });
 
+    // Rotation callback
+    this.playbackController.setRotationChangeCallback((rotation, displaySize) => {
+      this.store.updateRotation(rotation, displaySize);
+      this.emit('rotationchange', { rotation, displaySize });
+    });
+
     // State change listener
     this.state.subscribe((state) => {
       this.emit('statechange', state);
@@ -350,6 +357,21 @@ export class MediaFox {
 
   get waiting(): boolean {
     return this.state.getState().waiting;
+  }
+
+  // Rotation control
+
+  get rotation(): Rotation {
+    return this.playbackController.getRotation();
+  }
+
+  set rotation(value: Rotation) {
+    this.checkDisposed();
+    this.playbackController.setRotation(value);
+  }
+
+  get displaySize(): { width: number; height: number } {
+    return this.playbackController.getDisplaySize();
   }
 
   // Track management

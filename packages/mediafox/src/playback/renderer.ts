@@ -1,6 +1,6 @@
 import { CanvasSink, type InputVideoTrack, type VideoSample, VideoSampleSink, type WrappedCanvas } from 'mediabunny';
 import type { PluginManager } from '../plugins/manager';
-import type { IRenderer, RendererType } from './renderers';
+import type { IRenderer, RendererType, Rotation } from './renderers';
 import { Canvas2DRenderer, RendererFactory } from './renderers';
 
 /** @internal */
@@ -52,6 +52,7 @@ export class VideoRenderer {
   private rendererType: RendererType = 'canvas2d';
   private onRendererChange?: (type: RendererType) => void;
   private onRendererFallback?: (from: RendererType, to: RendererType) => void;
+  private onRotationChange?: (rotation: Rotation, displaySize: { width: number; height: number }) => void;
   private initPromise: Promise<void> | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private lastObservedWidth = 0;
@@ -62,6 +63,9 @@ export class VideoRenderer {
   private overlayCanvas: HTMLCanvasElement | null = null;
   private overlayCtx: CanvasRenderingContext2D | null = null;
   private lastOverlayTime = 0;
+  private rotation: Rotation = 0;
+  private sourceWidth = 0;
+  private sourceHeight = 0;
 
   constructor(options: VideoRendererOptions = {}) {
     this.options = {
@@ -405,6 +409,10 @@ export class VideoRenderer {
     // Check for prefetched data (internal optimization)
     const prefetchedData = consumePrefetchedVideoData(track);
 
+    // Store source dimensions for rotation calculations
+    this.sourceWidth = track.displayWidth;
+    this.sourceHeight = track.displayHeight;
+
     // Calculate the video's aspect ratio from its dimensions (only once per track)
     if (!this.videoAspectRatio && track.displayWidth && track.displayHeight) {
       const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
@@ -416,6 +424,9 @@ export class VideoRenderer {
       // Apply aspect ratio to canvas
       this.updateCanvasAspectRatio();
     }
+
+    // Notify rotation change with initial display size
+    this.notifyRotationChange();
 
     // Wait for renderer initialization to complete
     if (this.initPromise) {
@@ -1029,6 +1040,47 @@ export class VideoRenderer {
 
   setRendererFallbackCallback(callback: (from: RendererType, to: RendererType) => void): void {
     this.onRendererFallback = callback;
+  }
+
+  setRotationChangeCallback(callback: (rotation: Rotation, displaySize: { width: number; height: number }) => void): void {
+    this.onRotationChange = callback;
+  }
+
+  setRotation(rotation: Rotation): void {
+    if (this.rotation === rotation) return;
+
+    this.rotation = rotation;
+
+    // Update renderer rotation
+    if (this.renderer) {
+      this.renderer.setRotation(rotation);
+    }
+
+    // Notify about rotation change with new display size
+    this.notifyRotationChange();
+
+    // Re-render current frame with new rotation
+    if (this.currentFrame && this.renderer && this.renderer.isReady()) {
+      this.renderFrame(this.currentFrame);
+    }
+  }
+
+  getRotation(): Rotation {
+    return this.rotation;
+  }
+
+  getDisplaySize(): { width: number; height: number } {
+    const isRotated90or270 = this.rotation === 90 || this.rotation === 270;
+    return {
+      width: isRotated90or270 ? this.sourceHeight : this.sourceWidth,
+      height: isRotated90or270 ? this.sourceWidth : this.sourceHeight,
+    };
+  }
+
+  private notifyRotationChange(): void {
+    if (this.onRotationChange && this.sourceWidth > 0 && this.sourceHeight > 0) {
+      this.onRotationChange(this.rotation, this.getDisplaySize());
+    }
   }
 
   setPluginManager(pluginManager: PluginManager): void {

@@ -8,6 +8,7 @@ import type {
   Playlist,
   PlaylistItem,
   PlaylistMode,
+  Rotation,
   SubtitleTrackInfo,
   TimeRange,
   VideoTrackInfo,
@@ -65,6 +66,8 @@ export class Store implements StateStore {
       playlist: [],
       currentPlaylistIndex: null,
       playlistMode: null,
+      rotation: 0,
+      displaySize: { width: 0, height: 0 },
     };
   }
 
@@ -248,6 +251,10 @@ export class Store implements StateStore {
 
   updateRendererType(rendererType: import('../types').RendererType): void {
     this.setState({ rendererType });
+  }
+
+  updateRotation(rotation: Rotation, displaySize: { width: number; height: number }): void {
+    this.setState({ rotation, displaySize });
   }
 
   updatePlaylist(playlist: Playlist, currentIndex: number | null = null): void {

@@ -2,6 +2,7 @@ import type { InputAudioTrack, InputVideoTrack } from 'mediabunny';
 import type { PluginManager } from '../plugins/manager';
 import { AudioManager } from './audio';
 import { VideoRenderer } from './renderer';
+import type { RendererType, Rotation } from './renderers';
 
 // Constants for timing intervals
 const RENDER_INTERVAL_MS = 100; // Interval for background tab rendering
@@ -13,7 +14,7 @@ export interface PlaybackControllerOptions {
   volume?: number;
   muted?: boolean;
   playbackRate?: number;
-  rendererType?: import('./renderers').RendererType;
+  rendererType?: RendererType;
 }
 
 export class PlaybackController {
@@ -349,11 +350,11 @@ export class PlaybackController {
     return this.audioManager;
   }
 
-  async switchRenderer(type: import('./renderers').RendererType): Promise<void> {
+  async switchRenderer(type: RendererType): Promise<void> {
     await this.videoRenderer.switchRenderer(type);
   }
 
-  getRendererType(): import('./renderers').RendererType {
+  getRendererType(): RendererType {
     return this.videoRenderer.getRendererType();
   }
 
@@ -361,14 +362,30 @@ export class PlaybackController {
     this.videoRenderer.updateCanvasDimensions();
   }
 
-  setRendererChangeCallback(callback: (type: import('./renderers').RendererType) => void): void {
+  setRendererChangeCallback(callback: (type: RendererType) => void): void {
     this.videoRenderer.setRendererChangeCallback(callback);
   }
 
-  setRendererFallbackCallback(
-    callback: (from: import('./renderers').RendererType, to: import('./renderers').RendererType) => void
-  ): void {
+  setRendererFallbackCallback(callback: (from: RendererType, to: RendererType) => void): void {
     this.videoRenderer.setRendererFallbackCallback(callback);
+  }
+
+  setRotationChangeCallback(
+    callback: (rotation: Rotation, displaySize: { width: number; height: number }) => void
+  ): void {
+    this.videoRenderer.setRotationChangeCallback(callback);
+  }
+
+  setRotation(rotation: Rotation): void {
+    this.videoRenderer.setRotation(rotation);
+  }
+
+  getRotation(): Rotation {
+    return this.videoRenderer.getRotation();
+  }
+
+  getDisplaySize(): { width: number; height: number } {
+    return this.videoRenderer.getDisplaySize();
   }
 
   setPluginManager(pluginManager: PluginManager): void {

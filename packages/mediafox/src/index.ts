@@ -1,5 +1,24 @@
 // Main player class
 
+// Compositor
+export { Compositor, SourcePool } from './compositor';
+export type {
+  AudioLayer,
+  CompositionFrame,
+  CompositionProvider,
+  CompositorEventListener,
+  CompositorEventMap,
+  CompositorLayer,
+  CompositorOptions,
+  CompositorRendererType,
+  CompositorSource,
+  CompositorSourceOptions,
+  FrameExportOptions,
+  LayerTransform,
+  PreviewOptions,
+  SourceType,
+} from './compositor';
+
 // Re-export useful Mediabunny types
 export type {
   AttachedImage,
@@ -71,6 +90,7 @@ export type {
   PlaylistMode,
   QualityLevel,
   RendererType,
+  Rotation,
   ScreenshotOptions,
   SeekOptions,
   Subscription,
