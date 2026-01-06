@@ -170,6 +170,7 @@ const clips = ref<ClipData[]>([]);
 const selectedClipId = ref<string | null>(null);
 
 let clipIdCounter = 0;
+let playheadRAF: number | null = null;
 
 const duration = computed(() => {
     if (clips.value.length === 0) return 10;
@@ -461,6 +462,27 @@ const onMouseUp = () => {
     document.removeEventListener('mouseup', onMouseUp);
 };
 
+// Smooth playhead animation using rAF (independent of throttled timeupdate)
+const startPlayheadAnimation = () => {
+    if (playheadRAF !== null) return;
+    const tick = () => {
+        if (compositor.value && playing.value) {
+            currentTime.value = compositor.value.currentTime;
+            playheadRAF = requestAnimationFrame(tick);
+        } else {
+            playheadRAF = null;
+        }
+    };
+    playheadRAF = requestAnimationFrame(tick);
+};
+
+const stopPlayheadAnimation = () => {
+    if (playheadRAF !== null) {
+        cancelAnimationFrame(playheadRAF);
+        playheadRAF = null;
+    }
+};
+
 // Playback - use compositor's built-in methods
 const togglePlay = () => {
     if (!compositor.value || clips.value.length === 0) return;
@@ -525,14 +547,17 @@ onMounted(() => {
 
     comp.on('play', () => {
         playing.value = true;
+        startPlayheadAnimation();
     });
 
     comp.on('pause', () => {
         playing.value = false;
+        stopPlayheadAnimation();
     });
 
     comp.on('ended', () => {
         playing.value = false;
+        stopPlayheadAnimation();
     });
 
     comp.on('seeked', ({ time }) => {
@@ -556,6 +581,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    stopPlayheadAnimation();
     compositor.value?.dispose();
     // Remove page styles
     if (styleEl) {

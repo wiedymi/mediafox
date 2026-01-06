@@ -15,11 +15,57 @@ import {
 import type { MediaSource } from '../types';
 import type { CompositorSource, CompositorSourceOptions, SourceType } from './types';
 
+/**
+ * LRU cache for video frames.
+ * Uses Map's insertion order + move-to-end on access for O(1) LRU eviction.
+ */
+class LRUFrameCache {
+  private cache = new Map<number, WrappedCanvas>();
+  private maxSize: number;
+
+  constructor(maxSize: number) {
+    this.maxSize = maxSize;
+  }
+
+  get(key: number): WrappedCanvas | undefined {
+    const value = this.cache.get(key);
+    if (value !== undefined) {
+      // Move to end (most recently used)
+      this.cache.delete(key);
+      this.cache.set(key, value);
+    }
+    return value;
+  }
+
+  set(key: number, value: WrappedCanvas): void {
+    // If key exists, delete first to update insertion order
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      // Evict least recently used (first item)
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
+    this.cache.set(key, value);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  get size(): number {
+    return this.cache.size;
+  }
+}
+
 interface VideoSourceData {
   input: Input<Source>;
   videoTrack: InputVideoTrack;
   canvasSink: CanvasSink;
-  frameCache: Map<number, WrappedCanvas>;
+  frameCache: LRUFrameCache;
+  frameIntervalMs: number; // Frame duration in milliseconds for cache key quantization
 }
 
 interface AudioSourceData {
@@ -40,7 +86,6 @@ class VideoSource implements CompositorSource {
   readonly height: number;
   private data: VideoSourceData;
   private disposed = false;
-  private cacheSize = 30; // Number of frames to cache
 
   constructor(id: string, data: VideoSourceData, duration: number, width: number, height: number) {
     this.id = id;
@@ -53,8 +98,12 @@ class VideoSource implements CompositorSource {
   async getFrameAt(time: number): Promise<CanvasImageSource | null> {
     if (this.disposed) return null;
 
-    // Check cache first
-    const cacheKey = Math.floor(time * 1000); // Round to ms
+    // Quantize to frame boundaries to maximize cache hits
+    // e.g., at 30fps (33.33ms/frame), times 0.001s and 0.030s map to same frame 0
+    const frameIntervalMs = this.data.frameIntervalMs;
+    const cacheKey = Math.floor((time * 1000) / frameIntervalMs) * frameIntervalMs;
+
+    // Check LRU cache
     const cached = this.data.frameCache.get(cacheKey);
     if (cached) {
       return cached.canvas;
@@ -64,14 +113,7 @@ class VideoSource implements CompositorSource {
       const frame = await this.data.canvasSink.getCanvas(time);
       if (!frame) return null;
 
-      // Cache the frame
-      if (this.data.frameCache.size >= this.cacheSize) {
-        // Remove oldest entry
-        const firstKey = this.data.frameCache.keys().next().value;
-        if (firstKey !== undefined) {
-          this.data.frameCache.delete(firstKey);
-        }
-      }
+      // LRU cache handles eviction automatically
       this.data.frameCache.set(cacheKey, frame);
 
       return frame.canvas;
@@ -182,13 +224,31 @@ export class SourcePool {
       throw new Error(`Cannot decode video track with codec: ${videoTrack.codec}`);
     }
 
-    // Create canvas sink for frame extraction
+    // Create canvas sink for frame extraction with larger pool for smoother playback
     const canvasSink = new CanvasSink(videoTrack, {
-      poolSize: 2,
+      poolSize: 4,
     });
 
     // Get duration
     const duration = await videoTrack.computeDuration();
+
+    // Calculate frame interval from framerate for cache key quantization
+    // Fallback to 30fps (33.33ms) if framerate unavailable
+    let fps = 30;
+    try {
+      const stats = await videoTrack.computePacketStats(100);
+      if (stats.averagePacketRate > 0) {
+        fps = stats.averagePacketRate;
+      }
+    } catch {
+      // Ignore errors in stats computation
+    }
+    const frameIntervalMs = 1000 / fps;
+
+    // Adaptive cache size based on resolution
+    // Higher resolution = fewer cached frames to limit memory usage
+    const pixelCount = videoTrack.displayWidth * videoTrack.displayHeight;
+    const cacheSize = pixelCount > 2073600 ? 15 : pixelCount > 921600 ? 30 : 60; // 1080p: 15, 720p: 30, smaller: 60
 
     const videoSource = new VideoSource(
       id,
@@ -196,7 +256,8 @@ export class SourcePool {
         input,
         videoTrack,
         canvasSink,
-        frameCache: new Map(),
+        frameCache: new LRUFrameCache(cacheSize),
+        frameIntervalMs,
       },
       duration,
       videoTrack.displayWidth,

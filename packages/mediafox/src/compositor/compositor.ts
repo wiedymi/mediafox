@@ -20,6 +20,12 @@ interface CompositorState {
   seeking: boolean;
 }
 
+// Pre-allocated arrays for render loop to reduce GC pressure
+interface RenderBuffers {
+  frameData: { layer: CompositorLayer; image: CanvasImageSource }[];
+  visibleLayers: CompositorLayer[];
+}
+
 /**
  * Canvas-based video compositor for composing multiple media sources into a single output.
  * Supports layered rendering with transforms, opacity, and rotation.
@@ -56,6 +62,12 @@ export class Compositor {
   private lastFrameTime = 0;
   private previewOptions: PreviewOptions | null = null;
   private disposed = false;
+
+  // Performance optimizations
+  private renderBuffers: RenderBuffers = { frameData: [], visibleLayers: [] };
+  private lastTimeUpdateEmit = 0;
+  private timeUpdateThrottleMs = 100; // ~10Hz
+  private renderPending = false;
 
   /**
    * Creates a new Compositor instance.
@@ -175,32 +187,50 @@ export class Compositor {
     this.checkDisposed();
     if (!this.ctx) return false;
 
-    // Sort layers by zIndex
-    const sortedLayers = [...frame.layers].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+    // Reuse pre-allocated arrays
+    const { frameData, visibleLayers } = this.renderBuffers;
+    frameData.length = 0;
+    visibleLayers.length = 0;
 
-    // Fetch all frames FIRST (in parallel) before clearing canvas
-    const frameData: { layer: CompositorLayer; image: CanvasImageSource }[] = [];
-    const fetchPromises = sortedLayers
-      .filter(layer => layer.visible !== false)
-      .map(async (layer) => {
-        const sourceTime = layer.sourceTime ?? frame.time;
-        const frameImage = await layer.source.getFrameAt(sourceTime);
-        if (frameImage) {
-          frameData.push({ layer, image: frameImage });
-        }
-      });
+    // Filter visible layers into pre-allocated array
+    for (let i = 0; i < frame.layers.length; i++) {
+      const layer = frame.layers[i];
+      if (layer.visible !== false) {
+        visibleLayers.push(layer);
+      }
+    }
+
+    // Sort visible layers by zIndex (in-place)
+    visibleLayers.sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+
+    // Fetch all frames in parallel, maintaining sort order via indexed insertion
+    const fetchPromises: Promise<void>[] = [];
+    for (let i = 0; i < visibleLayers.length; i++) {
+      const layer = visibleLayers[i];
+      const index = i; // Capture index for closure
+      fetchPromises.push(
+        (async () => {
+          const sourceTime = layer.sourceTime ?? frame.time;
+          const frameImage = await layer.source.getFrameAt(sourceTime);
+          if (frameImage) {
+            frameData[index] = { layer, image: frameImage };
+          }
+        })()
+      );
+    }
 
     await Promise.all(fetchPromises);
 
-    // Sort frameData by original layer order (zIndex)
-    frameData.sort((a, b) => (a.layer.zIndex ?? 0) - (b.layer.zIndex ?? 0));
-
-    // Now clear and render - this is synchronous so no flicker
+    // Clear and render - synchronous to prevent flicker
     this.ctx.fillStyle = this.backgroundColor;
     this.ctx.fillRect(0, 0, this.width, this.height);
 
-    for (const { layer, image } of frameData) {
-      this.renderLayer(image, layer);
+    // Render in order, skip undefined entries (failed fetches)
+    for (let i = 0; i < frameData.length; i++) {
+      const entry = frameData[i];
+      if (entry) {
+        this.renderLayer(entry.image, entry.layer);
+      }
     }
 
     return true;
@@ -209,11 +239,16 @@ export class Compositor {
   private renderLayer(image: CanvasImageSource, layer: CompositorLayer): void {
     if (!this.ctx) return;
 
-    const transform = layer.transform ?? {};
+    const transform = layer.transform;
     const sourceWidth = layer.source.width ?? this.width;
     const sourceHeight = layer.source.height ?? this.height;
 
-    // Get dimensions
+    // Fast path: no transform object means draw at origin with source dimensions
+    if (!transform) {
+      this.ctx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
+      return;
+    }
+
     const destWidth = transform.width ?? sourceWidth;
     const destHeight = transform.height ?? sourceHeight;
     const x = transform.x ?? 0;
@@ -222,24 +257,34 @@ export class Compositor {
     const scaleX = transform.scaleX ?? 1;
     const scaleY = transform.scaleY ?? 1;
     const opacity = transform.opacity ?? 1;
+
+    // Check if we need context state changes
+    const needsOpacity = opacity !== 1;
+    const needsTransform = rotation !== 0 || scaleX !== 1 || scaleY !== 1;
+
+    // Fast path: simple position/size only, no rotation/scale/opacity
+    if (!needsOpacity && !needsTransform) {
+      this.ctx.drawImage(image, x, y, destWidth, destHeight);
+      return;
+    }
+
     const anchorX = transform.anchorX ?? 0.5;
     const anchorY = transform.anchorY ?? 0.5;
 
-    // Save context state
+    // Save context state only when needed
     this.ctx.save();
 
-    // Set opacity
-    this.ctx.globalAlpha = opacity;
+    if (needsOpacity) {
+      this.ctx.globalAlpha = opacity;
+    }
 
     // Move to layer position
     this.ctx.translate(x + destWidth * anchorX, y + destHeight * anchorY);
 
-    // Apply rotation
     if (rotation !== 0) {
       this.ctx.rotate((rotation * Math.PI) / 180);
     }
 
-    // Apply scale
     if (scaleX !== 1 || scaleY !== 1) {
       this.ctx.scale(scaleX, scaleY);
     }
@@ -253,7 +298,6 @@ export class Compositor {
       destHeight
     );
 
-    // Restore context state
     this.ctx.restore();
   }
 
@@ -337,8 +381,11 @@ export class Compositor {
   private startRenderLoop(): void {
     if (this.animationFrameId !== null) return;
 
-    const render = async () => {
+    const tick = () => {
       if (!this.state.playing || !this.previewOptions) return;
+
+      // Schedule next frame IMMEDIATELY to maintain consistent timing
+      this.animationFrameId = requestAnimationFrame(tick);
 
       const now = performance.now();
       const deltaTime = (now - this.lastFrameTime) / 1000;
@@ -359,19 +406,31 @@ export class Compositor {
         }
       }
 
-      // Get composition for current time
+      // Skip rendering if previous frame is still being processed
+      if (this.renderPending) {
+        return;
+      }
+
+      // Get composition and render (non-blocking)
+      this.renderPending = true;
+
       const frame = this.previewOptions.getComposition(this.state.currentTime);
-      await this.render(frame);
+      this.render(frame)
+        .catch(() => {
+          // Ignore render errors, will retry next frame
+        })
+        .finally(() => {
+          this.renderPending = false;
+        });
 
-      this.emitter.emit('timeupdate', { currentTime: this.state.currentTime });
-
-      // Schedule next frame
-      if (this.state.playing) {
-        this.animationFrameId = requestAnimationFrame(() => render());
+      // Throttle timeupdate events to ~10Hz
+      if (now - this.lastTimeUpdateEmit >= this.timeUpdateThrottleMs) {
+        this.lastTimeUpdateEmit = now;
+        this.emitter.emit('timeupdate', { currentTime: this.state.currentTime });
       }
     };
 
-    this.animationFrameId = requestAnimationFrame(() => render());
+    this.animationFrameId = requestAnimationFrame(tick);
   }
 
   private stopRenderLoop(): void {
