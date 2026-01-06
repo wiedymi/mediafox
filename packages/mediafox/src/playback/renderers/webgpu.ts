@@ -20,6 +20,8 @@ export class WebGPURenderer implements IRenderer {
   private textureHeight = 0;
   private powerPreference: 'high-performance' | 'low-power';
   private rotation: Rotation = 0;
+  // Pre-allocated typed array for quad vertices (4 vertices * 4 floats each: x, y, u, v)
+  private quadArray = new Float32Array(16);
 
   private readonly vertexShaderSource = `
     struct VSOut {
@@ -294,22 +296,34 @@ export class WebGPURenderer implements IRenderer {
       const rhw = isRotated90or270 ? hh : hw;
       const rhh = isRotated90or270 ? hw : hh;
 
-      // Calculate rotated corner positions with texture coordinates
-      const corners: [number, number, number, number][] = [
-        [-rhw, -rhh, 0.0, 1.0], // bottom-left
-        [rhw, -rhh, 1.0, 1.0], // bottom-right
-        [-rhw, rhh, 0.0, 0.0], // top-left
-        [rhw, rhh, 1.0, 0.0], // top-right
-      ];
+      // Calculate rotated corner positions with texture coordinates using pre-allocated array
+      // Corner order: bottom-left, bottom-right, top-left, top-right
+      // Each vertex: x, y, u, v
+      const quad = this.quadArray;
 
-      const quadData: number[] = [];
-      for (const [px, py, u, v] of corners) {
-        const rx = px * cos - py * sin + cx;
-        const ry = px * sin + py * cos + cy;
-        quadData.push(rx, ry, u, v);
-      }
+      // bottom-left (-rhw, -rhh, 0.0, 1.0)
+      quad[0] = -rhw * cos - -rhh * sin + cx;
+      quad[1] = -rhw * sin + -rhh * cos + cy;
+      quad[2] = 0.0;
+      quad[3] = 1.0;
 
-      const quad = new Float32Array(quadData);
+      // bottom-right (rhw, -rhh, 1.0, 1.0)
+      quad[4] = rhw * cos - -rhh * sin + cx;
+      quad[5] = rhw * sin + -rhh * cos + cy;
+      quad[6] = 1.0;
+      quad[7] = 1.0;
+
+      // top-left (-rhw, rhh, 0.0, 0.0)
+      quad[8] = -rhw * cos - rhh * sin + cx;
+      quad[9] = -rhw * sin + rhh * cos + cy;
+      quad[10] = 0.0;
+      quad[11] = 0.0;
+
+      // top-right (rhw, rhh, 1.0, 0.0)
+      quad[12] = rhw * cos - rhh * sin + cx;
+      quad[13] = rhw * sin + rhh * cos + cy;
+      quad[14] = 1.0;
+      quad[15] = 0.0;
 
       if (this.vertexBuffer) {
         this.device.queue.writeBuffer(this.vertexBuffer, 0, quad);

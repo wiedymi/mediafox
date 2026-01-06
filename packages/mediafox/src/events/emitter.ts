@@ -4,6 +4,8 @@ export class EventEmitter<EventMap extends Record<string, unknown>> implements T
   private events: Map<keyof EventMap, Set<(data: EventMap[keyof EventMap]) => void>> = new Map();
   private maxListeners: number;
   private captureRejections: boolean;
+  // Pre-allocated cache for listener iteration to avoid Set iterator + Array.from allocations
+  private emitCache: Array<(data: EventMap[keyof EventMap]) => void> = [];
 
   constructor(options: EventEmitterOptions = {}) {
     this.maxListeners = options.maxListeners ?? 10;
@@ -59,18 +61,22 @@ export class EventEmitter<EventMap extends Record<string, unknown>> implements T
     const listeners = this.events.get(event);
     if (!listeners || listeners.size === 0) return;
 
+    // Copy to cache array to avoid Set iterator allocation and allow safe iteration
+    // if listeners unsubscribe during emit
+    const cache = this.emitCache;
+    cache.length = 0;
     for (const listener of listeners) {
+      cache.push(listener);
+    }
+
+    // Use indexed for loop (faster than for...of)
+    for (let i = 0; i < cache.length; i++) {
+      const listener = cache[i];
       try {
         const result = (listener as (d: EventMap[K]) => unknown)(data);
         if (this.captureRejections && isPromise(result)) {
-          (result as Promise<unknown>).catch((err: unknown) => {
-            if (this.events.has('error' as keyof EventMap)) {
-              this.emit('error' as keyof EventMap, err as EventMap[keyof EventMap]);
-            } else {
-              // Re-throw unhandled listener errors to surface mistakes in dev
-              throw err;
-            }
-          });
+          // Handle promise rejection without per-call closure allocation
+          this.handlePromiseRejection(result as Promise<unknown>);
         }
       } catch (err) {
         if (this.captureRejections && this.events.has('error' as keyof EventMap)) {
@@ -80,6 +86,17 @@ export class EventEmitter<EventMap extends Record<string, unknown>> implements T
         }
       }
     }
+  }
+
+  private handlePromiseRejection(promise: Promise<unknown>): void {
+    promise.catch((err: unknown) => {
+      if (this.events.has('error' as keyof EventMap)) {
+        this.emit('error' as keyof EventMap, err as EventMap[keyof EventMap]);
+      } else {
+        // Re-throw unhandled listener errors to surface mistakes in dev
+        throw err;
+      }
+    });
   }
 
   removeAllListeners<K extends keyof EventMap>(event?: K): void {

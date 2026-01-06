@@ -30,6 +30,8 @@ export class WebGLRenderer implements IRenderer {
   private boundHandleContextLost: ((event: Event) => void) | null = null;
   private boundHandleContextRestored: (() => void) | null = null;
   private rotation: Rotation = 0;
+  // Pre-allocated typed array for vertex positions to avoid GC at 60fps
+  private positionsArray = new Float32Array(8);
 
   private readonly vertexShaderSource = `
     attribute vec2 a_position;
@@ -256,22 +258,21 @@ export class WebGLRenderer implements IRenderer {
       const rhw = isRotated90or270 ? hh : hw;
       const rhh = isRotated90or270 ? hw : hh;
 
-      // Calculate rotated corner positions
-      const corners = [
-        [-rhw, -rhh], // bottom-left
-        [rhw, -rhh], // bottom-right
-        [-rhw, rhh], // top-left
-        [rhw, rhh], // top-right
-      ];
-
-      const rotatedPositions: number[] = [];
-      for (const [px, py] of corners) {
-        const rx = px * cos - py * sin + cx;
-        const ry = px * sin + py * cos + cy;
-        rotatedPositions.push(rx, ry);
-      }
-
-      const positions = new Float32Array(rotatedPositions);
+      // Calculate rotated corner positions using pre-allocated array
+      // Corner order: bottom-left, bottom-right, top-left, top-right
+      const positions = this.positionsArray;
+      // bottom-left (-rhw, -rhh)
+      positions[0] = -rhw * cos - -rhh * sin + cx;
+      positions[1] = -rhw * sin + -rhh * cos + cy;
+      // bottom-right (rhw, -rhh)
+      positions[2] = rhw * cos - -rhh * sin + cx;
+      positions[3] = rhw * sin + -rhh * cos + cy;
+      // top-left (-rhw, rhh)
+      positions[4] = -rhw * cos - rhh * sin + cx;
+      positions[5] = -rhw * sin + rhh * cos + cy;
+      // top-right (rhw, rhh)
+      positions[6] = rhw * cos - rhh * sin + cx;
+      positions[7] = rhw * sin + rhh * cos + cy;
 
       gl.bindBuffer(gl.ARRAY_BUFFER, this.resources.vertexBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);

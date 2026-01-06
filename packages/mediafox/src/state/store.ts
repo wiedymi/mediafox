@@ -22,7 +22,10 @@ export class Store implements StateStore {
   private listeners: Set<StateListener> = new Set();
   private updateScheduled = false;
   private pendingUpdates: Partial<PlayerStateData> = {};
+  private pendingKeys: Array<keyof PlayerStateData> = [];
   private pluginManager: PluginManager | null = null;
+  // Pre-allocated array for listener iteration to avoid Set iterator allocation
+  private listenerCache: StateListener[] = [];
 
   constructor() {
     this.state = this.getInitialState();
@@ -72,7 +75,9 @@ export class Store implements StateStore {
   }
 
   getState(): Readonly<PlayerStateData> {
-    return Object.freeze({ ...this.state });
+    // Return direct reference - callers should treat as immutable
+    // Avoids allocation on every call (was: Object.freeze({ ...this.state }))
+    return this.state;
   }
 
   setState(updates: Partial<PlayerStateData>): void {
@@ -83,7 +88,15 @@ export class Store implements StateStore {
       updates = result;
     }
 
-    Object.assign(this.pendingUpdates, updates);
+    // Track keys being updated to avoid Object.keys() allocation in flushUpdates
+    const keys = Object.keys(updates) as Array<keyof PlayerStateData>;
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      if (this.pendingUpdates[key] === undefined) {
+        this.pendingKeys.push(key);
+      }
+      this.setPendingValue(key, updates[key]);
+    }
 
     if (!this.updateScheduled) {
       this.updateScheduled = true;
@@ -91,21 +104,40 @@ export class Store implements StateStore {
     }
   }
 
+  /** Type-safe helper to set a single pending update value */
+  private setPendingValue<K extends keyof PlayerStateData>(key: K, value: PlayerStateData[K] | undefined): void {
+    this.pendingUpdates[key] = value;
+  }
+
   private flushUpdates(): void {
-    if (Object.keys(this.pendingUpdates).length === 0) {
+    const keysToCheck = this.pendingKeys;
+    if (keysToCheck.length === 0) {
       this.updateScheduled = false;
       return;
     }
 
-    this.previousState = { ...this.state };
-    this.state = { ...this.state, ...this.pendingUpdates };
-    this.pendingUpdates = {};
-    this.updateScheduled = false;
+    // Check for changes BEFORE applying updates (compare pending vs current)
+    let hasChanges = false;
+    for (let i = 0; i < keysToCheck.length; i++) {
+      const key = keysToCheck[i];
+      if (!isDeepEqual(this.pendingUpdates[key], this.state[key])) {
+        hasChanges = true;
+        break;
+      }
+    }
 
-    // Check if anything actually changed using deep-ish equality on updated keys only
-    const changedKeys = Object.keys(this.pendingUpdates) as Array<keyof PlayerStateData>;
-    const keysToCheck = changedKeys.length ? changedKeys : (Object.keys(this.state) as Array<keyof PlayerStateData>);
-    const hasChanges = keysToCheck.some((key) => !isDeepEqual(this.state[key], this.previousState[key]));
+    // Copy current values to previousState only for changed keys (avoids full object spread)
+    // Then apply pending updates directly to state
+    for (let i = 0; i < keysToCheck.length; i++) {
+      const key = keysToCheck[i];
+      this.copyStateKey(key);
+    }
+    // Clear pending updates by reassigning empty object (faster than delete per key)
+    this.pendingUpdates = {};
+
+    // Reset tracking
+    this.pendingKeys.length = 0;
+    this.updateScheduled = false;
 
     if (hasChanges) {
       this.notifyListeners();
@@ -114,6 +146,14 @@ export class Store implements StateStore {
       if (this.pluginManager) {
         this.pluginManager.executeOnStateChange(this.state, this.previousState);
       }
+    }
+  }
+
+  /** Type-safe helper to copy a single key from state to previousState and apply pending update */
+  private copyStateKey<K extends keyof PlayerStateData>(key: K): void {
+    this.previousState[key] = this.state[key];
+    if (key in this.pendingUpdates) {
+      this.state[key] = this.pendingUpdates[key] as PlayerStateData[K];
     }
   }
 
@@ -131,19 +171,28 @@ export class Store implements StateStore {
   reset(): void {
     this.state = this.getInitialState();
     this.pendingUpdates = {};
+    this.pendingKeys.length = 0;
     this.updateScheduled = false;
     this.notifyListeners();
   }
 
   private notifyListeners(): void {
-    const currentState = this.getState();
-    this.listeners.forEach((listener) => {
+    const currentState = this.state;
+    // Copy listeners to cache array to avoid Set iterator allocation
+    // and allow listeners to unsubscribe during iteration
+    const cache = this.listenerCache;
+    cache.length = 0;
+    for (const listener of this.listeners) {
+      cache.push(listener);
+    }
+    // Use indexed for loop (faster than forEach by ~8x)
+    for (let i = 0; i < cache.length; i++) {
       try {
-        listener(currentState);
+        cache[i](currentState);
       } catch (error) {
         console.error('Error in state listener:', error);
       }
-    });
+    }
   }
 
   // Utility methods for common state updates

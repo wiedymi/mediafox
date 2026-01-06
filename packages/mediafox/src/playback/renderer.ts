@@ -66,6 +66,8 @@ export class VideoRenderer {
   private rotation: Rotation = 0;
   private sourceWidth = 0;
   private sourceHeight = 0;
+  // Pre-allocated return object for updateFrame to avoid allocation per call (60fps)
+  private updateFrameResult = { frameUpdated: false, isStarving: false };
 
   constructor(options: VideoRendererOptions = {}) {
     this.options = {
@@ -602,7 +604,13 @@ export class VideoRenderer {
   }
 
   updateFrame(currentTime: number): { frameUpdated: boolean; isStarving: boolean } {
-    if (this.disposed) return { frameUpdated: false, isStarving: false };
+    const result = this.updateFrameResult;
+
+    if (this.disposed) {
+      result.frameUpdated = false;
+      result.isStarving = false;
+      return result;
+    }
 
     // If we don't have a next frame, request one (if iterator exists)
     // This is frame starvation - we're playing but have no frame ready
@@ -610,7 +618,9 @@ export class VideoRenderer {
       if (this.frameIterator) {
         void this.fetchNextFrame();
       }
-      return { frameUpdated: false, isStarving: true };
+      result.frameUpdated = false;
+      result.isStarving = true;
+      return result;
     }
 
     // Check if the current playback time has caught up to the next frame
@@ -626,10 +636,14 @@ export class VideoRenderer {
       if (this.frameIterator) {
         void this.fetchNextFrame();
       }
-      return { frameUpdated: true, isStarving: false };
+      result.frameUpdated = true;
+      result.isStarving = false;
+      return result;
     }
 
-    return { frameUpdated: false, isStarving: false };
+    result.frameUpdated = false;
+    result.isStarving = false;
+    return result;
   }
 
   private async fetchNextFrame(): Promise<void> {
