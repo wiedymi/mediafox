@@ -11,7 +11,9 @@ interface ActiveAudioSource {
   volume: number;
   pan: number;
   muted: boolean;
-  sourceTime: number;
+  startSourceTime: number; // Where in the source we started playing (fixed at playback start)
+  currentSourceTime: number; // Current expected position (updated each frame for drift detection)
+  iteratorStartTime: number; // AudioContext time when iterator was started
   lastScheduledTime: number;
 }
 
@@ -78,7 +80,9 @@ export class CompositorAudioManager {
       volume: 1,
       pan: 0,
       muted: false,
-      sourceTime: 0,
+      startSourceTime: 0,
+      currentSourceTime: 0,
+      iteratorStartTime: 0,
       lastScheduledTime: 0,
     });
   }
@@ -138,14 +142,15 @@ export class CompositorAudioManager {
         source.panNode.pan.value = Math.max(-1, Math.min(1, pan));
       }
 
-      // Check if we need to restart from a different source time
-      const timeDrift = Math.abs(sourceTime - source.sourceTime);
+      // Check if we need to restart from a different source time (seek detected)
+      const timeDrift = Math.abs(sourceTime - source.currentSourceTime);
       if (timeDrift > 0.5 && source.iterator !== null) {
         // Source time changed significantly, restart iterator
         this.restartSourceIterator(source, sourceTime);
       }
 
-      source.sourceTime = sourceTime;
+      // Update current position for drift detection (not used in scheduling)
+      source.currentSourceTime = sourceTime;
     }
 
     // Stop sources that are no longer in the layers
@@ -189,7 +194,12 @@ export class CompositorAudioManager {
     // Stop existing audio
     this.stopSourceAudio(source);
 
-    // Start new iterator
+    // Store the source time where we're starting from (used for scheduling)
+    source.startSourceTime = sourceTime;
+    source.currentSourceTime = sourceTime;
+    source.iteratorStartTime = this.audioContext.currentTime;
+
+    // Start new iterator from the source time
     source.iterator = source.bufferSink.buffers(sourceTime);
     source.lastScheduledTime = sourceTime;
 
@@ -211,9 +221,13 @@ export class CompositorAudioManager {
         node.buffer = buffer;
         node.connect(source.gainNode);
 
-        // Calculate when to play this buffer relative to compositor timeline
-        const mediaOffset = timestamp - source.sourceTime;
-        const scheduledContextTime = this.startContextTime + mediaOffset;
+        // Calculate when to play this buffer
+        // timestamp is the buffer's position in the source
+        // startSourceTime is where we started playing from in the source
+        // The offset from the start is: timestamp - startSourceTime
+        // Schedule at: iteratorStartTime + offset
+        const offsetFromStart = timestamp - source.startSourceTime;
+        const scheduledContextTime = source.iteratorStartTime + offsetFromStart;
 
         if (scheduledContextTime >= this.audioContext.currentTime) {
           node.start(scheduledContextTime);
@@ -233,9 +247,10 @@ export class CompositorAudioManager {
 
         source.lastScheduledTime = timestamp;
 
-        // Throttle if we're too far ahead
-        const currentTime = this.getCurrentTime();
-        if (timestamp - source.sourceTime > currentTime - this.startMediaTime + 1) {
+        // Throttle if we're too far ahead (more than 1 second of audio buffered)
+        const elapsedSinceStart = this.audioContext.currentTime - source.iteratorStartTime;
+        const bufferedAhead = (timestamp - source.startSourceTime) - elapsedSinceStart;
+        if (bufferedAhead > 1) {
           await this.waitForCatchup(source, timestamp);
         }
       }
@@ -253,9 +268,10 @@ export class CompositorAudioManager {
           return;
         }
 
-        const currentTime = this.getCurrentTime();
-        const expectedSourceTime = source.sourceTime + (currentTime - this.startMediaTime);
-        if (targetSourceTime - expectedSourceTime < 1) {
+        // Calculate how far ahead we've buffered
+        const elapsedSinceStart = this.audioContext.currentTime - source.iteratorStartTime;
+        const bufferedAhead = (targetSourceTime - source.startSourceTime) - elapsedSinceStart;
+        if (bufferedAhead < 1) {
           clearInterval(checkInterval);
           resolve();
         }
