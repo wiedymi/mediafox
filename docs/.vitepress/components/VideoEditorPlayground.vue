@@ -9,7 +9,7 @@
                 <button @click="openFileDialog" class="tool-btn" :disabled="loading">
                     Import
                 </button>
-                <input type="file" ref="fileInput" @change="handleFileSelect" accept="video/*,image/*" hidden />
+                <input type="file" ref="fileInput" @change="handleFileSelect" accept="video/*,image/*,audio/*" hidden />
             </div>
             <div class="toolbar-center">
                 <button @click="skipToStart" class="transport-btn" title="Go to start">|◀</button>
@@ -20,6 +20,19 @@
                 <span class="timecode">{{ formatTimecode(currentTime) }}</span>
             </div>
             <div class="toolbar-right">
+                <button @click="toggleMute" class="transport-btn" :title="muted ? 'Unmute' : 'Mute'">
+                    {{ muted ? '🔇' : '🔊' }}
+                </button>
+                <input
+                    type="range"
+                    v-model.number="masterVolume"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    @input="updateVolume"
+                    class="volume-slider"
+                    title="Master Volume"
+                />
                 <select v-model="currentAspect" @change="changeAspect(currentAspect)" class="aspect-select">
                     <option v-for="a in ASPECT_RATIOS" :key="a.label" :value="a.label">{{ a.label }}</option>
                 </select>
@@ -52,29 +65,36 @@
                         <input type="number" v-model.number="selectedClip.duration" min="0.1" step="0.1" @change="updatePreview" />
                     </div>
                     <div class="inspector-row">
+                        <label>Volume</label>
+                        <input type="range" v-model.number="selectedClip.volume" min="0" max="1" step="0.05" @input="updatePreview" />
+                        <span>{{ Math.round(selectedClip.volume * 100) }}%</span>
+                    </div>
+                    <div class="inspector-row" v-if="selectedClip.type !== 'audio'">
                         <label>Opacity</label>
                         <input type="range" v-model.number="selectedClip.opacity" min="0" max="1" step="0.05" @input="updatePreview" />
                         <span>{{ Math.round(selectedClip.opacity * 100) }}%</span>
                     </div>
-                    <div class="inspector-row">
-                        <label>Scale</label>
-                        <input type="range" v-model.number="selectedClip.scale" min="0.1" max="2" step="0.05" @input="updatePreview" />
-                        <span>{{ Math.round(selectedClip.scale * 100) }}%</span>
-                    </div>
-                    <div class="inspector-row">
-                        <label>Rotation</label>
-                        <input type="range" v-model.number="selectedClip.rotation" min="-180" max="180" step="1" @input="updatePreview" />
-                        <span>{{ selectedClip.rotation }}°</span>
-                    </div>
-                    <div class="inspector-row">
-                        <label>X</label>
-                        <input type="number" v-model.number="selectedClip.x" step="10" @change="updatePreview" />
-                    </div>
-                    <div class="inspector-row">
-                        <label>Y</label>
-                        <input type="number" v-model.number="selectedClip.y" step="10" @change="updatePreview" />
-                    </div>
-                    <button @click="resetTransform" class="reset-btn">Reset Transform</button>
+                    <template v-if="selectedClip.type !== 'audio'">
+                        <div class="inspector-row">
+                            <label>Scale</label>
+                            <input type="range" v-model.number="selectedClip.scale" min="0.1" max="2" step="0.05" @input="updatePreview" />
+                            <span>{{ Math.round(selectedClip.scale * 100) }}%</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Rotation</label>
+                            <input type="range" v-model.number="selectedClip.rotation" min="-180" max="180" step="1" @input="updatePreview" />
+                            <span>{{ selectedClip.rotation }}°</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>X</label>
+                            <input type="number" v-model.number="selectedClip.x" step="10" @change="updatePreview" />
+                        </div>
+                        <div class="inspector-row">
+                            <label>Y</label>
+                            <input type="number" v-model.number="selectedClip.y" step="10" @change="updatePreview" />
+                        </div>
+                        <button @click="resetTransform" class="reset-btn">Reset Transform</button>
+                    </template>
                     <button @click="deleteSelectedClip" class="delete-btn">Delete Clip</button>
                 </div>
             </div>
@@ -96,13 +116,14 @@
                 </div>
             </div>
             <div class="timeline" ref="timelineRef" @mousedown="onTimelineMouseDown">
-                <div v-for="trackIdx in 3" :key="trackIdx" class="track">
+                <!-- Video Tracks -->
+                <div v-for="trackIdx in 3" :key="'v' + trackIdx" class="track video-track">
                     <div class="track-label">V{{ trackIdx }}</div>
                     <div class="track-content">
                         <div
                             v-for="clip in getClipsOnTrack(trackIdx - 1)"
                             :key="clip.id"
-                            class="clip"
+                            class="clip video-clip"
                             :class="{ selected: selectedClipId === clip.id }"
                             :style="{
                                 left: clip.startTime * PX_PER_SEC + 'px',
@@ -113,6 +134,28 @@
                         >
                             <div class="clip-trim-left" @mousedown.stop="onTrimMouseDown($event, clip, 'left')"></div>
                             <div class="clip-body">{{ clip.name }}</div>
+                            <div class="clip-trim-right" @mousedown.stop="onTrimMouseDown($event, clip, 'right')"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Audio Tracks -->
+                <div v-for="trackIdx in 2" :key="'a' + trackIdx" class="track audio-track">
+                    <div class="track-label audio-label">A{{ trackIdx }}</div>
+                    <div class="track-content">
+                        <div
+                            v-for="clip in getClipsOnTrack(trackIdx + 2)"
+                            :key="clip.id"
+                            class="clip audio-clip"
+                            :class="{ selected: selectedClipId === clip.id }"
+                            :style="{
+                                left: clip.startTime * PX_PER_SEC + 'px',
+                                width: clip.duration * PX_PER_SEC + 'px'
+                            }"
+                            @mousedown.stop="onClipMouseDown($event, clip)"
+                            @contextmenu.prevent="onClipRightClick($event, clip)"
+                        >
+                            <div class="clip-trim-left" @mousedown.stop="onTrimMouseDown($event, clip, 'left')"></div>
+                            <div class="clip-body">🎵 {{ clip.name }}</div>
                             <div class="clip-trim-right" @mousedown.stop="onTrimMouseDown($event, clip, 'right')"></div>
                         </div>
                     </div>
@@ -131,11 +174,13 @@ interface ClipData {
     id: string;
     name: string;
     source: CompositorSource;
+    type: 'video' | 'image' | 'audio';
     track: number;
     startTime: number;
     duration: number;
     sourceDuration: number;
     sourceOffset: number;
+    volume: number;
     opacity: number;
     scale: number;
     rotation: number;
@@ -165,6 +210,8 @@ const isFullscreen = ref(false);
 const loading = ref(false);
 const playing = ref(false);
 const currentTime = ref(0);
+const masterVolume = ref(1);
+const muted = ref(false);
 
 const clips = ref<ClipData[]>([]);
 const selectedClipId = ref<string | null>(null);
@@ -190,11 +237,15 @@ const formatTimecode = (s: number) => {
 
 // Composition callback for the compositor
 const getComposition = (time: number) => {
-    const visible = clips.value
-        .filter(c => time >= c.startTime && time < c.startTime + c.duration)
+    const activeClips = clips.value
+        .filter(c => time >= c.startTime && time < c.startTime + c.duration);
+
+    // Video/image layers (tracks 0-2)
+    const videoClips = activeClips
+        .filter(c => c.type !== 'audio')
         .sort((a, b) => b.track - a.track);
 
-    const layers = visible.map((clip, i) => {
+    const layers = videoClips.map((clip, i) => {
         const localTime = time - clip.startTime + clip.sourceOffset;
         const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
         const sw = clip.source.width || canvasWidth.value;
@@ -214,7 +265,21 @@ const getComposition = (time: number) => {
         };
     });
 
-    return { time, layers };
+    // Audio layers - include audio from video clips and audio-only clips
+    const audio = activeClips
+        .filter(c => c.volume > 0)
+        .map(clip => {
+            const localTime = time - clip.startTime + clip.sourceOffset;
+            const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
+            return {
+                source: clip.source,
+                sourceTime: Math.max(0, srcTime),
+                volume: clip.volume,
+                muted: clip.volume === 0
+            };
+        });
+
+    return { time, layers, audio };
 };
 
 // Change aspect ratio
@@ -261,17 +326,20 @@ const loadSampleVideo = async () => {
         const source = await compositor.value.loadSource(
             'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
         );
-        const track = clips.value.length % 3;
+        const videoClipCount = clips.value.filter(c => c.type !== 'audio').length;
+        const track = videoClipCount % 3;
         const lastEnd = Math.max(0, ...getClipsOnTrack(track).map(c => c.startTime + c.duration), 0);
         clips.value.push({
             id: `clip_${clipIdCounter++}`,
             name: 'Big Buck Bunny',
             source,
+            type: 'video',
             track,
             startTime: lastEnd,
             duration: Math.min(source.duration, 10),
             sourceDuration: source.duration,
             sourceOffset: 0,
+            volume: 1,
             opacity: 1,
             scale: 1,
             rotation: 0,
@@ -295,21 +363,42 @@ const handleFileSelect = async (e: Event) => {
     loading.value = true;
     try {
         const isImage = file.type.startsWith('image/');
-        const source = isImage
-            ? await compositor.value.loadImage(file)
-            : await compositor.value.loadSource(file);
+        const isAudio = file.type.startsWith('audio/');
+
+        let source: CompositorSource;
+        let clipType: 'video' | 'image' | 'audio';
+        let track: number;
+
+        if (isAudio) {
+            source = await compositor.value.loadAudio(file);
+            clipType = 'audio';
+            const audioClipCount = clips.value.filter(c => c.type === 'audio').length;
+            track = 3 + (audioClipCount % 2); // Audio tracks are 3 and 4
+        } else if (isImage) {
+            source = await compositor.value.loadImage(file);
+            clipType = 'image';
+            const videoClipCount = clips.value.filter(c => c.type !== 'audio').length;
+            track = videoClipCount % 3;
+        } else {
+            source = await compositor.value.loadSource(file);
+            clipType = 'video';
+            const videoClipCount = clips.value.filter(c => c.type !== 'audio').length;
+            track = videoClipCount % 3;
+        }
+
         const dur = isImage ? 5 : source.duration;
-        const track = clips.value.length % 3;
         const lastEnd = Math.max(0, ...getClipsOnTrack(track).map(c => c.startTime + c.duration), 0);
         clips.value.push({
             id: `clip_${clipIdCounter++}`,
             name: file.name.slice(0, 20),
             source,
+            type: clipType,
             track,
             startTime: lastEnd,
             duration: Math.min(dur, 10),
             sourceDuration: dur,
             sourceOffset: 0,
+            volume: 1,
             opacity: 1,
             scale: 1,
             rotation: 0,
@@ -511,6 +600,20 @@ const toggleFullscreen = async () => {
     }
 };
 
+const toggleMute = () => {
+    muted.value = !muted.value;
+    compositor.value?.setMuted(muted.value);
+};
+
+const updateVolume = () => {
+    compositor.value?.setVolume(masterVolume.value);
+    // Unmute if adjusting volume while muted
+    if (muted.value && masterVolume.value > 0) {
+        muted.value = false;
+        compositor.value?.setMuted(false);
+    }
+};
+
 // Dynamic page styles (added/removed on mount/unmount)
 const PLAYGROUND_STYLES = `
 .VPDoc { padding: 0 !important; }
@@ -661,6 +764,27 @@ onUnmounted(() => {
     background: #3a3a3a;
 }
 
+.volume-slider {
+    width: 80px;
+    height: 4px;
+    -webkit-appearance: none;
+    background: #444;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #888;
+    border-radius: 50%;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    background: #aaa;
+}
+
 .transport-btn {
     width: 32px;
     height: 28px;
@@ -808,7 +932,7 @@ onUnmounted(() => {
 }
 
 .timeline-wrapper {
-    height: 200px;
+    height: 290px;
     background: #181818;
     border-top: 1px solid #333;
     display: flex;
@@ -889,6 +1013,29 @@ onUnmounted(() => {
 .clip.selected {
     border-color: #5a8aba;
     background: #3a5a7a;
+}
+
+/* Audio track styling */
+.audio-track .track-label {
+    background: #1a1a20;
+}
+
+.audio-label {
+    color: #7a7aaa !important;
+}
+
+.audio-clip {
+    background: #3a2a4a !important;
+    border-color: #5a3a7a !important;
+}
+
+.audio-clip:hover {
+    background: #4a3a5a !important;
+}
+
+.audio-clip.selected {
+    border-color: #8a5aba !important;
+    background: #5a3a7a !important;
 }
 
 .clip-trim-left,
