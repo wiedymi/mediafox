@@ -1,14 +1,16 @@
 import { EventEmitter } from '../events/emitter';
 import type { MediaSource } from '../types';
+import { CompositorAudioManager } from './audio-manager';
 import { SourcePool } from './source-pool';
 import type {
+  AudioLayer,
+  CompositionFrame,
   CompositorEventListener,
   CompositorEventMap,
   CompositorLayer,
   CompositorOptions,
   CompositorSource,
   CompositorSourceOptions,
-  CompositionFrame,
   FrameExportOptions,
   PreviewOptions,
 } from './types';
@@ -56,6 +58,7 @@ export class Compositor {
   private height: number;
   private backgroundColor: string;
   private sourcePool: SourcePool;
+  private audioManager: CompositorAudioManager;
   private emitter: EventEmitter<CompositorEventMap>;
   private state: CompositorState;
   private animationFrameId: number | null = null;
@@ -69,6 +72,10 @@ export class Compositor {
   private timeUpdateThrottleMs = 100; // ~10Hz
   private renderPending = false;
 
+  // Audio state
+  private activeAudioLayers: AudioLayer[] = [];
+  private registeredAudioSources = new Set<string>();
+
   /**
    * Creates a new Compositor instance.
    * @param options - Configuration options for the compositor
@@ -79,6 +86,7 @@ export class Compositor {
     this.height = options.height ?? (this.canvas.height || 1080);
     this.backgroundColor = options.backgroundColor ?? '#000000';
     this.sourcePool = new SourcePool();
+    this.audioManager = new CompositorAudioManager();
     this.emitter = new EventEmitter({ maxListeners: 50 });
     this.state = {
       playing: false,
@@ -116,6 +124,10 @@ export class Compositor {
   async loadSource(source: MediaSource, options?: CompositorSourceOptions): Promise<CompositorSource> {
     this.checkDisposed();
     const loaded = await this.sourcePool.loadVideo(source, options);
+
+    // Register audio with audio manager if available
+    this.registerSourceAudio(loaded);
+
     this.emitter.emit('sourceloaded', { id: loaded.id, source: loaded });
     return loaded;
   }
@@ -141,6 +153,10 @@ export class Compositor {
   async loadAudio(source: MediaSource, options?: CompositorSourceOptions): Promise<CompositorSource> {
     this.checkDisposed();
     const loaded = await this.sourcePool.loadAudio(source, options);
+
+    // Register audio with audio manager
+    this.registerSourceAudio(loaded);
+
     this.emitter.emit('sourceloaded', { id: loaded.id, source: loaded });
     return loaded;
   }
@@ -151,11 +167,66 @@ export class Compositor {
    * @returns True if the source was found and unloaded
    */
   unloadSource(id: string): boolean {
+    // Unregister audio before unloading
+    if (this.registeredAudioSources.has(id)) {
+      this.audioManager.unregisterSource(id);
+      this.registeredAudioSources.delete(id);
+    }
+
     const result = this.sourcePool.unloadSource(id);
     if (result) {
       this.emitter.emit('sourceunloaded', { id });
     }
     return result;
+  }
+
+  /**
+   * Registers a source's audio with the audio manager.
+   */
+  private registerSourceAudio(source: CompositorSource): void {
+    if (this.registeredAudioSources.has(source.id)) return;
+
+    const audioBufferSink = source.getAudioBufferSink?.();
+    if (audioBufferSink) {
+      this.audioManager.registerSource(source, audioBufferSink);
+      this.registeredAudioSources.add(source.id);
+    }
+  }
+
+  /**
+   * Processes audio layers for the current frame.
+   */
+  private processAudioLayers(layers: AudioLayer[], mediaTime: number): void {
+    // Track new sources that need playback started
+    const newSources: string[] = [];
+
+    for (const layer of layers) {
+      if (layer.muted) continue;
+
+      const sourceId = layer.source.id;
+      if (!this.audioManager.hasSource(sourceId)) continue;
+
+      // Check if this is a newly active audio source
+      const wasActive = this.activeAudioLayers.some((l) => l.source.id === sourceId);
+      if (!wasActive) {
+        newSources.push(sourceId);
+      }
+    }
+
+    // Update active layers
+    this.activeAudioLayers = layers;
+
+    // Process layers with audio manager
+    this.audioManager.processAudioLayers(layers, mediaTime);
+
+    // Start playback for new sources
+    for (const sourceId of newSources) {
+      const layer = layers.find((l) => l.source.id === sourceId);
+      if (layer) {
+        const sourceTime = layer.sourceTime ?? mediaTime;
+        this.audioManager.startSourcePlayback(sourceId, sourceTime);
+      }
+    }
   }
 
   /**
@@ -290,13 +361,7 @@ export class Compositor {
     }
 
     // Draw image centered on anchor point
-    this.ctx.drawImage(
-      image,
-      -destWidth * anchorX,
-      -destHeight * anchorY,
-      destWidth,
-      destHeight
-    );
+    this.ctx.drawImage(image, -destWidth * anchorX, -destHeight * anchorY, destWidth, destHeight);
 
     this.ctx.restore();
   }
@@ -339,6 +404,9 @@ export class Compositor {
     this.lastFrameTime = performance.now();
     this.emitter.emit('play', undefined);
 
+    // Start audio playback
+    await this.audioManager.play(this.state.currentTime);
+
     // Start render loop
     this.startRenderLoop();
   }
@@ -352,6 +420,7 @@ export class Compositor {
 
     this.state.playing = false;
     this.stopRenderLoop();
+    this.audioManager.pause();
     this.emitter.emit('pause', undefined);
   }
 
@@ -368,6 +437,9 @@ export class Compositor {
     this.emitter.emit('seeking', { time: clampedTime });
 
     this.state.currentTime = clampedTime;
+
+    // Seek audio
+    await this.audioManager.seek(clampedTime);
 
     // Render frame at new time
     const frame = this.previewOptions.getComposition(clampedTime);
@@ -415,6 +487,10 @@ export class Compositor {
       this.renderPending = true;
 
       const frame = this.previewOptions.getComposition(this.state.currentTime);
+
+      // Process audio layers
+      this.processAudioLayers(frame.audio ?? [], this.state.currentTime);
+
       this.render(frame)
         .catch(() => {
           // Ignore render errors, will retry next frame
@@ -538,10 +614,7 @@ export class Compositor {
    * @param listener - Callback function
    * @returns Unsubscribe function
    */
-  on<K extends keyof CompositorEventMap>(
-    event: K,
-    listener: CompositorEventListener<K>
-  ): () => void {
+  on<K extends keyof CompositorEventMap>(event: K, listener: CompositorEventListener<K>): () => void {
     return this.emitter.on(event, listener);
   }
 
@@ -551,10 +624,7 @@ export class Compositor {
    * @param listener - Callback function
    * @returns Unsubscribe function
    */
-  once<K extends keyof CompositorEventMap>(
-    event: K,
-    listener: CompositorEventListener<K>
-  ): () => void {
+  once<K extends keyof CompositorEventMap>(event: K, listener: CompositorEventListener<K>): () => void {
     return this.emitter.once(event, listener);
   }
 
@@ -563,11 +633,34 @@ export class Compositor {
    * @param event - Event name to unsubscribe from
    * @param listener - Optional specific listener to remove
    */
-  off<K extends keyof CompositorEventMap>(
-    event: K,
-    listener?: CompositorEventListener<K>
-  ): void {
+  off<K extends keyof CompositorEventMap>(event: K, listener?: CompositorEventListener<K>): void {
     this.emitter.off(event, listener);
+  }
+
+  // Audio Control
+
+  /**
+   * Sets the master volume for all audio layers.
+   * @param volume - Volume level (0 to 1)
+   */
+  setVolume(volume: number): void {
+    this.audioManager.setMasterVolume(volume);
+  }
+
+  /**
+   * Sets the master mute state for all audio layers.
+   * @param muted - Whether audio is muted
+   */
+  setMuted(muted: boolean): void {
+    this.audioManager.setMasterMuted(muted);
+  }
+
+  /**
+   * Gets the audio context used by the compositor.
+   * Useful for advanced audio processing.
+   */
+  getAudioContext(): AudioContext {
+    return this.audioManager.getAudioContext();
   }
 
   // Lifecycle
@@ -587,7 +680,10 @@ export class Compositor {
     this.disposed = true;
 
     this.stopRenderLoop();
+    this.audioManager.dispose();
     this.sourcePool.dispose();
+    this.registeredAudioSources.clear();
+    this.activeAudioLayers = [];
     this.emitter.removeAllListeners();
     this.ctx = null;
     this.previewOptions = null;

@@ -68,7 +68,8 @@ export interface CompositorSource {
   width?: number;
   height?: number;
   getFrameAt(time: number): Promise<CanvasImageSource | null>;
-  getAudioAt?(time: number, duration: number): Promise<AudioBuffer | null>;
+  getAudioBufferSink?(): import('mediabunny').AudioBufferSink | null;
+  hasAudio?(): boolean;
   dispose(): void;
 }
 
@@ -91,6 +92,4 @@ export type CompositorEventMap = {
   compositionchange: undefined;
 };
 
-export type CompositorEventListener<K extends keyof CompositorEventMap> = (
-  event: CompositorEventMap[K]
-) => void;
+export type CompositorEventListener<K extends keyof CompositorEventMap> = (event: CompositorEventMap[K]) => void;

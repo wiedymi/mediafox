@@ -2,13 +2,7 @@ import type { WrappedCanvas } from 'mediabunny';
 import type { MediaFox } from '../mediafox';
 import type { MediaInfo, MediaSource, PlayerEventMap, PlayerStateData } from '../types';
 import { createPluginContext } from './context';
-import type {
-  HookResult,
-  InstalledPlugin,
-  MediaFoxPlugin,
-  OverlayDimensions,
-  OverlayEntry,
-} from './types';
+import type { HookResult, InstalledPlugin, MediaFoxPlugin, OverlayDimensions, OverlayEntry } from './types';
 
 /**
  * Manages plugin lifecycle and hook execution.
@@ -52,12 +46,7 @@ export class PluginManager {
     };
 
     // Create context
-    installedPlugin.context = createPluginContext(
-      this.player,
-      plugin,
-      installedPlugin,
-      () => this.plugins
-    );
+    installedPlugin.context = createPluginContext(this.player, plugin, installedPlugin, () => this.plugins);
 
     // Store before install (so inter-plugin communication works)
     this.plugins.set(name, installedPlugin);

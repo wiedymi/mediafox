@@ -1,5 +1,6 @@
 import {
   ALL_FORMATS,
+  AudioBufferSink,
   BlobSource,
   BufferSource,
   CanvasSink,
@@ -66,12 +67,14 @@ interface VideoSourceData {
   canvasSink: CanvasSink;
   frameCache: LRUFrameCache;
   frameIntervalMs: number; // Frame duration in milliseconds for cache key quantization
+  audioTrack: InputAudioTrack | null;
+  audioBufferSink: AudioBufferSink | null;
 }
 
 interface AudioSourceData {
   input: Input<Source>;
   audioTrack: InputAudioTrack;
-  audioContext: AudioContext;
+  audioBufferSink: AudioBufferSink;
 }
 
 interface ImageSourceData {
@@ -120,6 +123,20 @@ class VideoSource implements CompositorSource {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Returns the AudioBufferSink for this video source, or null if the video has no audio.
+   */
+  getAudioBufferSink(): AudioBufferSink | null {
+    return this.data.audioBufferSink;
+  }
+
+  /**
+   * Returns true if this video source has an audio track.
+   */
+  hasAudio(): boolean {
+    return this.data.audioBufferSink !== null;
   }
 
   clearCache(): void {
@@ -183,6 +200,13 @@ class AudioOnlySource implements CompositorSource {
     return null; // Audio sources don't have frames
   }
 
+  /**
+   * Returns the AudioBufferSink for this audio source.
+   */
+  getAudioBufferSink(): AudioBufferSink {
+    return this.data.audioBufferSink;
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -207,7 +231,7 @@ export class SourcePool {
     const id = options.id ?? this.generateId();
 
     // Create input from source
-    const input = await this.createInput(source);
+    const input = this.createInput(source);
 
     // Get video tracks
     const videoTracks = await input.getVideoTracks();
@@ -250,6 +274,22 @@ export class SourcePool {
     const pixelCount = videoTrack.displayWidth * videoTrack.displayHeight;
     const cacheSize = pixelCount > 2073600 ? 15 : pixelCount > 921600 ? 30 : 60; // 1080p: 15, 720p: 30, smaller: 60
 
+    // Try to get audio track if available
+    let audioTrack: InputAudioTrack | null = null;
+    let audioBufferSink: AudioBufferSink | null = null;
+    try {
+      const audioTracks = await input.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTrack = audioTracks[0];
+        const canDecodeAudio = await audioTrack.canDecode();
+        if (canDecodeAudio) {
+          audioBufferSink = new AudioBufferSink(audioTrack);
+        }
+      }
+    } catch {
+      // No audio track or can't decode - continue without audio
+    }
+
     const videoSource = new VideoSource(
       id,
       {
@@ -258,6 +298,8 @@ export class SourcePool {
         canvasSink,
         frameCache: new LRUFrameCache(cacheSize),
         frameIntervalMs,
+        audioTrack,
+        audioBufferSink,
       },
       duration,
       videoTrack.displayWidth,
@@ -295,13 +337,8 @@ export class SourcePool {
   async loadAudio(source: MediaSource, options: CompositorSourceOptions = {}): Promise<CompositorSource> {
     const id = options.id ?? this.generateId();
 
-    // Ensure we have an audio context
-    if (!this.audioContext) {
-      this.audioContext = new AudioContext();
-    }
-
     // Create input from source
-    const input = await this.createInput(source);
+    const input = this.createInput(source);
 
     // Get audio tracks
     const audioTracks = await input.getAudioTracks();
@@ -311,15 +348,25 @@ export class SourcePool {
     }
     const audioTrack = audioTracks[0];
 
+    // Check if we can decode
+    const canDecode = await audioTrack.canDecode();
+    if (!canDecode) {
+      input.dispose();
+      throw new Error(`Cannot decode audio track with codec: ${audioTrack.codec}`);
+    }
+
     // Get duration
     const duration = await audioTrack.computeDuration();
+
+    // Create audio buffer sink for playback
+    const audioBufferSink = new AudioBufferSink(audioTrack);
 
     const audioSource = new AudioOnlySource(
       id,
       {
         input,
         audioTrack,
-        audioContext: this.audioContext,
+        audioBufferSink,
       },
       duration
     );

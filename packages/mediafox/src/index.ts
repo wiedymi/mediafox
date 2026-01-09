@@ -1,7 +1,19 @@
 // Main player class
 
-// Compositor
-export { Compositor, SourcePool } from './compositor';
+// Re-export useful Mediabunny types
+export type {
+  AttachedImage,
+  AudioCodec,
+  AudioSample,
+  EncodedPacket,
+  InputFormat,
+  MetadataTags,
+  OutputFormat,
+  Quality,
+  SubtitleCodec,
+  VideoCodec,
+  VideoSample,
+} from 'mediabunny';
 export type {
   AudioLayer,
   CompositionFrame,
@@ -18,26 +30,18 @@ export type {
   PreviewOptions,
   SourceType,
 } from './compositor';
-
-// Re-export useful Mediabunny types
-export type {
-  AttachedImage,
-  AudioCodec,
-  AudioSample,
-  EncodedPacket,
-  InputFormat,
-  MetadataTags,
-  OutputFormat,
-  Quality,
-  SubtitleCodec,
-  VideoCodec,
-  VideoSample,
-} from 'mediabunny';
+// Compositor
+export { Compositor, SourcePool } from './compositor';
 // Event system
 export { EventEmitter } from './events/emitter';
 export type { TypedEventEmitter, UnsubscribeFn } from './events/types';
 export { MediaFox } from './mediafox';
 export { AudioManager } from './playback/audio';
+// Playback components
+export { PlaybackController } from './playback/controller';
+export { VideoRenderer } from './playback/renderer';
+export type { IRenderer, RendererCreationResult } from './playback/renderers';
+export { RendererFactory } from './playback/renderers';
 // Plugin system
 export type {
   AudioHooks,
@@ -52,11 +56,6 @@ export type {
   RenderHooks,
   StateHooks,
 } from './plugins';
-// Playback components
-export { PlaybackController } from './playback/controller';
-export { VideoRenderer } from './playback/renderer';
-export type { IRenderer, RendererCreationResult } from './playback/renderers';
-export { RendererFactory } from './playback/renderers';
 // Source management
 export { SourceManager } from './sources/manager';
 export type { SourceItem, SourceOptions } from './sources/source';

@@ -827,10 +827,7 @@ export class VideoRenderer {
     }
 
     // Sync dimensions (backing buffer size)
-    if (
-      this.overlayCanvas.width !== this.canvas.width ||
-      this.overlayCanvas.height !== this.canvas.height
-    ) {
+    if (this.overlayCanvas.width !== this.canvas.width || this.overlayCanvas.height !== this.canvas.height) {
       this.overlayCanvas.width = this.canvas.width;
       this.overlayCanvas.height = this.canvas.height;
     }
@@ -1056,7 +1053,9 @@ export class VideoRenderer {
     this.onRendererFallback = callback;
   }
 
-  setRotationChangeCallback(callback: (rotation: Rotation, displaySize: { width: number; height: number }) => void): void {
+  setRotationChangeCallback(
+    callback: (rotation: Rotation, displaySize: { width: number; height: number }) => void
+  ): void {
     this.onRotationChange = callback;
   }
 
