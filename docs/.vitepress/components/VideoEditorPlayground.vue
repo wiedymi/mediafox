@@ -9,7 +9,7 @@
                 <button @click="openFileDialog" class="tool-btn" :disabled="loading">
                     Import
                 </button>
-                <input type="file" ref="fileInput" @change="handleFileSelect" accept="video/*,image/*,audio/*" hidden />
+                <input type="file" ref="fileInput" @change="handleFileSelect" hidden />
             </div>
             <div class="toolbar-center">
                 <button @click="skipToStart" class="transport-btn" title="Go to start">|◀</button>
