@@ -47,7 +47,7 @@ Use OffscreenCanvas + Web Worker to move compositing work off the main thread:
 
 ```typescript
 import { Compositor } from '@mediafox/core';
-import CompositorWorkerUrl from '@mediafox/core/compositor-worker?url';
+import CompositorWorkerUrl from '@mediafox/core/compositor-worker?worker&url';
 
 const compositor = new Compositor({
   canvas,
@@ -61,7 +61,7 @@ const compositor = new Compositor({
 });
 ```
 
-The `?url` import suffix tells bundlers (Vite, Webpack 5+) to return the URL to the worker file rather than its contents.
+The `?worker&url` suffix tells Vite to bundle the worker with all dependencies (including mediabunny from your node_modules) and return the URL.
 
 **Worker behavior:**
 - Rendering runs in a Web Worker using OffscreenCanvas

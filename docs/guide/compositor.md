@@ -209,11 +209,11 @@ Move compositing work off the main thread with OffscreenCanvas for better perfor
 
 ### Basic Setup
 
-The simplest approach is to import the worker URL from the package and pass it to the compositor:
+Import the worker source with your bundler's worker syntax. The bundler will compile and bundle all dependencies (including mediabunny) automatically:
 
 ```typescript
 import { Compositor } from '@mediafox/core';
-import CompositorWorkerUrl from '@mediafox/core/compositor-worker?url';
+import CompositorWorkerUrl from '@mediafox/core/compositor-worker?worker&url';
 
 const compositor = new Compositor({
   canvas,
@@ -227,51 +227,33 @@ const compositor = new Compositor({
 });
 ```
 
+The `?worker&url` suffix tells Vite to:
+1. Bundle the worker with all its dependencies (including mediabunny from your node_modules)
+2. Return the URL to the bundled worker file
+
+This ensures you always use your project's version of mediabunny.
+
 ### Bundler Configuration
 
 #### Vite
 
-Vite handles the `?url` import automatically. No extra configuration needed for production builds.
+Works out of the box with `?worker&url` import. No extra configuration needed.
 
-For development with local package linking (monorepo or `npm link`), add an alias:
+#### Webpack 5
 
-```typescript
-// vite.config.ts
-export default defineConfig({
-  resolve: {
-    alias: [
-      {
-        find: '@mediafox/core/compositor-worker',
-        replacement: './node_modules/@mediafox/core/dist/compositor-worker.js'
-      }
-    ]
-  }
-});
-```
-
-#### Webpack
-
-Use asset modules to get the worker URL:
+Use the worker URL pattern:
 
 ```typescript
-import CompositorWorkerUrl from '@mediafox/core/compositor-worker?url';
-// or
 const CompositorWorkerUrl = new URL(
-  '@mediafox/core/dist/compositor-worker.js',
+  '@mediafox/core/compositor-worker',
   import.meta.url
 );
-```
 
-#### Manual URL
-
-If your bundler doesn't support URL imports, copy the worker file to your public directory and reference it directly:
-
-```typescript
 const compositor = new Compositor({
   canvas,
   worker: {
     enabled: true,
-    url: '/assets/compositor-worker.js',
+    url: CompositorWorkerUrl.href,
     type: 'module'
   }
 });

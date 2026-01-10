@@ -12,16 +12,17 @@
       "import": "./dist/index.js"
     },
     "./compositor-worker": {
-      "import": "./dist/compositor-worker.js"
+      "import": "./src/compositor/compositor-worker.ts"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun run build:js && bun run build:types",
-    "build:js": "bun build src/index.ts --outdir=dist --target=browser --format=esm --minify --external mediabunny && bun build src/compositor/compositor-worker.ts --outdir=dist --target=browser --format=esm --minify",
+    "build:js": "bun build src/index.ts --outdir=dist --target=browser --format=esm --minify --external mediabunny && bun build src/compositor/compositor-worker.ts --outdir=dist --target=browser --format=esm --minify --external mediabunny",
     "build:types": "tsc --emitDeclarationOnly",
     "test": "bun test",
     "lint": "biome lint ./src",
