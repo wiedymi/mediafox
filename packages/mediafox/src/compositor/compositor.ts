@@ -608,6 +608,8 @@ export class Compositor {
 
     // Start audio playback
     if (this.audioManager) {
+      // Reset active audio tracking so sources restart after pause/seek.
+      this.activeAudioSourceIds.clear();
       await this.audioManager.play(this.state.currentTime);
     }
 
