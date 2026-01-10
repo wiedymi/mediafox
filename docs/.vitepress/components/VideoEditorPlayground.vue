@@ -169,6 +169,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Compositor, type CompositorSource } from '@mediafox/core';
+import CompositorWorkerUrl from '../../../packages/mediafox/src/compositor/compositor-worker?worker&url';
 
 interface ClipData {
     id: string;
@@ -457,22 +458,73 @@ let dragStartX = 0;
 let dragStartValue = 0;
 let dragStartDuration = 0;
 let dragStartOffset = 0;
+let scrubRAF: number | null = null;
+let scrubPendingTime: number | null = null;
+let scrubSeeking = false;
+let resumeAfterScrub = false;
+
+const scheduleScrub = (time: number) => {
+    currentTime.value = time;
+    if (!compositor.value) return;
+    scrubPendingTime = time;
+    if (scrubRAF === null) {
+        scrubRAF = requestAnimationFrame(() => {
+            scrubRAF = null;
+            const next = scrubPendingTime;
+            scrubPendingTime = null;
+            if (next !== null) void performScrubSeek(next);
+        });
+    }
+};
+
+const performScrubSeek = async (time: number) => {
+    if (!compositor.value) return;
+    if (scrubSeeking) {
+        scrubPendingTime = time;
+        return;
+    }
+    scrubSeeking = true;
+    try {
+        await compositor.value.seek(time);
+    } finally {
+        scrubSeeking = false;
+        if (scrubPendingTime !== null) {
+            const next = scrubPendingTime;
+            scrubPendingTime = null;
+            scheduleScrub(next);
+        }
+    }
+};
+
+const startScrub = (time: number) => {
+    resumeAfterScrub = playing.value;
+    if (resumeAfterScrub) compositor.value?.pause();
+    dragMode = 'scrub';
+    scheduleScrub(time);
+};
+
+const endScrub = () => {
+    if (resumeAfterScrub) {
+        compositor.value?.play();
+        resumeAfterScrub = false;
+    }
+};
 
 const onRulerMouseDown = (e: MouseEvent) => {
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const time = Math.max(0, x / PX_PER_SEC);
-    compositor.value?.seek(time);
     selectedClipId.value = null;
-    dragMode = 'scrub';
+    startScrub(time);
 
     const onMove = (ev: MouseEvent) => {
         const rx = ev.clientX - rect.left;
         const t = Math.max(0, Math.min(rx / PX_PER_SEC, duration.value));
-        compositor.value?.seek(t);
+        scheduleScrub(t);
     };
     const onUp = () => {
+        endScrub();
         dragMode = null;
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
@@ -486,9 +538,8 @@ const onTimelineMouseDown = (e: MouseEvent) => {
     const rect = timelineRef.value.getBoundingClientRect();
     const x = e.clientX - rect.left - 48;
     const time = Math.max(0, x / PX_PER_SEC);
-    compositor.value?.seek(time);
     selectedClipId.value = null;
-    dragMode = 'scrub';
+    startScrub(time);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
 };
@@ -523,7 +574,7 @@ const onMouseMove = (e: MouseEvent) => {
         const rect = timelineRef.value.getBoundingClientRect();
         const x = e.clientX - rect.left - 48;
         const time = Math.max(0, Math.min(x / PX_PER_SEC, duration.value));
-        compositor.value?.seek(time);
+        scheduleScrub(time);
     } else if (dragMode === 'move' && dragClip) {
         dragClip.startTime = Math.max(0, dragStartValue + dt);
         updatePreview();
@@ -545,6 +596,7 @@ const onMouseMove = (e: MouseEvent) => {
 };
 
 const onMouseUp = () => {
+    if (dragMode === 'scrub') endScrub();
     dragMode = null;
     dragClip = null;
     document.removeEventListener('mousemove', onMouseMove);
@@ -639,9 +691,18 @@ onMounted(() => {
         canvas: canvasRef.value,
         width: canvasWidth.value,
         height: canvasHeight.value,
-        backgroundColor: '#000000'
+        backgroundColor: '#000000',
+        worker: {
+            enabled: true,
+            url: CompositorWorkerUrl,
+            type: 'module'
+        }
     });
     compositor.value = comp;
+
+    comp.on('error', (e) => {
+        console.error('[Compositor Error]', e);
+    });
 
     // Listen to compositor events
     comp.on('timeupdate', ({ currentTime: t }) => {
@@ -685,6 +746,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     stopPlayheadAnimation();
+    if (scrubRAF !== null) cancelAnimationFrame(scrubRAF);
     compositor.value?.dispose();
     // Remove page styles
     if (styleEl) {
