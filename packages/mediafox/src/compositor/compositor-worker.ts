@@ -13,9 +13,12 @@ import type {
   CompositorWorkerResponse,
 } from './worker-types';
 
-type WorkerScope = DedicatedWorkerGlobalScope;
+type WorkerScope = {
+  postMessage: (message: unknown, transfer?: Transferable[]) => void;
+  onmessage: ((event: MessageEvent<CompositorWorkerRequest>) => void) | null;
+};
 
-const workerScope = self as WorkerScope;
+const workerScope = self as unknown as WorkerScope;
 
 let compositor: Compositor | null = null;
 let canvas: OffscreenCanvas | null = null;
