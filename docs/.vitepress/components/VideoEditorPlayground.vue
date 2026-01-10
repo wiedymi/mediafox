@@ -169,7 +169,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Compositor, type CompositorSource } from '@mediafox/core';
-import CompositorWorkerUrl from '../../../packages/mediafox/src/compositor/compositor-worker?worker&url';
+import CompositorWorkerUrl from '@mediafox/core/compositor-worker?url';
 
 interface ClipData {
     id: string;

@@ -46,18 +46,31 @@ const compositor = new Compositor({
 Use OffscreenCanvas + Web Worker to move compositing work off the main thread:
 
 ```typescript
+import { Compositor } from '@mediafox/core';
+import CompositorWorkerUrl from '@mediafox/core/compositor-worker?url';
+
 const compositor = new Compositor({
   canvas,
   width: 1920,
   height: 1080,
-  worker: true
+  worker: {
+    enabled: true,
+    url: CompositorWorkerUrl,
+    type: 'module'
+  }
 });
 ```
 
-When `worker` is enabled, rendering runs in a worker while audio playback (if enabled) stays on the main thread. All sources must be loaded through the compositor instance (it proxies to the worker).
-`CompositorSource.getFrameAt()` is not available in worker mode.
-For video sources with audio, the audio track is decoded on the main thread to keep WebAudio scheduling stable.
-This means video sources with audio will decode audio separately from video when worker rendering is enabled.
+The `?url` import suffix tells bundlers (Vite, Webpack 5+) to return the URL to the worker file rather than its contents.
+
+**Worker behavior:**
+- Rendering runs in a Web Worker using OffscreenCanvas
+- Audio playback stays on the main thread for stable WebAudio scheduling
+- All sources must be loaded through the compositor instance (it proxies to the worker)
+- `CompositorSource.getFrameAt()` is not available in worker mode
+- Video sources with audio decode audio separately on the main thread
+
+See the [Compositor Guide](/guide/compositor#worker-rendering-offscreencanvas) for bundler-specific configuration.
 
 ## Source Management
 

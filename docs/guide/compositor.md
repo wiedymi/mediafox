@@ -205,20 +205,121 @@ downloadBlob(png, 'frame.png');
 
 ## Worker Rendering (OffscreenCanvas)
 
-Move compositing work off the main thread with OffscreenCanvas:
+Move compositing work off the main thread with OffscreenCanvas for better performance.
+
+### Basic Setup
+
+The simplest approach is to import the worker URL from the package and pass it to the compositor:
 
 ```typescript
+import { Compositor } from '@mediafox/core';
+import CompositorWorkerUrl from '@mediafox/core/compositor-worker?url';
+
 const compositor = new Compositor({
   canvas,
   width: 1920,
   height: 1080,
-  worker: true
+  worker: {
+    enabled: true,
+    url: CompositorWorkerUrl,
+    type: 'module'
+  }
 });
 ```
 
-Worker rendering requires `HTMLCanvasElement` + `OffscreenCanvas` + `Worker` support. Audio (if enabled) plays on the main thread while rendering happens in the worker.
-For video sources with audio, the audio track is decoded on the main thread for stable scheduling.
-This means audio is decoded separately from video when worker rendering is enabled.
+### Bundler Configuration
+
+#### Vite
+
+Vite handles the `?url` import automatically. No extra configuration needed for production builds.
+
+For development with local package linking (monorepo or `npm link`), add an alias:
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  resolve: {
+    alias: [
+      {
+        find: '@mediafox/core/compositor-worker',
+        replacement: './node_modules/@mediafox/core/dist/compositor-worker.js'
+      }
+    ]
+  }
+});
+```
+
+#### Webpack
+
+Use asset modules to get the worker URL:
+
+```typescript
+import CompositorWorkerUrl from '@mediafox/core/compositor-worker?url';
+// or
+const CompositorWorkerUrl = new URL(
+  '@mediafox/core/dist/compositor-worker.js',
+  import.meta.url
+);
+```
+
+#### Manual URL
+
+If your bundler doesn't support URL imports, copy the worker file to your public directory and reference it directly:
+
+```typescript
+const compositor = new Compositor({
+  canvas,
+  worker: {
+    enabled: true,
+    url: '/assets/compositor-worker.js',
+    type: 'module'
+  }
+});
+```
+
+### Worker Options
+
+```typescript
+interface CompositorWorkerOptions {
+  enabled?: boolean;  // Enable worker rendering
+  url?: string;       // URL to the worker script
+  type?: 'module' | 'classic';  // Worker type (default: 'module')
+}
+```
+
+### Requirements
+
+Worker rendering requires:
+- `HTMLCanvasElement` (not `OffscreenCanvas` as input)
+- Browser support for `OffscreenCanvas`
+- Browser support for `Worker`
+
+### How It Works
+
+When worker mode is enabled:
+1. The canvas is transferred to an OffscreenCanvas in a Web Worker
+2. All rendering happens off the main thread
+3. Audio playback stays on the main thread for stable WebAudio scheduling
+4. Source loading is proxied through the worker
+
+::: warning
+`CompositorSource.getFrameAt()` is not available in worker mode since frames are rendered directly in the worker.
+:::
+
+### Error Handling
+
+Listen for worker errors:
+
+```typescript
+compositor.on('error', (error) => {
+  console.error('Compositor error:', error);
+});
+```
+
+Common issues:
+- **Worker not found**: Check that the worker URL is correct and the file is accessible
+- **CORS errors**: The worker file must be served from the same origin or with proper CORS headers
+- **Module resolution**: Ensure `mediabunny` is available to the worker (it's an external dependency)
 
 ## Building a Simple Editor
 
