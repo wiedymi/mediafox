@@ -129,13 +129,18 @@ export class Compositor {
     this.sourcePool = new SourcePool();
 
     if (canUseWorker) {
-      this.workerClient = new CompositorWorkerClient({
-        canvas: this.canvas as HTMLCanvasElement,
-        width: this.width,
-        height: this.height,
-        backgroundColor: this.backgroundColor,
-        worker: options.worker ?? true,
-      });
+      try {
+        this.workerClient = new CompositorWorkerClient({
+          canvas: this.canvas as HTMLCanvasElement,
+          width: this.width,
+          height: this.height,
+          backgroundColor: this.backgroundColor,
+          worker: options.worker ?? true,
+        });
+      } catch (err) {
+        console.warn('[Compositor] Worker initialization failed, falling back to main thread rendering:', err);
+        this.workerClient = null;
+      }
     }
 
     if (options.enableAudio !== false) {
