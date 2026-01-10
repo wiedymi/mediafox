@@ -14,6 +14,8 @@ import type {
   FrameExportOptions,
   PreviewOptions,
 } from './types';
+import { CompositorWorkerClient } from './worker-client';
+import type { CompositorWorkerFrame, CompositorWorkerSourceInfo } from './worker-types';
 
 interface CompositorState {
   playing: boolean;
@@ -24,8 +26,9 @@ interface CompositorState {
 
 // Pre-allocated arrays for render loop to reduce GC pressure
 interface RenderBuffers {
-  frameData: { layer: CompositorLayer; image: CanvasImageSource }[];
   visibleLayers: CompositorLayer[];
+  framePromises: Promise<CanvasImageSource | null>[];
+  frameImages: (CanvasImageSource | null)[];
 }
 
 /**
@@ -58,22 +61,31 @@ export class Compositor {
   private height: number;
   private backgroundColor: string;
   private sourcePool: SourcePool;
-  private audioManager: CompositorAudioManager;
+  private audioManager: CompositorAudioManager | null = null;
+  private workerClient: CompositorWorkerClient | null = null;
+  private workerSources = new Map<string, CompositorSource>();
+  private workerAudioSources = new Map<string, CompositorSource>();
   private emitter: EventEmitter<CompositorEventMap>;
   private state: CompositorState;
   private animationFrameId: number | null = null;
   private lastFrameTime = 0;
+  private lastRenderTime = 0;
   private previewOptions: PreviewOptions | null = null;
   private disposed = false;
 
   // Performance optimizations
-  private renderBuffers: RenderBuffers = { frameData: [], visibleLayers: [] };
+  private renderBuffers: RenderBuffers = { visibleLayers: [], framePromises: [], frameImages: [] };
   private lastTimeUpdateEmit = 0;
   private timeUpdateThrottleMs = 100; // ~10Hz
   private renderPending = false;
 
   // Audio state
-  private activeAudioLayers: AudioLayer[] = [];
+  private activeAudioSourceIds = new Set<string>();
+  private audioScratch = {
+    nextActiveSourceIds: new Set<string>(),
+    newSourceIds: [] as string[],
+    newSourceTimes: [] as number[],
+  };
   private registeredAudioSources = new Set<string>();
 
   /**
@@ -85,8 +97,6 @@ export class Compositor {
     this.width = options.width ?? (this.canvas.width || 1920);
     this.height = options.height ?? (this.canvas.height || 1080);
     this.backgroundColor = options.backgroundColor ?? '#000000';
-    this.sourcePool = new SourcePool();
-    this.audioManager = new CompositorAudioManager();
     this.emitter = new EventEmitter({ maxListeners: 50 });
     this.state = {
       playing: false,
@@ -99,18 +109,53 @@ export class Compositor {
     this.canvas.width = this.width;
     this.canvas.height = this.height;
 
-    // Get 2D context
-    this.ctx = this.canvas.getContext('2d', {
-      alpha: false,
-      desynchronized: true,
-    }) as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+    const workerEnabled =
+      typeof options.worker === 'boolean'
+        ? options.worker
+        : options.worker
+          ? (options.worker.enabled ?? true)
+          : false;
+    const canUseWorker =
+      workerEnabled &&
+      typeof Worker !== 'undefined' &&
+      typeof OffscreenCanvas !== 'undefined' &&
+      typeof (this.canvas as HTMLCanvasElement).transferControlToOffscreen === 'function' &&
+      !(this.canvas instanceof OffscreenCanvas);
 
-    if (!this.ctx) {
-      throw new Error('Failed to get 2D context for compositor canvas');
+    if (workerEnabled && !canUseWorker) {
+      throw new Error('Worker compositor requires HTMLCanvasElement, OffscreenCanvas, and Worker support');
     }
 
-    // Initial clear
-    this.clear();
+    this.sourcePool = new SourcePool();
+
+    if (canUseWorker) {
+      this.workerClient = new CompositorWorkerClient({
+        canvas: this.canvas as HTMLCanvasElement,
+        width: this.width,
+        height: this.height,
+        backgroundColor: this.backgroundColor,
+        worker: options.worker ?? true,
+      });
+    }
+
+    if (options.enableAudio !== false) {
+      this.audioManager = new CompositorAudioManager();
+    }
+
+    if (!this.workerClient) {
+      // Get 2D context
+      this.ctx = this.canvas.getContext('2d', {
+        alpha: false,
+        desynchronized: true,
+      }) as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+
+      if (!this.ctx) {
+        throw new Error('Failed to get 2D context for compositor canvas');
+      }
+
+      // Initial clear
+      this.clear();
+    }
   }
 
   // Source Management
@@ -123,6 +168,16 @@ export class Compositor {
    */
   async loadSource(source: MediaSource, options?: CompositorSourceOptions): Promise<CompositorSource> {
     this.checkDisposed();
+    if (this.workerClient) {
+      const info = await this.workerClient.loadSource(source, options);
+      const proxy = this.createWorkerSource(info);
+      if (this.audioManager && info.hasAudio) {
+        await this.loadWorkerAudio(source, proxy.id);
+      }
+      this.emitter.emit('sourceloaded', { id: proxy.id, source: proxy });
+      return proxy;
+    }
+
     const loaded = await this.sourcePool.loadVideo(source, options);
 
     // Register audio with audio manager if available
@@ -139,6 +194,13 @@ export class Compositor {
    */
   async loadImage(source: string | Blob | File): Promise<CompositorSource> {
     this.checkDisposed();
+    if (this.workerClient) {
+      const info = await this.workerClient.loadImage(source);
+      const proxy = this.createWorkerSource(info);
+      this.emitter.emit('sourceloaded', { id: proxy.id, source: proxy });
+      return proxy;
+    }
+
     const loaded = await this.sourcePool.loadImage(source);
     this.emitter.emit('sourceloaded', { id: loaded.id, source: loaded });
     return loaded;
@@ -152,6 +214,16 @@ export class Compositor {
    */
   async loadAudio(source: MediaSource, options?: CompositorSourceOptions): Promise<CompositorSource> {
     this.checkDisposed();
+    if (this.workerClient) {
+      const info = await this.workerClient.loadAudio(source, options);
+      const proxy = this.createWorkerSource(info);
+      if (this.audioManager) {
+        await this.loadWorkerAudio(source, proxy.id);
+      }
+      this.emitter.emit('sourceloaded', { id: proxy.id, source: proxy });
+      return proxy;
+    }
+
     const loaded = await this.sourcePool.loadAudio(source, options);
 
     // Register audio with audio manager
@@ -167,9 +239,19 @@ export class Compositor {
    * @returns True if the source was found and unloaded
    */
   unloadSource(id: string): boolean {
+    if (this.workerClient) {
+      const source = this.workerSources.get(id);
+      if (!source) return false;
+      void this.workerClient.unloadSource(id);
+      this.workerSources.delete(id);
+      this.unloadWorkerAudio(id);
+      this.emitter.emit('sourceunloaded', { id });
+      return true;
+    }
+
     // Unregister audio before unloading
     if (this.registeredAudioSources.has(id)) {
-      this.audioManager.unregisterSource(id);
+      this.audioManager?.unregisterSource(id);
       this.registeredAudioSources.delete(id);
     }
 
@@ -184,6 +266,7 @@ export class Compositor {
    * Registers a source's audio with the audio manager.
    */
   private registerSourceAudio(source: CompositorSource): void {
+    if (!this.audioManager) return;
     if (this.registeredAudioSources.has(source.id)) return;
 
     const audioBufferSink = source.getAudioBufferSink?.();
@@ -197,35 +280,45 @@ export class Compositor {
    * Processes audio layers for the current frame.
    */
   private processAudioLayers(layers: AudioLayer[], mediaTime: number): void {
-    // Track new sources that need playback started
-    const newSources: string[] = [];
+    if (!this.audioManager) return;
+    const newSourceIds = this.audioScratch.newSourceIds;
+    const newSourceTimes = this.audioScratch.newSourceTimes;
+    const nextActiveSourceIds = this.audioScratch.nextActiveSourceIds;
+    const previousActiveSourceIds = this.activeAudioSourceIds;
 
-    for (const layer of layers) {
+    newSourceIds.length = 0;
+    newSourceTimes.length = 0;
+    nextActiveSourceIds.clear();
+
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
       if (layer.muted) continue;
 
       const sourceId = layer.source.id;
       if (!this.audioManager.hasSource(sourceId)) continue;
 
-      // Check if this is a newly active audio source
-      const wasActive = this.activeAudioLayers.some((l) => l.source.id === sourceId);
-      if (!wasActive) {
-        newSources.push(sourceId);
+      nextActiveSourceIds.add(sourceId);
+
+      if (!previousActiveSourceIds.has(sourceId)) {
+        newSourceIds.push(sourceId);
+        newSourceTimes.push(layer.sourceTime ?? mediaTime);
       }
     }
 
-    // Update active layers
-    this.activeAudioLayers = layers;
+    // Update active sources
+    if (previousActiveSourceIds.size > 0) {
+      previousActiveSourceIds.clear();
+    }
+    for (const sourceId of nextActiveSourceIds) {
+      previousActiveSourceIds.add(sourceId);
+    }
 
     // Process layers with audio manager
     this.audioManager.processAudioLayers(layers, mediaTime);
 
     // Start playback for new sources
-    for (const sourceId of newSources) {
-      const layer = layers.find((l) => l.source.id === sourceId);
-      if (layer) {
-        const sourceTime = layer.sourceTime ?? mediaTime;
-        this.audioManager.startSourcePlayback(sourceId, sourceTime);
-      }
+    for (let i = 0; i < newSourceIds.length; i++) {
+      this.audioManager.startSourcePlayback(newSourceIds[i], newSourceTimes[i]);
     }
   }
 
@@ -235,6 +328,9 @@ export class Compositor {
    * @returns The source if found, undefined otherwise
    */
   getSource(id: string): CompositorSource | undefined {
+    if (this.workerClient) {
+      return this.workerSources.get(id);
+    }
     return this.sourcePool.getSource(id);
   }
 
@@ -243,6 +339,9 @@ export class Compositor {
    * @returns Array of all loaded sources
    */
   getAllSources(): CompositorSource[] {
+    if (this.workerClient) {
+      return Array.from(this.workerSources.values());
+    }
     return this.sourcePool.getAllSources();
   }
 
@@ -256,51 +355,67 @@ export class Compositor {
    */
   async render(frame: CompositionFrame): Promise<boolean> {
     this.checkDisposed();
-    if (!this.ctx) return false;
+    if (this.workerClient) {
+      const workerFrame = this.serializeWorkerFrame(frame);
+      return this.workerClient.render(workerFrame);
+    }
+    const ctx = this.ctx;
+    if (!ctx) return false;
 
     // Reuse pre-allocated arrays
-    const { frameData, visibleLayers } = this.renderBuffers;
-    frameData.length = 0;
+    const { visibleLayers, framePromises, frameImages } = this.renderBuffers;
     visibleLayers.length = 0;
+    framePromises.length = 0;
+    frameImages.length = 0;
 
-    // Filter visible layers into pre-allocated array
-    for (let i = 0; i < frame.layers.length; i++) {
-      const layer = frame.layers[i];
-      if (layer.visible !== false) {
-        visibleLayers.push(layer);
+    // Filter visible layers into pre-allocated array, track sort order
+    let needsSort = false;
+    let lastZIndex = -Infinity;
+    const layers = frame.layers;
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      if (layer.visible === false) continue;
+
+      const zIndex = layer.zIndex ?? 0;
+      if (zIndex < lastZIndex) {
+        needsSort = true;
       }
+      lastZIndex = zIndex;
+
+      visibleLayers.push(layer);
     }
 
-    // Sort visible layers by zIndex (in-place)
-    visibleLayers.sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+    if (visibleLayers.length === 0) {
+      ctx.fillStyle = this.backgroundColor;
+      ctx.fillRect(0, 0, this.width, this.height);
+      return true;
+    }
 
-    // Fetch all frames in parallel, maintaining sort order via indexed insertion
-    const fetchPromises: Promise<void>[] = [];
+    if (needsSort) {
+      visibleLayers.sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+    }
+
+    // Fetch all frames in parallel (promises already in flight), store results densely
     for (let i = 0; i < visibleLayers.length; i++) {
       const layer = visibleLayers[i];
-      const index = i; // Capture index for closure
-      fetchPromises.push(
-        (async () => {
-          const sourceTime = layer.sourceTime ?? frame.time;
-          const frameImage = await layer.source.getFrameAt(sourceTime);
-          if (frameImage) {
-            frameData[index] = { layer, image: frameImage };
-          }
-        })()
-      );
+      const sourceTime = layer.sourceTime ?? frame.time;
+      framePromises[i] = layer.source.getFrameAt(sourceTime);
     }
 
-    await Promise.all(fetchPromises);
+    const images = await Promise.all(framePromises);
+    for (let i = 0; i < images.length; i++) {
+      frameImages[i] = images[i] ?? null;
+    }
 
     // Clear and render - synchronous to prevent flicker
-    this.ctx.fillStyle = this.backgroundColor;
-    this.ctx.fillRect(0, 0, this.width, this.height);
+    ctx.fillStyle = this.backgroundColor;
+    ctx.fillRect(0, 0, this.width, this.height);
 
-    // Render in order, skip undefined entries (failed fetches)
-    for (let i = 0; i < frameData.length; i++) {
-      const entry = frameData[i];
-      if (entry) {
-        this.renderLayer(entry.image, entry.layer);
+    // Render in order, skip null entries (failed fetches)
+    for (let i = 0; i < visibleLayers.length; i++) {
+      const image = frameImages[i];
+      if (image) {
+        this.renderLayer(image, visibleLayers[i]);
       }
     }
 
@@ -308,7 +423,8 @@ export class Compositor {
   }
 
   private renderLayer(image: CanvasImageSource, layer: CompositorLayer): void {
-    if (!this.ctx) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
 
     const transform = layer.transform;
     const sourceWidth = layer.source.width ?? this.width;
@@ -316,7 +432,7 @@ export class Compositor {
 
     // Fast path: no transform object means draw at origin with source dimensions
     if (!transform) {
-      this.ctx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
+      ctx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
       return;
     }
 
@@ -335,7 +451,7 @@ export class Compositor {
 
     // Fast path: simple position/size only, no rotation/scale/opacity
     if (!needsOpacity && !needsTransform) {
-      this.ctx.drawImage(image, x, y, destWidth, destHeight);
+      ctx.drawImage(image, x, y, destWidth, destHeight);
       return;
     }
 
@@ -343,33 +459,117 @@ export class Compositor {
     const anchorY = transform.anchorY ?? 0.5;
 
     // Save context state only when needed
-    this.ctx.save();
+    ctx.save();
 
     if (needsOpacity) {
-      this.ctx.globalAlpha = opacity;
+      ctx.globalAlpha = opacity;
     }
 
     // Move to layer position
-    this.ctx.translate(x + destWidth * anchorX, y + destHeight * anchorY);
+    ctx.translate(x + destWidth * anchorX, y + destHeight * anchorY);
 
     if (rotation !== 0) {
-      this.ctx.rotate((rotation * Math.PI) / 180);
+      ctx.rotate((rotation * Math.PI) / 180);
     }
 
     if (scaleX !== 1 || scaleY !== 1) {
-      this.ctx.scale(scaleX, scaleY);
+      ctx.scale(scaleX, scaleY);
     }
 
     // Draw image centered on anchor point
-    this.ctx.drawImage(image, -destWidth * anchorX, -destHeight * anchorY, destWidth, destHeight);
+    ctx.drawImage(image, -destWidth * anchorX, -destHeight * anchorY, destWidth, destHeight);
 
-    this.ctx.restore();
+    ctx.restore();
+  }
+
+  private createWorkerSource(info: CompositorWorkerSourceInfo): CompositorSource {
+    const proxy: CompositorSource = {
+      id: info.id,
+      type: info.type,
+      duration: info.duration,
+      width: info.width,
+      height: info.height,
+      async getFrameAt(): Promise<CanvasImageSource | null> {
+        throw new Error('getFrameAt is not available when worker rendering is enabled');
+      },
+      getAudioBufferSink(): import('mediabunny').AudioBufferSink | null {
+        return null;
+      },
+      hasAudio(): boolean {
+        return info.hasAudio ?? false;
+      },
+      dispose(): void {
+        // Managed by the compositor worker
+      },
+    };
+
+    this.workerSources.set(proxy.id, proxy);
+    return proxy;
+  }
+
+  private async loadWorkerAudio(source: MediaSource, id: string): Promise<void> {
+    if (!this.audioManager) return;
+
+    if (this.workerAudioSources.has(id)) {
+      this.unloadWorkerAudio(id);
+    }
+
+    try {
+      const audioSource = await this.sourcePool.loadAudio(source, { id });
+      this.workerAudioSources.set(id, audioSource);
+      this.registerSourceAudio(audioSource);
+    } catch {
+      // Ignore audio load failures in worker mode
+    }
+  }
+
+  private unloadWorkerAudio(id: string): void {
+    if (!this.audioManager) return;
+
+    if (this.workerAudioSources.has(id)) {
+      this.audioManager.unregisterSource(id);
+      this.registeredAudioSources.delete(id);
+      this.sourcePool.unloadSource(id);
+      this.workerAudioSources.delete(id);
+    }
+  }
+
+  private serializeWorkerFrame(frame: CompositionFrame): CompositorWorkerFrame {
+    if (!this.workerClient) {
+      throw new Error('Worker compositor not initialized');
+    }
+
+    const layers = frame.layers;
+    const serializedLayers = new Array(layers.length);
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i];
+      const sourceId = layer.source.id;
+      if (!this.workerSources.has(sourceId)) {
+        throw new Error(`Layer source ${sourceId} is not managed by this compositor`);
+      }
+      serializedLayers[i] = {
+        sourceId,
+        sourceTime: layer.sourceTime,
+        transform: layer.transform,
+        visible: layer.visible,
+        zIndex: layer.zIndex,
+      };
+    }
+
+    return {
+      time: frame.time,
+      layers: serializedLayers,
+    };
   }
 
   /**
    * Clears the canvas with the background color.
    */
   clear(): void {
+    if (this.workerClient) {
+      void this.workerClient.clear();
+      return;
+    }
     if (!this.ctx) return;
     this.ctx.fillStyle = this.backgroundColor;
     this.ctx.fillRect(0, 0, this.width, this.height);
@@ -386,6 +586,7 @@ export class Compositor {
     this.checkDisposed();
     this.previewOptions = options;
     this.state.duration = options.duration;
+    this.lastRenderTime = 0;
     this.emitter.emit('compositionchange', undefined);
   }
 
@@ -402,10 +603,13 @@ export class Compositor {
 
     this.state.playing = true;
     this.lastFrameTime = performance.now();
+    this.lastRenderTime = this.lastFrameTime;
     this.emitter.emit('play', undefined);
 
     // Start audio playback
-    await this.audioManager.play(this.state.currentTime);
+    if (this.audioManager) {
+      await this.audioManager.play(this.state.currentTime);
+    }
 
     // Start render loop
     this.startRenderLoop();
@@ -420,7 +624,9 @@ export class Compositor {
 
     this.state.playing = false;
     this.stopRenderLoop();
-    this.audioManager.pause();
+    if (this.audioManager) {
+      this.audioManager.pause();
+    }
     this.emitter.emit('pause', undefined);
   }
 
@@ -439,7 +645,9 @@ export class Compositor {
     this.state.currentTime = clampedTime;
 
     // Seek audio
-    await this.audioManager.seek(clampedTime);
+    if (this.audioManager) {
+      await this.audioManager.seek(clampedTime);
+    }
 
     // Render frame at new time
     const frame = this.previewOptions.getComposition(clampedTime);
@@ -478,26 +686,31 @@ export class Compositor {
         }
       }
 
-      // Skip rendering if previous frame is still being processed
-      if (this.renderPending) {
-        return;
+      const fps = this.previewOptions.fps ?? 0;
+      const frameIntervalMs = fps > 0 ? 1000 / fps : 0;
+      const shouldRender =
+        !this.renderPending && (frameIntervalMs === 0 || now - this.lastRenderTime >= frameIntervalMs);
+
+      if (shouldRender) {
+        // Get composition and render (non-blocking)
+        this.renderPending = true;
+        this.lastRenderTime = now;
+
+        const frame = this.previewOptions.getComposition(this.state.currentTime);
+
+        // Process audio layers
+        if (this.audioManager) {
+          this.processAudioLayers(frame.audio ?? [], this.state.currentTime);
+        }
+
+        this.render(frame)
+          .catch(() => {
+            // Ignore render errors, will retry next frame
+          })
+          .finally(() => {
+            this.renderPending = false;
+          });
       }
-
-      // Get composition and render (non-blocking)
-      this.renderPending = true;
-
-      const frame = this.previewOptions.getComposition(this.state.currentTime);
-
-      // Process audio layers
-      this.processAudioLayers(frame.audio ?? [], this.state.currentTime);
-
-      this.render(frame)
-        .catch(() => {
-          // Ignore render errors, will retry next frame
-        })
-        .finally(() => {
-          this.renderPending = false;
-        });
 
       // Throttle timeupdate events to ~10Hz
       if (now - this.lastTimeUpdateEmit >= this.timeUpdateThrottleMs) {
@@ -530,6 +743,12 @@ export class Compositor {
 
     // Render frame at specified time
     const frame = this.previewOptions.getComposition(time);
+
+    if (this.workerClient) {
+      const workerFrame = this.serializeWorkerFrame(frame);
+      return this.workerClient.exportFrame(workerFrame, options);
+    }
+
     await this.render(frame);
 
     // Export canvas to blob
@@ -603,6 +822,10 @@ export class Compositor {
     this.height = height;
     this.canvas.width = width;
     this.canvas.height = height;
+    if (this.workerClient) {
+      void this.workerClient.resize(width, height);
+      return;
+    }
     this.clear();
   }
 
@@ -644,7 +867,7 @@ export class Compositor {
    * @param volume - Volume level (0 to 1)
    */
   setVolume(volume: number): void {
-    this.audioManager.setMasterVolume(volume);
+    this.audioManager?.setMasterVolume(volume);
   }
 
   /**
@@ -652,7 +875,7 @@ export class Compositor {
    * @param muted - Whether audio is muted
    */
   setMuted(muted: boolean): void {
-    this.audioManager.setMasterMuted(muted);
+    this.audioManager?.setMasterMuted(muted);
   }
 
   /**
@@ -660,6 +883,9 @@ export class Compositor {
    * Useful for advanced audio processing.
    */
   getAudioContext(): AudioContext {
+    if (!this.audioManager) {
+      throw new Error('Audio is disabled for this compositor');
+    }
     return this.audioManager.getAudioContext();
   }
 
@@ -680,10 +906,17 @@ export class Compositor {
     this.disposed = true;
 
     this.stopRenderLoop();
-    this.audioManager.dispose();
+    this.audioManager?.dispose();
+    this.workerClient?.dispose();
+    this.workerClient = null;
     this.sourcePool.dispose();
     this.registeredAudioSources.clear();
-    this.activeAudioLayers = [];
+    this.activeAudioSourceIds.clear();
+    this.audioScratch.nextActiveSourceIds.clear();
+    this.audioScratch.newSourceIds.length = 0;
+    this.audioScratch.newSourceTimes.length = 0;
+    this.workerSources.clear();
+    this.workerAudioSources.clear();
     this.emitter.removeAllListeners();
     this.ctx = null;
     this.previewOptions = null;

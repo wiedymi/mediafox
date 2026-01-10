@@ -107,6 +107,7 @@ Set up real-time preview with a composition callback:
 ```typescript
 compositor.preview({
   duration: 60, // Total duration in seconds
+  fps: 30,
   loop: true,
   getComposition: (time) => {
     // Return composition for any given time
@@ -202,6 +203,23 @@ function downloadBlob(blob, filename) {
 downloadBlob(png, 'frame.png');
 ```
 
+## Worker Rendering (OffscreenCanvas)
+
+Move compositing work off the main thread with OffscreenCanvas:
+
+```typescript
+const compositor = new Compositor({
+  canvas,
+  width: 1920,
+  height: 1080,
+  worker: true
+});
+```
+
+Worker rendering requires `HTMLCanvasElement` + `OffscreenCanvas` + `Worker` support. Audio (if enabled) plays on the main thread while rendering happens in the worker.
+For video sources with audio, the audio track is decoded on the main thread for stable scheduling.
+This means audio is decoded separately from video when worker rendering is enabled.
+
 ## Building a Simple Editor
 
 Here's a pattern for building a timeline-based editor:
@@ -241,6 +259,7 @@ function updatePreview() {
 
   compositor.preview({
     duration,
+    fps: 30,
     loop: true,
     getComposition: (time) => {
       const visibleClips = clips

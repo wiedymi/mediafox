@@ -24,6 +24,8 @@ constructor(options: CompositorOptions)
 | `width` | `number` | Canvas width or 1920 | Output width in pixels |
 | `height` | `number` | Canvas height or 1080 | Output height in pixels |
 | `backgroundColor` | `string` | `'#000000'` | Background color (CSS color string) |
+| `enableAudio` | `boolean` | `true` | Enable WebAudio playback for audio layers |
+| `worker` | `boolean \| CompositorWorkerOptions` | `false` | Render in an OffscreenCanvas worker (HTMLCanvasElement only) |
 
 #### Example
 
@@ -38,6 +40,24 @@ const compositor = new Compositor({
   backgroundColor: '#000000'
 });
 ```
+
+#### Worker Rendering
+
+Use OffscreenCanvas + Web Worker to move compositing work off the main thread:
+
+```typescript
+const compositor = new Compositor({
+  canvas,
+  width: 1920,
+  height: 1080,
+  worker: true
+});
+```
+
+When `worker` is enabled, rendering runs in a worker while audio playback (if enabled) stays on the main thread. All sources must be loaded through the compositor instance (it proxies to the worker).
+`CompositorSource.getFrameAt()` is not available in worker mode.
+For video sources with audio, the audio track is decoded on the main thread to keep WebAudio scheduling stable.
+This means video sources with audio will decode audio separately from video when worker rendering is enabled.
 
 ## Source Management
 
@@ -647,10 +667,27 @@ Options for preview playback.
 ```typescript
 interface PreviewOptions {
   duration: number;
+  fps?: number;
   loop?: boolean;
   getComposition: (time: number) => CompositionFrame;
 }
 ```
+
+`fps` caps the preview render rate (useful to reduce CPU while keeping time-based playback).
+
+### CompositorWorkerOptions
+
+Options for OffscreenCanvas worker rendering.
+
+```typescript
+interface CompositorWorkerOptions {
+  enabled?: boolean;
+  url?: string;
+  type?: 'classic' | 'module';
+}
+```
+
+When `worker` is an object, it is treated as enabled by default unless `enabled: false` is provided.
 
 ### FrameExportOptions
 

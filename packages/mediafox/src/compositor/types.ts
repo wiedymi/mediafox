@@ -8,6 +8,8 @@ export interface CompositorOptions {
   height?: number;
   renderer?: CompositorRendererType;
   backgroundColor?: string;
+  enableAudio?: boolean;
+  worker?: boolean | CompositorWorkerOptions;
 }
 
 export interface LayerTransform {
@@ -52,6 +54,12 @@ export interface PreviewOptions {
   duration: number;
   fps?: number;
   loop?: boolean;
+}
+
+export interface CompositorWorkerOptions {
+  enabled?: boolean;
+  url?: string;
+  type?: 'classic' | 'module';
 }
 
 export interface FrameExportOptions {

@@ -29,6 +29,7 @@ export class CompositorAudioManager {
   private audioContext: AudioContext;
   private masterGain: GainNode;
   private activeSources = new Map<string, ActiveAudioSource>();
+  private activeSourceIdsScratch = new Set<string>();
   private playing = false;
   private disposed = false;
   private playbackId = 0;
@@ -115,7 +116,8 @@ export class CompositorAudioManager {
     if (this.disposed || !this.playing) return;
 
     // Track which sources are active in this frame
-    const activeSourceIds = new Set<string>();
+    const activeSourceIds = this.activeSourceIdsScratch;
+    activeSourceIds.clear();
 
     for (const layer of layers) {
       const sourceId = layer.source.id;

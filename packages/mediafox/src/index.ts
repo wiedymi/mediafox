@@ -25,6 +25,7 @@ export type {
   CompositorRendererType,
   CompositorSource,
   CompositorSourceOptions,
+  CompositorWorkerOptions,
   FrameExportOptions,
   LayerTransform,
   PreviewOptions,

@@ -319,14 +319,24 @@ export class SourcePool {
       // Blob or File
       image = await createImageBitmap(source);
     } else {
-      // URL string
-      image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(`Failed to load image: ${source}`));
-        img.crossOrigin = 'anonymous';
-        img.src = source;
-      });
+      if (typeof Image === 'undefined') {
+        // Worker context: fetch + createImageBitmap
+        const response = await fetch(source);
+        if (!response.ok) {
+          throw new Error(`Failed to load image: ${source}`);
+        }
+        const blob = await response.blob();
+        image = await createImageBitmap(blob);
+      } else {
+        // URL string in window context
+        image = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error(`Failed to load image: ${source}`));
+          img.crossOrigin = 'anonymous';
+          img.src = source;
+        });
+      }
     }
 
     const imageSource = new ImageSource(id, { image });
