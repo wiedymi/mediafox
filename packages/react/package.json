@@ -1,6 +1,6 @@
 {
   "name": "@mediafox/react",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "description": "React hooks for MediaFox media player",
   "type": "module",
   "main": "./dist/index.js",
@@ -31,7 +31,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@mediafox/core": "^1.2.9",
+    "@mediafox/core": "^1.2.10",
     "react": ">=18.0.0"
   },
   "devDependencies": {
