@@ -91,6 +91,59 @@ const player = new MediaFox({
 
 ## Rendering Optimization
 
+## Compositor Performance (Timeline Preview)
+
+If you're building an editor-style timeline with the Compositor (e.g. a preview that renders at 30/60fps), the most important performance rule is:
+
+- Do not do per-frame random access decoding.
+
+### The Problem: Per-Frame Random Access
+
+During Compositor preview, the render loop will request frames repeatedly:
+
+```ts
+// The Compositor render loop will effectively do this every preview tick:
+await layer.source.getFrameAt(currentTimeSeconds);
+```
+
+If `getFrameAt(time)` is implemented using a random access API like `CanvasSink.getCanvas(time)` for every preview tick, playback turns into a "seek + decode" workload per frame. On high-resolution or long-GOP sources, that causes massive stalls (or full UI freezes), even though scrubbing might *appear* to work.
+
+Why caching often doesn't save you:
+
+- Timeline time is usually continuously increasing, so every request is a new timestamp.
+- Keyframe distance (GOP size) can make random access expensive even for small time changes.
+- LRU frame caches help repeated access to the *same* key; they don't prevent repeated seeks.
+
+### The Fix: Sequential Decode for Preview Playback
+
+The correct approach for smooth preview is to decode sequentially while time increases:
+
+- Keep a long-lived `CanvasSink.canvases(startTime)` iterator open.
+- Advance it forward as preview time increases.
+- Maintain a 1-frame lookahead so you can stop once you pass the requested time.
+- When the user scrubs backwards or jumps a large distance, restart the iterator from the new time.
+- Guard iterator access with a small async mutex to avoid concurrent `next()` calls corrupting iterator state.
+
+This is implemented in:
+
+- `packages/mediafox/src/compositor/source-pool.ts` (`VideoSource.getFrameAt`)
+
+Key behavior:
+
+- Preview playback is smooth because decoding stays sequential.
+- Scrubbing stays responsive because large jumps trigger an iterator restart instead of iterating through huge gaps.
+- Memory stays bounded by keeping only `currentFrame` and `nextFrame` in memory (instead of a large frame cache).
+
+### Practical Guidance
+
+- Prefer sequential iteration for *preview playback* (timeline time increasing).
+- Use random access (`getCanvas(time)`) only as a fallback or for sparse, non-realtime requests.
+- If you add your own layer source types, mirror this pattern: sequential for playback, restart on seeks.
+
+### Worker Mode
+
+Whether you run the Compositor in the main thread or in a worker, the same rule applies: avoid per-frame random access decoding. Worker mode can keep the UI thread responsive, but it cannot remove the underlying decode work if every preview tick is forcing a seek.
+
 ### Multi-Renderer System
 
 MediaFox now includes an automatic multi-renderer system that optimizes performance by selecting the best available rendering backend:

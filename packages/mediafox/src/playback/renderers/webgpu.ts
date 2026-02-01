@@ -234,8 +234,14 @@ export class WebGPURenderer implements IRenderer {
         // Fallback to getImageData if copyExternalImageToTexture fails
         const sourceCtx = source.getContext('2d');
         if (!sourceCtx) return false;
+        if (!('getImageData' in sourceCtx)) return false;
 
-        const imageData = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
+        const imageData = (sourceCtx as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D).getImageData(
+          0,
+          0,
+          sourceWidth,
+          sourceHeight
+        );
         const data = new Uint8Array(imageData.data.buffer);
 
         this.device.queue.writeTexture(
