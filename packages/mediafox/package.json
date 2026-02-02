@@ -1,6 +1,6 @@
 {
   "name": "@mediafox/core",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "description": "Framework-agnostic media player library powered by MediaBunny",
   "type": "module",
   "main": "./dist/index.js",
