@@ -179,6 +179,14 @@ export class CompositorAudioManager {
     this.startContextTime = this.audioContext.currentTime;
     this.startMediaTime = fromTime;
     this.pauseTime = fromTime;
+
+    // Clear any stale iterators so sources can be restarted fresh
+    for (const source of this.activeSources.values()) {
+      if (source.iterator) {
+        void source.iterator.return();
+        source.iterator = null;
+      }
+    }
   }
 
   /**
@@ -251,7 +259,7 @@ export class CompositorAudioManager {
 
         // Throttle if we're too far ahead (more than 1 second of audio buffered)
         const elapsedSinceStart = this.audioContext.currentTime - source.iteratorStartTime;
-        const bufferedAhead = (timestamp - source.startSourceTime) - elapsedSinceStart;
+        const bufferedAhead = timestamp - source.startSourceTime - elapsedSinceStart;
         if (bufferedAhead > 1) {
           await this.waitForCatchup(source, timestamp);
         }
@@ -272,7 +280,7 @@ export class CompositorAudioManager {
 
         // Calculate how far ahead we've buffered
         const elapsedSinceStart = this.audioContext.currentTime - source.iteratorStartTime;
-        const bufferedAhead = (targetSourceTime - source.startSourceTime) - elapsedSinceStart;
+        const bufferedAhead = targetSourceTime - source.startSourceTime - elapsedSinceStart;
         if (bufferedAhead < 1) {
           clearInterval(checkInterval);
           resolve();
