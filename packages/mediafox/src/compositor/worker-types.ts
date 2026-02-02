@@ -1,5 +1,5 @@
 import type { MediaSource } from '../types';
-import type { FrameExportOptions, LayerTransform, CompositorSourceOptions, SourceType } from './types';
+import type { CompositorSourceOptions, FrameExportOptions, LayerTransform, SourceType } from './types';
 
 export interface CompositorWorkerLayer {
   sourceId: string;

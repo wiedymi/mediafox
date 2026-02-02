@@ -467,7 +467,6 @@ export class Compositor {
           }
           break;
 
-        case 'contain':
         default:
           // Scale to fit entirely within canvas - may letterbox
           if (sourceAspect > canvasAspect) {

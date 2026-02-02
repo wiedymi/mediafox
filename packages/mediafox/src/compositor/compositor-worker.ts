@@ -1,16 +1,16 @@
 import { Compositor } from './compositor';
-import type { CompositorLayer, CompositionFrame, CompositorSource } from './types';
+import type { CompositionFrame, CompositorLayer, CompositorSource } from './types';
 import type {
   CompositorWorkerExportPayload,
   CompositorWorkerFrame,
   CompositorWorkerInitPayload,
   CompositorWorkerLoadPayload,
   CompositorWorkerRenderPayload,
+  CompositorWorkerRequest,
   CompositorWorkerResizePayload,
+  CompositorWorkerResponse,
   CompositorWorkerSourceInfo,
   CompositorWorkerUnloadPayload,
-  CompositorWorkerRequest,
-  CompositorWorkerResponse,
 } from './worker-types';
 
 type WorkerScope = {
