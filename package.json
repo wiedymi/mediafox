@@ -1,5 +1,6 @@
 {
   "name": "mediafox-monorepo",
+  "type": "module",
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
     "mediabunny": "^1.23.0",
@@ -20,7 +21,9 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
     "lucide-static": "^0.544.0"
   }
