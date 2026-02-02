@@ -142,7 +142,7 @@ export default defineConfig({
     resolve: {
       alias: [
         {
-          find: "@mediafox/core/compositor-worker",
+          find: /^@mediafox\/core\/compositor-worker/,
           replacement: path.resolve(
             __dirname,
             "../../packages/mediafox/src/compositor/compositor-worker.ts",

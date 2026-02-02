@@ -192,16 +192,16 @@ interface ClipData {
 const PX_PER_SEC = 60;
 
 const ASPECT_RATIOS = [
-    { label: '16:9', w: 1280, h: 720 },
-    { label: '9:16', w: 720, h: 1280 },
+    { label: '16:9', w: 1920, h: 1080 },
+    { label: '9:16', w: 1080, h: 1920 },
     { label: '4:3', w: 1280, h: 960 },
     { label: '1:1', w: 1080, h: 1080 },
     { label: '21:9', w: 1280, h: 548 },
 ];
 
 const canvasRef = ref<HTMLCanvasElement>();
-const canvasWidth = ref(1280);
-const canvasHeight = ref(720);
+const canvasWidth = ref(1920);
+const canvasHeight = ref(1080);
 const currentAspect = ref('16:9');
 const timelineRef = ref<HTMLElement>();
 const fileInput = ref<HTMLInputElement>();
@@ -686,7 +686,6 @@ onMounted(() => {
     document.head.appendChild(styleEl);
 
     if (!canvasRef.value) return;
-
     const comp = new Compositor({
         canvas: canvasRef.value,
         width: canvasWidth.value,

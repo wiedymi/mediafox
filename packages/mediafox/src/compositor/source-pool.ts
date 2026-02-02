@@ -16,57 +16,16 @@ import {
 import type { MediaSource } from '../types';
 import type { CompositorSource, CompositorSourceOptions, SourceType } from './types';
 
-/**
- * LRU cache for video frames.
- * Uses Map's insertion order + move-to-end on access for O(1) LRU eviction.
- */
-class LRUFrameCache {
-  private cache = new Map<number, WrappedCanvas>();
-  private maxSize: number;
-
-  constructor(maxSize: number) {
-    this.maxSize = maxSize;
-  }
-
-  get(key: number): WrappedCanvas | undefined {
-    const value = this.cache.get(key);
-    if (value !== undefined) {
-      // Move to end (most recently used)
-      this.cache.delete(key);
-      this.cache.set(key, value);
-    }
-    return value;
-  }
-
-  set(key: number, value: WrappedCanvas): void {
-    // If key exists, delete first to update insertion order
-    if (this.cache.has(key)) {
-      this.cache.delete(key);
-    } else if (this.cache.size >= this.maxSize) {
-      // Evict least recently used (first item)
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-    this.cache.set(key, value);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  get size(): number {
-    return this.cache.size;
-  }
-}
-
 interface VideoSourceData {
   input: Input<Source>;
   videoTrack: InputVideoTrack;
   canvasSink: CanvasSink;
-  frameCache: LRUFrameCache;
-  frameIntervalMs: number; // Frame duration in milliseconds for cache key quantization
+  iterator: AsyncGenerator<WrappedCanvas, void, unknown> | null;
+  currentFrame: WrappedCanvas | null;
+  nextFrame: WrappedCanvas | null;
+  lastRequestedTime: number;
+  seekThresholdSeconds: number;
+  lock: Promise<void>;
   audioTrack: InputAudioTrack | null;
   audioBufferSink: AudioBufferSink | null;
 }
@@ -101,27 +60,108 @@ class VideoSource implements CompositorSource {
   async getFrameAt(time: number): Promise<CanvasImageSource | null> {
     if (this.disposed) return null;
 
-    // Quantize to frame boundaries to maximize cache hits
-    // e.g., at 30fps (33.33ms/frame), times 0.001s and 0.030s map to same frame 0
-    const frameIntervalMs = this.data.frameIntervalMs;
-    const cacheKey = Math.floor((time * 1000) / frameIntervalMs) * frameIntervalMs;
+    // CanvasSink.getCanvas(timestamp) is optimized for random access, but calling it for every preview
+    // frame turns playback into repeated seek+decode, which can stall/freeze on high-res sources.
+    // Instead, keep a single iterator open and advance it as time increases.
+    return this.withLock(async () => {
+      if (this.disposed) return null;
 
-    // Check LRU cache
-    const cached = this.data.frameCache.get(cacheKey);
-    if (cached) {
-      return cached.canvas;
+      // Fast path: time is within current frame
+      const current = this.data.currentFrame;
+      if (current) {
+        const end = current.timestamp + (current.duration || 0);
+        if (time >= current.timestamp && (current.duration ? time < end : time === current.timestamp)) {
+          this.data.lastRequestedTime = time;
+          return current.canvas;
+        }
+      }
+
+      const lastTime = this.data.lastRequestedTime;
+      const needsSeek =
+        this.data.iterator === null || time < lastTime || Math.abs(time - lastTime) > this.data.seekThresholdSeconds;
+
+      if (needsSeek) {
+        await this.restartIterator(time);
+      }
+
+      const advanced = await this.advanceToTime(time);
+      this.data.lastRequestedTime = time;
+      return advanced?.canvas ?? null;
+    });
+  }
+
+  private async restartIterator(startTime: number): Promise<void> {
+    // Close any existing iterator to release decoder resources.
+    if (this.data.iterator) {
+      try {
+        await this.data.iterator.return();
+      } catch {
+        // ignore
+      }
     }
 
+    this.data.iterator = this.data.canvasSink.canvases(startTime);
+    this.data.currentFrame = null;
+    this.data.nextFrame = null;
+  }
+
+  private async advanceToTime(time: number): Promise<WrappedCanvas | null> {
+    const iterator = this.data.iterator;
+    if (!iterator) {
+      // Shouldn't happen, but keep behavior safe.
+      return this.data.canvasSink.getCanvas(time);
+    }
+
+    // Use a one-item lookahead buffer so we can stop once we pass the requested time.
+    while (true) {
+      const next = this.data.nextFrame;
+      if (next) {
+        if (next.timestamp > time) {
+          return this.data.currentFrame;
+        }
+        this.data.currentFrame = next;
+        this.data.nextFrame = null;
+        continue;
+      }
+
+      let result: IteratorResult<WrappedCanvas, void>;
+      try {
+        result = await iterator.next();
+      } catch {
+        // Decoder/iterator failed; fall back to random access.
+        try {
+          return await this.data.canvasSink.getCanvas(time);
+        } catch {
+          return null;
+        }
+      }
+
+      if (result.done) {
+        return this.data.currentFrame;
+      }
+
+      this.data.nextFrame = result.value;
+    }
+  }
+
+  private async withLock<T>(fn: () => Promise<T>): Promise<T> {
+    // NOTE: Assignments inside Promise executors aren't tracked by TS control flow,
+    // so keep `release` always-callable to avoid it narrowing to `never`.
+    const previous = this.data.lock.catch(() => {
+      // Ignore previous failures; keep the mutex usable.
+    });
+    let release: () => void = () => {};
+    const current = new Promise<void>((resolve) => {
+      release = () => {
+        resolve();
+      };
+    });
+    this.data.lock = previous.then(() => current);
+    await previous;
     try {
-      const frame = await this.data.canvasSink.getCanvas(time);
-      if (!frame) return null;
-
-      // LRU cache handles eviction automatically
-      this.data.frameCache.set(cacheKey, frame);
-
-      return frame.canvas;
-    } catch {
-      return null;
+      return await fn();
+    } finally {
+      release();
     }
   }
 
@@ -140,13 +180,22 @@ class VideoSource implements CompositorSource {
   }
 
   clearCache(): void {
-    this.data.frameCache.clear();
+    // No-op: sequential iterator keeps bounded memory.
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.data.frameCache.clear();
+    if (this.data.iterator) {
+      try {
+        void this.data.iterator.return();
+      } catch {
+        // ignore
+      }
+      this.data.iterator = null;
+    }
+    this.data.currentFrame = null;
+    this.data.nextFrame = null;
     this.data.input.dispose();
   }
 }
@@ -256,23 +305,9 @@ export class SourcePool {
     // Get duration
     const duration = await videoTrack.computeDuration();
 
-    // Calculate frame interval from framerate for cache key quantization
-    // Fallback to 30fps (33.33ms) if framerate unavailable
-    let fps = 30;
-    try {
-      const stats = await videoTrack.computePacketStats(100);
-      if (stats.averagePacketRate > 0) {
-        fps = stats.averagePacketRate;
-      }
-    } catch {
-      // Ignore errors in stats computation
-    }
-    const frameIntervalMs = 1000 / fps;
-
-    // Adaptive cache size based on resolution
-    // Higher resolution = fewer cached frames to limit memory usage
-    const pixelCount = videoTrack.displayWidth * videoTrack.displayHeight;
-    const cacheSize = pixelCount > 2073600 ? 15 : pixelCount > 921600 ? 30 : 60; // 1080p: 15, 720p: 30, smaller: 60
+    // If the caller is scrubbing aggressively, we restart decoding from the requested time.
+    // Keeping this threshold low avoids iterating through huge gaps in a single request.
+    const seekThresholdSeconds = 0.75;
 
     // Try to get audio track if available
     let audioTrack: InputAudioTrack | null = null;
@@ -296,8 +331,12 @@ export class SourcePool {
         input,
         videoTrack,
         canvasSink,
-        frameCache: new LRUFrameCache(cacheSize),
-        frameIntervalMs,
+        iterator: null,
+        currentFrame: null,
+        nextFrame: null,
+        lastRequestedTime: -Infinity,
+        seekThresholdSeconds,
+        lock: Promise.resolve(),
         audioTrack,
         audioBufferSink,
       },
