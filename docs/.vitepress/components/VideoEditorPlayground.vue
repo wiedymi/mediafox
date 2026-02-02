@@ -33,6 +33,11 @@
                     class="volume-slider"
                     title="Master Volume"
                 />
+                <select v-model="currentFitMode" @change="changeFitMode" class="fit-select" title="Video Fit Mode">
+                    <option value="fill">Fill (Stretch)</option>
+                    <option value="contain">Contain (Fit)</option>
+                    <option value="cover">Cover (Zoom)</option>
+                </select>
                 <select v-model="currentAspect" @change="changeAspect(currentAspect)" class="aspect-select">
                     <option v-for="a in ASPECT_RATIOS" :key="a.label" :value="a.label">{{ a.label }}</option>
                 </select>
@@ -203,6 +208,7 @@ const canvasRef = ref<HTMLCanvasElement>();
 const canvasWidth = ref(1920);
 const canvasHeight = ref(1080);
 const currentAspect = ref('16:9');
+const currentFitMode = ref<'contain' | 'cover' | 'fill'>('contain');
 const timelineRef = ref<HTMLElement>();
 const fileInput = ref<HTMLInputElement>();
 
@@ -249,14 +255,12 @@ const getComposition = (time: number) => {
     const layers = videoClips.map((clip, i) => {
         const localTime = time - clip.startTime + clip.sourceOffset;
         const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
-        const sw = clip.source.width || canvasWidth.value;
-        const sh = clip.source.height || canvasHeight.value;
         return {
             source: clip.source,
             sourceTime: Math.max(0, srcTime),
             transform: {
-                x: clip.x + (canvasWidth.value - sw * clip.scale) / 2,
-                y: clip.y + (canvasHeight.value - sh * clip.scale) / 2,
+                x: clip.x,
+                y: clip.y,
                 scaleX: clip.scale,
                 scaleY: clip.scale,
                 opacity: clip.opacity,
@@ -305,6 +309,13 @@ const changeAspect = (label: string) => {
         compositor.value.seek(time);
         if (wasPlaying) compositor.value.play();
     }
+};
+
+// Change fit mode
+const changeFitMode = () => {
+    if (!compositor.value) return;
+    compositor.value.setFitMode(currentFitMode.value);
+    updatePreview();
 };
 
 // Update compositor preview config
@@ -822,6 +833,20 @@ onUnmounted(() => {
 }
 
 .aspect-select:hover {
+    background: #3a3a3a;
+}
+
+.fit-select {
+    height: 28px;
+    padding: 0 8px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #ccc;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.fit-select:hover {
     background: #3a3a3a;
 }
 

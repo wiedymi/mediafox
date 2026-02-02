@@ -115,9 +115,9 @@ export class CompositorWorkerClient {
     return this.call<boolean>('clear');
   }
 
-  async resize(width: number, height: number): Promise<boolean> {
+  async resize(width: number, height: number, fitMode?: 'contain' | 'cover' | 'fill'): Promise<boolean> {
     await this.ready;
-    const payload: CompositorWorkerResizePayload = { width, height };
+    const payload: CompositorWorkerResizePayload = { width, height, fitMode };
     return this.call<boolean>('resize', payload);
   }
 

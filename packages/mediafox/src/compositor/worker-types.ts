@@ -59,6 +59,7 @@ export interface CompositorWorkerRenderPayload {
 export interface CompositorWorkerResizePayload {
   width: number;
   height: number;
+  fitMode?: 'contain' | 'cover' | 'fill';
 }
 
 export interface CompositorWorkerExportPayload {

@@ -122,8 +122,8 @@ workerScope.onmessage = async (event: MessageEvent<CompositorWorkerRequest>) => 
       }
       case 'resize': {
         if (!compositor) throw new Error('Compositor not initialized');
-        const { width, height } = payload as CompositorWorkerResizePayload;
-        compositor.resize(width, height);
+        const { width, height, fitMode } = payload as CompositorWorkerResizePayload;
+        compositor.resize(width, height, fitMode);
         postResponse({ id, ok: true, result: true });
         return;
       }
