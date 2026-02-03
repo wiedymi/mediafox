@@ -9,6 +9,7 @@ export type CompositorRendererType = RendererType;
  * - `'cover'`: Scale to completely cover the canvas, preserving aspect ratio. Parts may be cropped.
  */
 export type FitMode = 'contain' | 'cover' | 'fill';
+export type LayerFitMode = FitMode | 'auto';
 
 export interface CompositorOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas;
@@ -39,6 +40,11 @@ export interface CompositorLayer {
   source: CompositorSource;
   sourceTime?: number;
   transform?: LayerTransform;
+  /**
+   * Fit mode override for this layer. Use 'auto' or leave undefined to use the
+   * compositor's global fitMode.
+   */
+  fitMode?: LayerFitMode;
   visible?: boolean;
   zIndex?: number;
 }

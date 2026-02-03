@@ -91,6 +91,15 @@
                             <span>{{ selectedClip.rotation }}°</span>
                         </div>
                         <div class="inspector-row">
+                            <label>Fit</label>
+                            <select v-model="selectedClip.fitMode" @change="updatePreview" class="fit-select">
+                                <option value="auto">Auto (Global)</option>
+                                <option value="fill">Fill (Stretch)</option>
+                                <option value="contain">Contain (Fit)</option>
+                                <option value="cover">Cover (Zoom)</option>
+                            </select>
+                        </div>
+                        <div class="inspector-row">
                             <label>X</label>
                             <input type="number" v-model.number="selectedClip.x" step="10" @change="updatePreview" />
                         </div>
@@ -187,6 +196,7 @@ interface ClipData {
   sourceDuration: number;
   sourceOffset: number;
   volume: number;
+  fitMode: 'auto' | 'contain' | 'cover' | 'fill';
   opacity: number;
   scale: number;
   rotation: number;
@@ -255,6 +265,7 @@ const getComposition = (time: number) => {
     return {
       source: clip.source,
       sourceTime: Math.max(0, srcTime),
+      fitMode: clip.fitMode,
       transform: {
         x: clip.x,
         y: clip.y,
@@ -349,6 +360,7 @@ const loadSampleVideo = async () => {
       sourceDuration: source.duration,
       sourceOffset: 0,
       volume: 1,
+      fitMode: 'auto',
       opacity: 1,
       scale: 1,
       rotation: 0,
@@ -408,6 +420,7 @@ const handleFileSelect = async (e: Event) => {
       sourceDuration: dur,
       sourceOffset: 0,
       volume: 1,
+      fitMode: 'auto',
       opacity: 1,
       scale: 1,
       rotation: 0,
