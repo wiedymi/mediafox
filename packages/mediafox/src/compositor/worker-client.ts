@@ -1,5 +1,5 @@
 import type { MediaSource } from '../types';
-import type { CompositorWorkerOptions, CompositorSourceOptions, FrameExportOptions } from './types';
+import type { CompositorSourceOptions, CompositorWorkerOptions, FrameExportOptions } from './types';
 import type {
   CompositorWorkerExportPayload,
   CompositorWorkerFrame,
@@ -32,10 +32,9 @@ export class CompositorWorkerClient {
   private ready: Promise<void>;
 
   constructor(options: CompositorWorkerClientOptions) {
-    const workerOptions = typeof options.worker === 'boolean' ? {} : options.worker ?? {};
+    const workerOptions = typeof options.worker === 'boolean' ? {} : (options.worker ?? {});
     const workerType = workerOptions.type ?? 'module';
-    const workerUrl =
-      workerOptions.url ?? new URL('./compositor-worker.js', import.meta.url);
+    const workerUrl = workerOptions.url ?? new URL('./compositor-worker.js', import.meta.url);
 
     this.worker = new Worker(workerUrl, { type: workerType });
     this.worker.onmessage = (event: MessageEvent<CompositorWorkerResponse>) => {
