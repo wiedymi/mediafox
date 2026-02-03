@@ -48,6 +48,7 @@ const mapFrame = (frame: CompositorWorkerFrame): CompositionFrame => {
       source,
       sourceTime: layer.sourceTime,
       transform: layer.transform,
+      fitMode: layer.fitMode,
       visible: layer.visible,
       zIndex: layer.zIndex,
     };

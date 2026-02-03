@@ -13,6 +13,7 @@ export type {
   CompositorSourceOptions,
   CompositorWorkerOptions,
   FitMode,
+  LayerFitMode,
   FrameExportOptions,
   LayerTransform,
   PreviewOptions,
