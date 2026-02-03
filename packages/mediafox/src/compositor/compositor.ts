@@ -434,65 +434,65 @@ export class Compositor {
     const sourceWidth = layer.source.width ?? this.width;
     const sourceHeight = layer.source.height ?? this.height;
 
-    // Calculate fitted dimensions based on compositor's fitMode
-    let fittedWidth: number;
-    let fittedHeight: number;
-    let fittedX = 0;
-    let fittedY = 0;
-
-    if (sourceWidth === 0 || sourceHeight === 0) {
-      fittedWidth = this.width;
-      fittedHeight = this.height;
-    } else {
-      const sourceAspect = sourceWidth / sourceHeight;
-      const canvasAspect = this.width / this.height;
-
-      switch (this.fitMode) {
-        case 'fill':
-          // Stretch to fill canvas - ignore aspect ratio
-          fittedWidth = this.width;
-          fittedHeight = this.height;
-          break;
-
-        case 'cover':
-          // Scale to cover entire canvas - may crop
-          if (sourceAspect > canvasAspect) {
-            fittedHeight = this.height;
-            fittedWidth = this.height * sourceAspect;
-            fittedX = (this.width - fittedWidth) / 2;
-          } else {
-            fittedWidth = this.width;
-            fittedHeight = this.width / sourceAspect;
-            fittedY = (this.height - fittedHeight) / 2;
-          }
-          break;
-
-        default:
-          // Scale to fit entirely within canvas - may letterbox
-          if (sourceAspect > canvasAspect) {
-            fittedWidth = this.width;
-            fittedHeight = this.width / sourceAspect;
-            fittedY = (this.height - fittedHeight) / 2;
-          } else {
-            fittedHeight = this.height;
-            fittedWidth = this.height * sourceAspect;
-            fittedX = (this.width - fittedWidth) / 2;
-          }
-          break;
-      }
-    }
-
-    // Fast path: no transform object means draw with fitted dimensions
+    // Fast path: no transform object means draw with compositor fitMode
     if (!transform) {
+      // Calculate fitted dimensions based on compositor's fitMode
+      let fittedWidth: number;
+      let fittedHeight: number;
+      let fittedX = 0;
+      let fittedY = 0;
+
+      if (sourceWidth === 0 || sourceHeight === 0) {
+        fittedWidth = this.width;
+        fittedHeight = this.height;
+      } else {
+        const sourceAspect = sourceWidth / sourceHeight;
+        const canvasAspect = this.width / this.height;
+
+        switch (this.fitMode) {
+          case 'fill':
+            // Stretch to fill canvas - ignore aspect ratio
+            fittedWidth = this.width;
+            fittedHeight = this.height;
+            break;
+
+          case 'cover':
+            // Scale to cover entire canvas - may crop
+            if (sourceAspect > canvasAspect) {
+              fittedHeight = this.height;
+              fittedWidth = this.height * sourceAspect;
+              fittedX = (this.width - fittedWidth) / 2;
+            } else {
+              fittedWidth = this.width;
+              fittedHeight = this.width / sourceAspect;
+              fittedY = (this.height - fittedHeight) / 2;
+            }
+            break;
+
+          default:
+            // Scale to fit entirely within canvas - may letterbox
+            if (sourceAspect > canvasAspect) {
+              fittedWidth = this.width;
+              fittedHeight = this.width / sourceAspect;
+              fittedY = (this.height - fittedHeight) / 2;
+            } else {
+              fittedHeight = this.height;
+              fittedWidth = this.height * sourceAspect;
+              fittedX = (this.width - fittedWidth) / 2;
+            }
+            break;
+        }
+      }
+
       ctx.drawImage(image, fittedX, fittedY, fittedWidth, fittedHeight);
       return;
     }
 
-    // Apply layer transform on top of fitted dimensions
-    const x = (transform.x ?? 0) + fittedX;
-    const y = (transform.y ?? 0) + fittedY;
-    const destWidth = transform.width ?? fittedWidth;
-    const destHeight = transform.height ?? fittedHeight;
+    // Apply layer transform without fitMode; keep intrinsic source sizing by default
+    const x = transform.x ?? 0;
+    const y = transform.y ?? 0;
+    const destWidth = transform.width ?? sourceWidth;
+    const destHeight = transform.height ?? sourceHeight;
     const rotation = transform.rotation ?? 0;
     const scaleX = transform.scaleX ?? 1;
     const scaleY = transform.scaleY ?? 1;
