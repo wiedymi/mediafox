@@ -206,6 +206,53 @@ const pause = () => player.value?.pause();
 
 ## Advanced Usage
 
+### Compositor
+
+The Compositor is a canvas-based video compositing engine for layering multiple media sources.
+
+```typescript
+import { Compositor } from '@mediafox/core';
+
+const compositor = new Compositor({
+  canvas,
+  width: 1920,
+  height: 1080,
+  fitMode: 'contain' // 'contain' | 'cover' | 'fill'
+});
+
+// Load and composite sources
+const video = await compositor.loadSource('video.mp4');
+const overlay = await compositor.loadImage('overlay.png');
+
+await compositor.render({
+  time: 0,
+  layers: [
+    { source: video },
+    { source: overlay, transform: { x: 50, y: 50, opacity: 0.8 }, zIndex: 1 }
+  ]
+});
+```
+
+#### Resizing & Fit Modes
+
+Resize the canvas and control how content scales:
+
+```typescript
+// Resize with optional fit mode
+compositor.resize(1080, 1920, 'cover');
+
+// Or set fit mode separately
+compositor.setFitMode('contain');
+
+// Get current fit mode
+const mode = compositor.getFitMode();
+```
+
+**Fit modes:**
+- `'fill'` - Stretch to fill canvas (may distort)
+- `'contain'` - Fit within canvas (may letterbox)
+- `'cover'` - Cover canvas (may crop)
+
 ### Track Management
 
 ```typescript

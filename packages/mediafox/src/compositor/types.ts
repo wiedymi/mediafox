@@ -2,6 +2,14 @@ import type { RendererType, Rotation } from '../types';
 
 export type CompositorRendererType = RendererType;
 
+/**
+ * Fit mode for scaling video/image content within the compositor canvas.
+ * - `'fill'` (default): Stretch to exactly fill the canvas, ignoring aspect ratio. May distort the image.
+ * - `'contain'`: Scale to fit entirely within the canvas, preserving aspect ratio. May result in letterboxing/pillarboxing.
+ * - `'cover'`: Scale to completely cover the canvas, preserving aspect ratio. Parts may be cropped.
+ */
+export type FitMode = 'contain' | 'cover' | 'fill';
+
 export interface CompositorOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas;
   width?: number;
@@ -10,6 +18,8 @@ export interface CompositorOptions {
   backgroundColor?: string;
   enableAudio?: boolean;
   worker?: boolean | CompositorWorkerOptions;
+  /** Initial fit mode for scaling sources to the canvas. Defaults to 'fill'. */
+  fitMode?: FitMode;
 }
 
 export interface LayerTransform {

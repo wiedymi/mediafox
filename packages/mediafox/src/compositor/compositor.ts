@@ -11,6 +11,7 @@ import type {
   CompositorOptions,
   CompositorSource,
   CompositorSourceOptions,
+  FitMode,
   FrameExportOptions,
   PreviewOptions,
 } from './types';
@@ -60,6 +61,7 @@ export class Compositor {
   private width: number;
   private height: number;
   private backgroundColor: string;
+  private fitMode: FitMode;
   private sourcePool: SourcePool;
   private audioManager: CompositorAudioManager | null = null;
   private workerClient: CompositorWorkerClient | null = null;
@@ -100,6 +102,7 @@ export class Compositor {
     this.width = options.width ?? (this.canvas.width || 1920);
     this.height = options.height ?? (this.canvas.height || 1080);
     this.backgroundColor = options.backgroundColor ?? '#000000';
+    this.fitMode = options.fitMode ?? 'fill';
     this.emitter = new EventEmitter({ maxListeners: 50 });
     this.state = {
       playing: false,
@@ -434,16 +437,65 @@ export class Compositor {
     const sourceWidth = layer.source.width ?? this.width;
     const sourceHeight = layer.source.height ?? this.height;
 
-    // Fast path: no transform object means draw at origin with source dimensions
+    // Fast path: no transform object means draw with compositor fitMode
     if (!transform) {
-      ctx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
+      // Calculate fitted dimensions based on compositor's fitMode
+      let fittedWidth: number;
+      let fittedHeight: number;
+      let fittedX = 0;
+      let fittedY = 0;
+
+      if (sourceWidth === 0 || sourceHeight === 0) {
+        fittedWidth = this.width;
+        fittedHeight = this.height;
+      } else {
+        const sourceAspect = sourceWidth / sourceHeight;
+        const canvasAspect = this.width / this.height;
+
+        switch (this.fitMode) {
+          case 'fill':
+            // Stretch to fill canvas - ignore aspect ratio
+            fittedWidth = this.width;
+            fittedHeight = this.height;
+            break;
+
+          case 'cover':
+            // Scale to cover entire canvas - may crop
+            if (sourceAspect > canvasAspect) {
+              fittedHeight = this.height;
+              fittedWidth = this.height * sourceAspect;
+              fittedX = (this.width - fittedWidth) / 2;
+            } else {
+              fittedWidth = this.width;
+              fittedHeight = this.width / sourceAspect;
+              fittedY = (this.height - fittedHeight) / 2;
+            }
+            break;
+
+          default:
+            // Scale to fit entirely within canvas - may letterbox
+            if (sourceAspect > canvasAspect) {
+              fittedWidth = this.width;
+              fittedHeight = this.width / sourceAspect;
+              fittedY = (this.height - fittedHeight) / 2;
+            } else {
+              fittedHeight = this.height;
+              fittedWidth = this.height * sourceAspect;
+              fittedX = (this.width - fittedWidth) / 2;
+            }
+            break;
+        }
+      }
+
+      ctx.drawImage(image, fittedX, fittedY, fittedWidth, fittedHeight);
       return;
     }
 
-    const destWidth = transform.width ?? sourceWidth;
-    const destHeight = transform.height ?? sourceHeight;
+    // Apply layer transform without fitMode; keep intrinsic source sizing by default
     const x = transform.x ?? 0;
     const y = transform.y ?? 0;
+    const destWidth = transform.width ?? sourceWidth;
+    const destHeight = transform.height ?? sourceHeight;
     const rotation = transform.rotation ?? 0;
     const scaleX = transform.scaleX ?? 1;
     const scaleY = transform.scaleY ?? 1;
@@ -835,20 +887,53 @@ export class Compositor {
 
   /**
    * Resizes the compositor canvas without disposing loaded sources.
+   * When worker mode is active, delegates resizing to the worker thread
+   * since the OffscreenCanvas cannot be resized from the main thread.
    * @param width - New width in pixels
    * @param height - New height in pixels
+   * @param fitMode - Optional fit mode for scaling sources to the canvas
    */
-  resize(width: number, height: number): void {
+  resize(width: number, height: number, fitMode?: FitMode): void {
     this.checkDisposed();
     this.width = width;
     this.height = height;
-    this.canvas.width = width;
-    this.canvas.height = height;
+    if (fitMode !== undefined) {
+      this.fitMode = fitMode;
+    }
+
+    // When worker mode is active, the canvas control has been transferred
+    // to OffscreenCanvas via transferControlToOffscreen(). Attempting to
+    // modify the HTMLCanvasElement's width/height would throw InvalidStateError.
+    // Delegate resizing entirely to the worker in this case.
     if (this.workerClient) {
-      void this.workerClient.resize(width, height);
+      void this.workerClient.resize(width, height, this.fitMode);
       return;
     }
+
+    // Main thread rendering: update DOM canvas dimensions directly
+    this.canvas.width = width;
+    this.canvas.height = height;
     this.clear();
+  }
+
+  /**
+   * Sets the fit mode for scaling sources to the canvas.
+   * @param fitMode - The fit mode to use
+   */
+  setFitMode(fitMode: FitMode): void {
+    this.checkDisposed();
+    this.fitMode = fitMode;
+    if (this.workerClient) {
+      void this.workerClient.resize(this.width, this.height, fitMode);
+    }
+  }
+
+  /**
+   * Gets the current fit mode.
+   * @returns The current fit mode
+   */
+  getFitMode(): FitMode {
+    return this.fitMode;
   }
 
   // Events
