@@ -172,36 +172,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Compositor, type CompositorSource } from '@mediafox/core';
 import CompositorWorkerUrl from '@mediafox/core/compositor-worker?worker&url';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 interface ClipData {
-    id: string;
-    name: string;
-    source: CompositorSource;
-    type: 'video' | 'image' | 'audio';
-    track: number;
-    startTime: number;
-    duration: number;
-    sourceDuration: number;
-    sourceOffset: number;
-    volume: number;
-    opacity: number;
-    scale: number;
-    rotation: number;
-    x: number;
-    y: number;
+  id: string;
+  name: string;
+  source: CompositorSource;
+  type: 'video' | 'image' | 'audio';
+  track: number;
+  startTime: number;
+  duration: number;
+  sourceDuration: number;
+  sourceOffset: number;
+  volume: number;
+  opacity: number;
+  scale: number;
+  rotation: number;
+  x: number;
+  y: number;
 }
 
 const PX_PER_SEC = 60;
 
 const ASPECT_RATIOS = [
-    { label: '16:9', w: 1920, h: 1080 },
-    { label: '9:16', w: 1080, h: 1920 },
-    { label: '4:3', w: 1280, h: 960 },
-    { label: '1:1', w: 1080, h: 1080 },
-    { label: '21:9', w: 1280, h: 548 },
+  { label: '16:9', w: 1920, h: 1080 },
+  { label: '9:16', w: 1080, h: 1920 },
+  { label: '4:3', w: 1280, h: 960 },
+  { label: '1:1', w: 1080, h: 1080 },
+  { label: '21:9', w: 1280, h: 548 },
 ];
 
 const canvasRef = ref<HTMLCanvasElement>();
@@ -227,239 +227,236 @@ let clipIdCounter = 0;
 let playheadRAF: number | null = null;
 
 const duration = computed(() => {
-    if (clips.value.length === 0) return 10;
-    return Math.max(...clips.value.map(c => c.startTime + c.duration), 10);
+  if (clips.value.length === 0) return 10;
+  return Math.max(...clips.value.map((c) => c.startTime + c.duration), 10);
 });
 
-const selectedClip = computed(() => clips.value.find(c => c.id === selectedClipId.value) || null);
+const selectedClip = computed(() => clips.value.find((c) => c.id === selectedClipId.value) || null);
 
-const getClipsOnTrack = (track: number) => clips.value.filter(c => c.track === track);
+const getClipsOnTrack = (track: number) => clips.value.filter((c) => c.track === track);
 
 const formatTimecode = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    const ms = Math.floor((s % 1) * 100);
-    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  const ms = Math.floor((s % 1) * 100);
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
 };
 
 // Composition callback for the compositor
 const getComposition = (time: number) => {
-    const activeClips = clips.value
-        .filter(c => time >= c.startTime && time < c.startTime + c.duration);
+  const activeClips = clips.value.filter((c) => time >= c.startTime && time < c.startTime + c.duration);
 
-    // Video/image layers (tracks 0-2)
-    const videoClips = activeClips
-        .filter(c => c.type !== 'audio')
-        .sort((a, b) => b.track - a.track);
+  // Video/image layers (tracks 0-2)
+  const videoClips = activeClips.filter((c) => c.type !== 'audio').sort((a, b) => b.track - a.track);
 
-    const layers = videoClips.map((clip, i) => {
-        const localTime = time - clip.startTime + clip.sourceOffset;
-        const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
-        return {
-            source: clip.source,
-            sourceTime: Math.max(0, srcTime),
-            transform: {
-                x: clip.x,
-                y: clip.y,
-                scaleX: clip.scale,
-                scaleY: clip.scale,
-                opacity: clip.opacity,
-                rotation: clip.rotation
-            },
-            zIndex: i
-        };
+  const layers = videoClips.map((clip, i) => {
+    const localTime = time - clip.startTime + clip.sourceOffset;
+    const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
+    return {
+      source: clip.source,
+      sourceTime: Math.max(0, srcTime),
+      transform: {
+        x: clip.x,
+        y: clip.y,
+        scaleX: clip.scale,
+        scaleY: clip.scale,
+        opacity: clip.opacity,
+        rotation: clip.rotation,
+      },
+      zIndex: i,
+    };
+  });
+
+  // Audio layers - include audio from video clips and audio-only clips
+  const audio = activeClips
+    .filter((c) => c.volume > 0)
+    .map((clip) => {
+      const localTime = time - clip.startTime + clip.sourceOffset;
+      const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
+      return {
+        source: clip.source,
+        sourceTime: Math.max(0, srcTime),
+        volume: clip.volume,
+        muted: clip.volume === 0,
+      };
     });
 
-    // Audio layers - include audio from video clips and audio-only clips
-    const audio = activeClips
-        .filter(c => c.volume > 0)
-        .map(clip => {
-            const localTime = time - clip.startTime + clip.sourceOffset;
-            const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
-            return {
-                source: clip.source,
-                sourceTime: Math.max(0, srcTime),
-                volume: clip.volume,
-                muted: clip.volume === 0
-            };
-        });
-
-    return { time, layers, audio };
+  return { time, layers, audio };
 };
 
 // Change aspect ratio
 const changeAspect = (label: string) => {
-    const aspect = ASPECT_RATIOS.find(a => a.label === label);
-    if (!aspect || !compositor.value) return;
+  const aspect = ASPECT_RATIOS.find((a) => a.label === label);
+  if (!aspect || !compositor.value) return;
 
-    currentAspect.value = label;
-    canvasWidth.value = aspect.w;
-    canvasHeight.value = aspect.h;
+  currentAspect.value = label;
+  canvasWidth.value = aspect.w;
+  canvasHeight.value = aspect.h;
 
-    // Resize compositor without disposing sources
-    const wasPlaying = compositor.value.playing;
-    const time = compositor.value.currentTime;
-    if (wasPlaying) compositor.value.pause();
+  // Resize compositor without disposing sources
+  const wasPlaying = compositor.value.playing;
+  const time = compositor.value.currentTime;
+  if (wasPlaying) compositor.value.pause();
 
-    compositor.value.resize(aspect.w, aspect.h);
+  compositor.value.resize(aspect.w, aspect.h);
 
-    // Restore state
-    if (clips.value.length > 0) {
-        updatePreview();
-        compositor.value.seek(time);
-        if (wasPlaying) compositor.value.play();
-    }
+  // Restore state
+  if (clips.value.length > 0) {
+    updatePreview();
+    compositor.value.seek(time);
+    if (wasPlaying) compositor.value.play();
+  }
 };
 
 // Change fit mode
 const changeFitMode = () => {
-    if (!compositor.value) return;
-    compositor.value.setFitMode(currentFitMode.value);
-    updatePreview();
+  if (!compositor.value) return;
+  compositor.value.setFitMode(currentFitMode.value);
+  updatePreview();
 };
 
 // Update compositor preview config
 const updatePreview = () => {
-    if (!compositor.value) return;
-    compositor.value.preview({
-        duration: duration.value,
-        loop: true,
-        getComposition
-    });
-    // Re-render current frame
-    compositor.value.seek(currentTime.value);
+  if (!compositor.value) return;
+  compositor.value.preview({
+    duration: duration.value,
+    loop: true,
+    getComposition,
+  });
+  // Re-render current frame
+  compositor.value.seek(currentTime.value);
 };
 
 // Loading
 const loadSampleVideo = async () => {
-    if (!compositor.value || loading.value) return;
-    loading.value = true;
-    try {
-        const source = await compositor.value.loadSource(
-            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
-        );
-        const videoClipCount = clips.value.filter(c => c.type !== 'audio').length;
-        const track = videoClipCount % 3;
-        const lastEnd = Math.max(0, ...getClipsOnTrack(track).map(c => c.startTime + c.duration), 0);
-        clips.value.push({
-            id: `clip_${clipIdCounter++}`,
-            name: 'Big Buck Bunny',
-            source,
-            type: 'video',
-            track,
-            startTime: lastEnd,
-            duration: Math.min(source.duration, 10),
-            sourceDuration: source.duration,
-            sourceOffset: 0,
-            volume: 1,
-            opacity: 1,
-            scale: 1,
-            rotation: 0,
-            x: 0,
-            y: 0
-        });
-        updatePreview();
-    } catch (e) {
-        console.error('Load failed:', e);
-        alert('Failed to load video');
-    } finally {
-        loading.value = false;
-    }
+  if (!compositor.value || loading.value) return;
+  loading.value = true;
+  try {
+    const source = await compositor.value.loadSource(
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+    );
+    const videoClipCount = clips.value.filter((c) => c.type !== 'audio').length;
+    const track = videoClipCount % 3;
+    const lastEnd = Math.max(0, ...getClipsOnTrack(track).map((c) => c.startTime + c.duration), 0);
+    clips.value.push({
+      id: `clip_${clipIdCounter++}`,
+      name: 'Big Buck Bunny',
+      source,
+      type: 'video',
+      track,
+      startTime: lastEnd,
+      duration: Math.min(source.duration, 10),
+      sourceDuration: source.duration,
+      sourceOffset: 0,
+      volume: 1,
+      opacity: 1,
+      scale: 1,
+      rotation: 0,
+      x: 0,
+      y: 0,
+    });
+    updatePreview();
+  } catch (e) {
+    console.error('Load failed:', e);
+    alert('Failed to load video');
+  } finally {
+    loading.value = false;
+  }
 };
 
 const openFileDialog = () => fileInput.value?.click();
 
 const handleFileSelect = async (e: Event) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file || !compositor.value) return;
-    loading.value = true;
-    try {
-        const isImage = file.type.startsWith('image/');
-        const isAudio = file.type.startsWith('audio/');
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file || !compositor.value) return;
+  loading.value = true;
+  try {
+    const isImage = file.type.startsWith('image/');
+    const isAudio = file.type.startsWith('audio/');
 
-        let source: CompositorSource;
-        let clipType: 'video' | 'image' | 'audio';
-        let track: number;
+    let source: CompositorSource;
+    let clipType: 'video' | 'image' | 'audio';
+    let track: number;
 
-        if (isAudio) {
-            source = await compositor.value.loadAudio(file);
-            clipType = 'audio';
-            const audioClipCount = clips.value.filter(c => c.type === 'audio').length;
-            track = 3 + (audioClipCount % 2); // Audio tracks are 3 and 4
-        } else if (isImage) {
-            source = await compositor.value.loadImage(file);
-            clipType = 'image';
-            const videoClipCount = clips.value.filter(c => c.type !== 'audio').length;
-            track = videoClipCount % 3;
-        } else {
-            source = await compositor.value.loadSource(file);
-            clipType = 'video';
-            const videoClipCount = clips.value.filter(c => c.type !== 'audio').length;
-            track = videoClipCount % 3;
-        }
-
-        const dur = isImage ? 5 : source.duration;
-        const lastEnd = Math.max(0, ...getClipsOnTrack(track).map(c => c.startTime + c.duration), 0);
-        clips.value.push({
-            id: `clip_${clipIdCounter++}`,
-            name: file.name.slice(0, 20),
-            source,
-            type: clipType,
-            track,
-            startTime: lastEnd,
-            duration: Math.min(dur, 10),
-            sourceDuration: dur,
-            sourceOffset: 0,
-            volume: 1,
-            opacity: 1,
-            scale: 1,
-            rotation: 0,
-            x: 0,
-            y: 0
-        });
-        updatePreview();
-    } catch (e) {
-        console.error('Load failed:', e);
-        alert('Failed to load file');
-    } finally {
-        loading.value = false;
+    if (isAudio) {
+      source = await compositor.value.loadAudio(file);
+      clipType = 'audio';
+      const audioClipCount = clips.value.filter((c) => c.type === 'audio').length;
+      track = 3 + (audioClipCount % 2); // Audio tracks are 3 and 4
+    } else if (isImage) {
+      source = await compositor.value.loadImage(file);
+      clipType = 'image';
+      const videoClipCount = clips.value.filter((c) => c.type !== 'audio').length;
+      track = videoClipCount % 3;
+    } else {
+      source = await compositor.value.loadSource(file);
+      clipType = 'video';
+      const videoClipCount = clips.value.filter((c) => c.type !== 'audio').length;
+      track = videoClipCount % 3;
     }
+
+    const dur = isImage ? 5 : source.duration;
+    const lastEnd = Math.max(0, ...getClipsOnTrack(track).map((c) => c.startTime + c.duration), 0);
+    clips.value.push({
+      id: `clip_${clipIdCounter++}`,
+      name: file.name.slice(0, 20),
+      source,
+      type: clipType,
+      track,
+      startTime: lastEnd,
+      duration: Math.min(dur, 10),
+      sourceDuration: dur,
+      sourceOffset: 0,
+      volume: 1,
+      opacity: 1,
+      scale: 1,
+      rotation: 0,
+      x: 0,
+      y: 0,
+    });
+    updatePreview();
+  } catch (e) {
+    console.error('Load failed:', e);
+    alert('Failed to load file');
+  } finally {
+    loading.value = false;
+  }
 };
 
 const resetTransform = () => {
-    const clip = selectedClip.value;
-    if (!clip) return;
-    clip.scale = 1;
-    clip.opacity = 1;
-    clip.rotation = 0;
-    clip.x = 0;
-    clip.y = 0;
-    updatePreview();
+  const clip = selectedClip.value;
+  if (!clip) return;
+  clip.scale = 1;
+  clip.opacity = 1;
+  clip.rotation = 0;
+  clip.x = 0;
+  clip.y = 0;
+  updatePreview();
 };
 
 const deleteSelectedClip = () => {
-    if (!selectedClipId.value) return;
-    const idx = clips.value.findIndex(c => c.id === selectedClipId.value);
-    if (idx !== -1) {
-        clips.value.splice(idx, 1);
-        selectedClipId.value = null;
-        updatePreview();
-    }
+  if (!selectedClipId.value) return;
+  const idx = clips.value.findIndex((c) => c.id === selectedClipId.value);
+  if (idx !== -1) {
+    clips.value.splice(idx, 1);
+    selectedClipId.value = null;
+    updatePreview();
+  }
 };
 
 const deleteClip = (clip: ClipData) => {
-    const idx = clips.value.findIndex(c => c.id === clip.id);
-    if (idx !== -1) {
-        clips.value.splice(idx, 1);
-        if (selectedClipId.value === clip.id) selectedClipId.value = null;
-        updatePreview();
-    }
+  const idx = clips.value.findIndex((c) => c.id === clip.id);
+  if (idx !== -1) {
+    clips.value.splice(idx, 1);
+    if (selectedClipId.value === clip.id) selectedClipId.value = null;
+    updatePreview();
+  }
 };
 
 const onClipRightClick = (e: MouseEvent, clip: ClipData) => {
-    if (confirm(`Delete "${clip.name}"?`)) {
-        deleteClip(clip);
-    }
+  if (confirm(`Delete "${clip.name}"?`)) {
+    deleteClip(clip);
+  }
 };
 
 // Timeline interaction
@@ -471,210 +468,190 @@ let dragStartDuration = 0;
 let dragStartOffset = 0;
 let scrubRAF: number | null = null;
 let scrubPendingTime: number | null = null;
-let scrubSeeking = false;
 let resumeAfterScrub = false;
 
 const scheduleScrub = (time: number) => {
-    currentTime.value = time;
-    if (!compositor.value) return;
-    scrubPendingTime = time;
-    if (scrubRAF === null) {
-        scrubRAF = requestAnimationFrame(() => {
-            scrubRAF = null;
-            const next = scrubPendingTime;
-            scrubPendingTime = null;
-            if (next !== null) void performScrubSeek(next);
-        });
-    }
-};
-
-const performScrubSeek = async (time: number) => {
-    if (!compositor.value) return;
-    if (scrubSeeking) {
-        scrubPendingTime = time;
-        return;
-    }
-    scrubSeeking = true;
-    try {
-        await compositor.value.seek(time);
-    } finally {
-        scrubSeeking = false;
-        if (scrubPendingTime !== null) {
-            const next = scrubPendingTime;
-            scrubPendingTime = null;
-            scheduleScrub(next);
-        }
-    }
+  currentTime.value = time;
+  if (!compositor.value) return;
+  scrubPendingTime = time;
+  if (scrubRAF === null) {
+    scrubRAF = requestAnimationFrame(() => {
+      scrubRAF = null;
+      const next = scrubPendingTime;
+      scrubPendingTime = null;
+      if (next !== null) void compositor.value?.seek(next);
+    });
+  }
 };
 
 const startScrub = (time: number) => {
-    resumeAfterScrub = playing.value;
-    if (resumeAfterScrub) compositor.value?.pause();
-    dragMode = 'scrub';
-    scheduleScrub(time);
+  resumeAfterScrub = playing.value;
+  if (resumeAfterScrub) compositor.value?.pause();
+  dragMode = 'scrub';
+  scheduleScrub(time);
 };
 
 const endScrub = () => {
-    if (resumeAfterScrub) {
-        compositor.value?.play();
-        resumeAfterScrub = false;
-    }
+  if (resumeAfterScrub) {
+    compositor.value?.play();
+    resumeAfterScrub = false;
+  }
 };
 
 const onRulerMouseDown = (e: MouseEvent) => {
-    const target = e.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const time = Math.max(0, x / PX_PER_SEC);
-    selectedClipId.value = null;
-    startScrub(time);
+  const target = e.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const time = Math.max(0, x / PX_PER_SEC);
+  selectedClipId.value = null;
+  startScrub(time);
 
-    const onMove = (ev: MouseEvent) => {
-        const rx = ev.clientX - rect.left;
-        const t = Math.max(0, Math.min(rx / PX_PER_SEC, duration.value));
-        scheduleScrub(t);
-    };
-    const onUp = () => {
-        endScrub();
-        dragMode = null;
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+  const onMove = (ev: MouseEvent) => {
+    const rx = ev.clientX - rect.left;
+    const t = Math.max(0, Math.min(rx / PX_PER_SEC, duration.value));
+    scheduleScrub(t);
+  };
+  const onUp = () => {
+    endScrub();
+    dragMode = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 };
 
 const onTimelineMouseDown = (e: MouseEvent) => {
-    if (!timelineRef.value) return;
-    const rect = timelineRef.value.getBoundingClientRect();
-    const x = e.clientX - rect.left - 48;
-    const time = Math.max(0, x / PX_PER_SEC);
-    selectedClipId.value = null;
-    startScrub(time);
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+  if (!timelineRef.value) return;
+  const rect = timelineRef.value.getBoundingClientRect();
+  const x = e.clientX - rect.left - 48;
+  const time = Math.max(0, x / PX_PER_SEC);
+  selectedClipId.value = null;
+  startScrub(time);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 };
 
 const onClipMouseDown = (e: MouseEvent, clip: ClipData) => {
-    selectedClipId.value = clip.id;
-    dragMode = 'move';
-    dragClip = clip;
-    dragStartX = e.clientX;
-    dragStartValue = clip.startTime;
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+  selectedClipId.value = clip.id;
+  dragMode = 'move';
+  dragClip = clip;
+  dragStartX = e.clientX;
+  dragStartValue = clip.startTime;
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 };
 
 const onTrimMouseDown = (e: MouseEvent, clip: ClipData, side: 'left' | 'right') => {
-    selectedClipId.value = clip.id;
-    dragMode = side === 'left' ? 'trim-left' : 'trim-right';
-    dragClip = clip;
-    dragStartX = e.clientX;
-    dragStartValue = clip.startTime;
-    dragStartDuration = clip.duration;
-    dragStartOffset = clip.sourceOffset;
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+  selectedClipId.value = clip.id;
+  dragMode = side === 'left' ? 'trim-left' : 'trim-right';
+  dragClip = clip;
+  dragStartX = e.clientX;
+  dragStartValue = clip.startTime;
+  dragStartDuration = clip.duration;
+  dragStartOffset = clip.sourceOffset;
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 };
 
 const onMouseMove = (e: MouseEvent) => {
-    const dx = e.clientX - dragStartX;
-    const dt = dx / PX_PER_SEC;
+  const dx = e.clientX - dragStartX;
+  const dt = dx / PX_PER_SEC;
 
-    if (dragMode === 'scrub' && timelineRef.value) {
-        const rect = timelineRef.value.getBoundingClientRect();
-        const x = e.clientX - rect.left - 48;
-        const time = Math.max(0, Math.min(x / PX_PER_SEC, duration.value));
-        scheduleScrub(time);
-    } else if (dragMode === 'move' && dragClip) {
-        dragClip.startTime = Math.max(0, dragStartValue + dt);
-        updatePreview();
-    } else if (dragMode === 'trim-left' && dragClip) {
-        const newStart = Math.max(0, dragStartValue + dt);
-        const delta = newStart - dragStartValue;
-        const newDuration = dragStartDuration - delta;
-        if (newDuration >= 0.1) {
-            dragClip.startTime = newStart;
-            dragClip.duration = newDuration;
-            dragClip.sourceOffset = Math.max(0, dragStartOffset + delta);
-        }
-        updatePreview();
-    } else if (dragMode === 'trim-right' && dragClip) {
-        const newDuration = Math.max(0.1, dragStartDuration + dt);
-        dragClip.duration = Math.min(newDuration, dragClip.sourceDuration - dragClip.sourceOffset);
-        updatePreview();
+  if (dragMode === 'scrub' && timelineRef.value) {
+    const rect = timelineRef.value.getBoundingClientRect();
+    const x = e.clientX - rect.left - 48;
+    const time = Math.max(0, Math.min(x / PX_PER_SEC, duration.value));
+    scheduleScrub(time);
+  } else if (dragMode === 'move' && dragClip) {
+    dragClip.startTime = Math.max(0, dragStartValue + dt);
+    updatePreview();
+  } else if (dragMode === 'trim-left' && dragClip) {
+    const newStart = Math.max(0, dragStartValue + dt);
+    const delta = newStart - dragStartValue;
+    const newDuration = dragStartDuration - delta;
+    if (newDuration >= 0.1) {
+      dragClip.startTime = newStart;
+      dragClip.duration = newDuration;
+      dragClip.sourceOffset = Math.max(0, dragStartOffset + delta);
     }
+    updatePreview();
+  } else if (dragMode === 'trim-right' && dragClip) {
+    const newDuration = Math.max(0.1, dragStartDuration + dt);
+    dragClip.duration = Math.min(newDuration, dragClip.sourceDuration - dragClip.sourceOffset);
+    updatePreview();
+  }
 };
 
 const onMouseUp = () => {
-    if (dragMode === 'scrub') endScrub();
-    dragMode = null;
-    dragClip = null;
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+  if (dragMode === 'scrub') endScrub();
+  dragMode = null;
+  dragClip = null;
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
 };
 
 // Smooth playhead animation using rAF (independent of throttled timeupdate)
 const startPlayheadAnimation = () => {
-    if (playheadRAF !== null) return;
-    const tick = () => {
-        if (compositor.value && playing.value) {
-            currentTime.value = compositor.value.currentTime;
-            playheadRAF = requestAnimationFrame(tick);
-        } else {
-            playheadRAF = null;
-        }
-    };
-    playheadRAF = requestAnimationFrame(tick);
+  if (playheadRAF !== null) return;
+  const tick = () => {
+    if (compositor.value && playing.value) {
+      currentTime.value = compositor.value.currentTime;
+      playheadRAF = requestAnimationFrame(tick);
+    } else {
+      playheadRAF = null;
+    }
+  };
+  playheadRAF = requestAnimationFrame(tick);
 };
 
 const stopPlayheadAnimation = () => {
-    if (playheadRAF !== null) {
-        cancelAnimationFrame(playheadRAF);
-        playheadRAF = null;
-    }
+  if (playheadRAF !== null) {
+    cancelAnimationFrame(playheadRAF);
+    playheadRAF = null;
+  }
 };
 
 // Playback - use compositor's built-in methods
 const togglePlay = () => {
-    if (!compositor.value || clips.value.length === 0) return;
-    if (playing.value) {
-        compositor.value.pause();
-    } else {
-        compositor.value.play();
-    }
+  if (!compositor.value || clips.value.length === 0) return;
+  if (playing.value) {
+    compositor.value.pause();
+  } else {
+    compositor.value.play();
+  }
 };
 
 const skipToStart = () => {
-    compositor.value?.seek(0);
+  compositor.value?.seek(0);
 };
 
 const skipToEnd = () => {
-    compositor.value?.seek(duration.value);
+  compositor.value?.seek(duration.value);
 };
 
 const toggleFullscreen = async () => {
-    const el = document.querySelector('.editor');
-    if (!el) return;
-    if (!document.fullscreenElement) {
-        await el.requestFullscreen();
-    } else {
-        await document.exitFullscreen();
-    }
+  const el = document.querySelector('.editor');
+  if (!el) return;
+  if (!document.fullscreenElement) {
+    await el.requestFullscreen();
+  } else {
+    await document.exitFullscreen();
+  }
 };
 
 const toggleMute = () => {
-    muted.value = !muted.value;
-    compositor.value?.setMuted(muted.value);
+  muted.value = !muted.value;
+  compositor.value?.setMuted(muted.value);
 };
 
 const updateVolume = () => {
-    compositor.value?.setVolume(masterVolume.value);
-    // Unmute if adjusting volume while muted
-    if (muted.value && masterVolume.value > 0) {
-        muted.value = false;
-        compositor.value?.setMuted(false);
-    }
+  compositor.value?.setVolume(masterVolume.value);
+  // Unmute if adjusting volume while muted
+  if (muted.value && masterVolume.value > 0) {
+    muted.value = false;
+    compositor.value?.setMuted(false);
+  }
 };
 
 // Dynamic page styles (added/removed on mount/unmount)
@@ -691,78 +668,78 @@ main { padding-bottom: 0 !important; }
 let styleEl: HTMLStyleElement | null = null;
 
 onMounted(() => {
-    // Add page styles
-    styleEl = document.createElement('style');
-    styleEl.textContent = PLAYGROUND_STYLES;
-    document.head.appendChild(styleEl);
+  // Add page styles
+  styleEl = document.createElement('style');
+  styleEl.textContent = PLAYGROUND_STYLES;
+  document.head.appendChild(styleEl);
 
-    if (!canvasRef.value) return;
-    const comp = new Compositor({
-        canvas: canvasRef.value,
-        width: canvasWidth.value,
-        height: canvasHeight.value,
-        backgroundColor: '#000000',
-        worker: {
-            enabled: true,
-            url: CompositorWorkerUrl,
-            type: 'module'
-        }
-    });
-    compositor.value = comp;
+  if (!canvasRef.value) return;
+  const comp = new Compositor({
+    canvas: canvasRef.value,
+    width: canvasWidth.value,
+    height: canvasHeight.value,
+    backgroundColor: '#000000',
+    worker: {
+      enabled: true,
+      url: CompositorWorkerUrl,
+      type: 'module',
+    },
+  });
+  compositor.value = comp;
 
-    comp.on('error', (e) => {
-        console.error('[Compositor Error]', e);
-    });
+  comp.on('error', (e) => {
+    console.error('[Compositor Error]', e);
+  });
 
-    // Listen to compositor events
-    comp.on('timeupdate', ({ currentTime: t }) => {
-        currentTime.value = t;
-    });
+  // Listen to compositor events
+  comp.on('timeupdate', ({ currentTime: t }) => {
+    currentTime.value = t;
+  });
 
-    comp.on('play', () => {
-        playing.value = true;
-        startPlayheadAnimation();
-    });
+  comp.on('play', () => {
+    playing.value = true;
+    startPlayheadAnimation();
+  });
 
-    comp.on('pause', () => {
-        playing.value = false;
-        stopPlayheadAnimation();
-    });
+  comp.on('pause', () => {
+    playing.value = false;
+    stopPlayheadAnimation();
+  });
 
-    comp.on('ended', () => {
-        playing.value = false;
-        stopPlayheadAnimation();
-    });
+  comp.on('ended', () => {
+    playing.value = false;
+    stopPlayheadAnimation();
+  });
 
-    comp.on('seeked', ({ time }) => {
-        currentTime.value = time;
-    });
+  comp.on('seeked', ({ time }) => {
+    currentTime.value = time;
+  });
 
-    document.addEventListener('fullscreenchange', () => {
-        isFullscreen.value = !!document.fullscreenElement;
-    });
+  document.addEventListener('fullscreenchange', () => {
+    isFullscreen.value = !!document.fullscreenElement;
+  });
 
-    document.addEventListener('keydown', (e) => {
-        if (e.target instanceof HTMLInputElement) return;
-        if (e.key === ' ') {
-            e.preventDefault();
-            togglePlay();
-        }
-        if ((e.key === 'Delete' || e.key === 'Backspace') && selectedClipId.value) {
-            deleteSelectedClip();
-        }
-    });
+  document.addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLInputElement) return;
+    if (e.key === ' ') {
+      e.preventDefault();
+      togglePlay();
+    }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedClipId.value) {
+      deleteSelectedClip();
+    }
+  });
 });
 
 onUnmounted(() => {
-    stopPlayheadAnimation();
-    if (scrubRAF !== null) cancelAnimationFrame(scrubRAF);
-    compositor.value?.dispose();
-    // Remove page styles
-    if (styleEl) {
-        styleEl.remove();
-        styleEl = null;
-    }
+  stopPlayheadAnimation();
+  if (scrubRAF !== null) cancelAnimationFrame(scrubRAF);
+  compositor.value?.dispose();
+  // Remove page styles
+  if (styleEl) {
+    styleEl.remove();
+    styleEl = null;
+  }
 });
 </script>
 

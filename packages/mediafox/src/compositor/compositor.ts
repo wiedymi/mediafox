@@ -90,6 +90,9 @@ export class Compositor {
   };
   private registeredAudioSources = new Set<string>();
 
+  // Seek/Play synchronization
+  private pendingPlayAfterSeek = false;
+
   /**
    * Creates a new Compositor instance.
    * @param options - Configuration options for the compositor
@@ -654,6 +657,12 @@ export class Compositor {
       throw new Error('No preview configured. Call preview() first.');
     }
 
+    // If currently seeking, queue play to execute after seek completes
+    if (this.state.seeking) {
+      this.pendingPlayAfterSeek = true;
+      return;
+    }
+
     this.state.playing = true;
     this.lastFrameTime = performance.now();
     this.lastRenderTime = this.lastFrameTime;
@@ -678,6 +687,7 @@ export class Compositor {
     if (!this.state.playing) return;
 
     this.state.playing = false;
+    this.pendingPlayAfterSeek = false;
     this.stopRenderLoop();
     if (this.audioManager) {
       this.audioManager.pause();
@@ -704,13 +714,22 @@ export class Compositor {
       await this.audioManager.seek(clampedTime);
     }
 
-    // Render frame at new time
+    // Render frame at new time and process audio layers during seek
     const frame = this.previewOptions.getComposition(clampedTime);
+    if (this.audioManager) {
+      this.processAudioLayers(frame.audio ?? [], clampedTime);
+    }
     await this.render(frame);
 
     this.state.seeking = false;
     this.emitter.emit('seeked', { time: clampedTime });
     this.emitter.emit('timeupdate', { currentTime: clampedTime });
+
+    // Execute pending play if one was queued during seek
+    if (this.pendingPlayAfterSeek) {
+      this.pendingPlayAfterSeek = false;
+      await this.play();
+    }
   }
 
   private startRenderLoop(): void {

@@ -179,6 +179,14 @@ export class CompositorAudioManager {
     this.startContextTime = this.audioContext.currentTime;
     this.startMediaTime = fromTime;
     this.pauseTime = fromTime;
+
+    // Clear any stale iterators so sources can be restarted fresh
+    for (const source of this.activeSources.values()) {
+      if (source.iterator) {
+        void source.iterator.return();
+        source.iterator = null;
+      }
+    }
   }
 
   /**
