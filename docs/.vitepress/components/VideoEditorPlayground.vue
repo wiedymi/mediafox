@@ -93,6 +93,7 @@
                         <div class="inspector-row">
                             <label>Fit</label>
                             <select v-model="selectedClip.fitMode" @change="updatePreview" class="fit-select">
+                                <option value="none">None (Original)</option>
                                 <option value="auto">Auto (Global)</option>
                                 <option value="fill">Fill (Stretch)</option>
                                 <option value="contain">Contain (Fit)</option>
@@ -196,7 +197,7 @@ interface ClipData {
   sourceDuration: number;
   sourceOffset: number;
   volume: number;
-  fitMode: 'auto' | 'contain' | 'cover' | 'fill';
+  fitMode: 'none' | 'auto' | 'contain' | 'cover' | 'fill';
   opacity: number;
   scale: number;
   rotation: number;
@@ -360,7 +361,7 @@ const loadSampleVideo = async () => {
       sourceDuration: source.duration,
       sourceOffset: 0,
       volume: 1,
-      fitMode: 'auto',
+      fitMode: 'none',
       opacity: 1,
       scale: 1,
       rotation: 0,
@@ -420,7 +421,7 @@ const handleFileSelect = async (e: Event) => {
       sourceDuration: dur,
       sourceOffset: 0,
       volume: 1,
-      fitMode: 'auto',
+      fitMode: 'none',
       opacity: 1,
       scale: 1,
       rotation: 0,
