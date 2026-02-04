@@ -34,6 +34,8 @@ export interface LayerTransform {
   opacity?: number;
   anchorX?: number;
   anchorY?: number;
+  /** CSS filter string applied to this layer (e.g. "brightness(1.1) contrast(1.05)"). */
+  filter?: string;
 }
 
 export interface CompositorLayer {

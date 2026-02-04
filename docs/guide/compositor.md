@@ -95,7 +95,8 @@ Each layer can have these transform properties:
     rotation: 45,    // Rotation in degrees
     opacity: 0.8,    // Opacity (0-1)
     anchorX: 0.5,    // Anchor point X (0-1)
-    anchorY: 0.5     // Anchor point Y (0-1)
+    anchorY: 0.5,    // Anchor point Y (0-1)
+    filter: "brightness(1.1) contrast(1.05)" // CSS filter string
   }
 }
 ```

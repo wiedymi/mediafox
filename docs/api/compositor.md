@@ -670,6 +670,7 @@ interface LayerTransform {
   opacity?: number;     // Opacity 0-1 (default: 1)
   anchorX?: number;     // Anchor point X 0-1 (default: 0.5)
   anchorY?: number;     // Anchor point Y 0-1 (default: 0.5)
+  filter?: string;      // CSS filter string (e.g. "brightness(1.1) contrast(1.05)")
 }
 ```
 
