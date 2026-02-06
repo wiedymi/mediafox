@@ -551,6 +551,7 @@ export class VideoRenderer {
     }
 
     this.renderingId++;
+    const currentRenderingId = this.renderingId;
 
     // Dispose current iterator
     if (this.frameIterator) {
@@ -572,6 +573,7 @@ export class VideoRenderer {
       // whose timestamp is at or just before the seek time
       let targetFrame: WrappedCanvas | null = null;
       let nextFrame: WrappedCanvas | null = null;
+      const SEEK_FRAME_MATCH_TOLERANCE = 0.001;
 
       // First, try to get a frame slightly before the target to find the correct display frame
       const lookbehindTime = Math.max(0, timestamp - 2);
@@ -601,6 +603,12 @@ export class VideoRenderer {
         targetFrame = previousFrame;
       } catch {
         // Iterator error
+      } finally {
+        try {
+          await lookbehindIterator.return();
+        } catch {
+          // Iterator may already be closed
+        }
       }
 
       // If we didn't find a frame looking backwards, try forward
@@ -613,7 +621,17 @@ export class VideoRenderer {
           }
         } catch {
           // Iterator error
+        } finally {
+          try {
+            await forwardIterator.return();
+          } catch {
+            // Iterator may already be closed
+          }
         }
+      }
+
+      if (currentRenderingId !== this.renderingId || this.disposed) {
+        return;
       }
 
       // Set up the frame if we found one
@@ -629,9 +647,38 @@ export class VideoRenderer {
         }
 
         // Set up iterator for continued playback from current frame position
-        this.frameIterator = this.canvasSink.canvases(targetFrame.timestamp);
-        // Advance past the current frame
-        await this.frameIterator.next();
+        const playbackIterator = this.canvasSink.canvases(targetFrame.timestamp);
+        this.frameIterator = playbackIterator;
+
+        let firstFrameAfterRestart: WrappedCanvas | null = null;
+        try {
+          const first = await playbackIterator.next();
+          firstFrameAfterRestart = first.value ?? null;
+        } catch {
+          // Iterator error
+        }
+
+        if (currentRenderingId !== this.renderingId || this.disposed) {
+          try {
+            await playbackIterator.return();
+          } catch {
+            // Iterator may already be closed
+          }
+          if (this.frameIterator === playbackIterator) {
+            this.frameIterator = null;
+          }
+          return;
+        }
+
+        // Only skip the first iterator frame if it matches the currently rendered frame.
+        // If it is already ahead, keep it as the next frame so playback doesn't jump.
+        if (
+          firstFrameAfterRestart &&
+          firstFrameAfterRestart.timestamp > targetFrame.timestamp + SEEK_FRAME_MATCH_TOLERANCE &&
+          (!this.nextFrame || firstFrameAfterRestart.timestamp < this.nextFrame.timestamp)
+        ) {
+          this.nextFrame = firstFrameAfterRestart;
+        }
 
         // Get next frame if we don't have one
         if (!this.nextFrame) {
