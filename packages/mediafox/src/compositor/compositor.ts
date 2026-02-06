@@ -499,14 +499,31 @@ export class Compositor {
     const scaleX = transform.scaleX ?? 1;
     const scaleY = transform.scaleY ?? 1;
     const opacity = transform.opacity ?? 1;
+    const filter = transform.filter;
 
     // Check if we need context state changes
     const needsOpacity = opacity !== 1;
     const needsTransform = rotation !== 0 || scaleX !== 1 || scaleY !== 1;
+    const needsFilter = !!filter && filter !== 'none';
+    const needsContextState = needsOpacity || needsTransform || needsFilter;
 
     // Fast path: simple position/size only, no rotation/scale/opacity
-    if (!needsOpacity && !needsTransform) {
+    if (!needsContextState) {
       ctx.drawImage(image, x, y, destWidth, destHeight);
+      return;
+    }
+
+    // If we only need opacity/filter but no transforms, avoid translate/rotate work
+    if (!needsTransform) {
+      ctx.save();
+      if (needsOpacity) {
+        ctx.globalAlpha = opacity;
+      }
+      if (needsFilter) {
+        ctx.filter = filter;
+      }
+      ctx.drawImage(image, x, y, destWidth, destHeight);
+      ctx.restore();
       return;
     }
 
@@ -518,6 +535,10 @@ export class Compositor {
 
     if (needsOpacity) {
       ctx.globalAlpha = opacity;
+    }
+
+    if (needsFilter) {
+      ctx.filter = filter;
     }
 
     // Move to layer position

@@ -90,6 +90,52 @@
                             <input type="range" v-model.number="selectedClip.rotation" min="-180" max="180" step="1" @input="updatePreview" />
                             <span>{{ selectedClip.rotation }}°</span>
                         </div>
+                        <div class="inspector-title">Effects</div>
+                        <div class="inspector-row">
+                            <label>Brightness</label>
+                            <input type="range" v-model.number="selectedClip.brightness" min="0" max="2" step="0.05" @input="updatePreview" />
+                            <span>{{ selectedClip.brightness.toFixed(2) }}</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Contrast</label>
+                            <input type="range" v-model.number="selectedClip.contrast" min="0" max="2" step="0.05" @input="updatePreview" />
+                            <span>{{ selectedClip.contrast.toFixed(2) }}</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Saturation</label>
+                            <input type="range" v-model.number="selectedClip.saturation" min="0" max="2" step="0.05" @input="updatePreview" />
+                            <span>{{ selectedClip.saturation.toFixed(2) }}</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Grayscale</label>
+                            <input type="range" v-model.number="selectedClip.grayscale" min="0" max="1" step="0.05" @input="updatePreview" />
+                            <span>{{ selectedClip.grayscale.toFixed(2) }}</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Sepia</label>
+                            <input type="range" v-model.number="selectedClip.sepia" min="0" max="1" step="0.05" @input="updatePreview" />
+                            <span>{{ selectedClip.sepia.toFixed(2) }}</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Invert</label>
+                            <input type="range" v-model.number="selectedClip.invert" min="0" max="1" step="0.05" @input="updatePreview" />
+                            <span>{{ selectedClip.invert.toFixed(2) }}</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Hue</label>
+                            <input type="range" v-model.number="selectedClip.hue" min="-180" max="180" step="1" @input="updatePreview" />
+                            <span>{{ selectedClip.hue }}°</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Blur</label>
+                            <input type="range" v-model.number="selectedClip.blur" min="0" max="20" step="0.5" @input="updatePreview" />
+                            <span>{{ selectedClip.blur.toFixed(1) }}px</span>
+                        </div>
+                        <div class="inspector-row">
+                            <label>Opacity</label>
+                            <input type="range" v-model.number="selectedClip.filterOpacity" min="0" max="1" step="0.05" @input="updatePreview" />
+                            <span>{{ selectedClip.filterOpacity.toFixed(2) }}</span>
+                        </div>
                         <div class="inspector-row">
                             <label>Fit</label>
                             <select v-model="selectedClip.fitMode" @change="updatePreview" class="fit-select">
@@ -202,6 +248,15 @@ interface ClipData {
   rotation: number;
   x: number;
   y: number;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hue: number;
+  blur: number;
+  grayscale: number;
+  sepia: number;
+  invert: number;
+  filterOpacity: number;
 }
 
 const PX_PER_SEC = 60;
@@ -245,6 +300,20 @@ const selectedClip = computed(() => clips.value.find((c) => c.id === selectedCli
 
 const getClipsOnTrack = (track: number) => clips.value.filter((c) => c.track === track);
 
+const buildFilter = (clip: ClipData) => {
+  const parts: string[] = [];
+  if (clip.brightness !== 1) parts.push(`brightness(${clip.brightness})`);
+  if (clip.contrast !== 1) parts.push(`contrast(${clip.contrast})`);
+  if (clip.saturation !== 1) parts.push(`saturate(${clip.saturation})`);
+  if (clip.hue !== 0) parts.push(`hue-rotate(${clip.hue}deg)`);
+  if (clip.grayscale !== 0) parts.push(`grayscale(${clip.grayscale})`);
+  if (clip.sepia !== 0) parts.push(`sepia(${clip.sepia})`);
+  if (clip.invert !== 0) parts.push(`invert(${clip.invert})`);
+  if (clip.filterOpacity !== 1) parts.push(`opacity(${clip.filterOpacity})`);
+  if (clip.blur > 0) parts.push(`blur(${clip.blur}px)`);
+  return parts.length > 0 ? parts.join(' ') : undefined;
+};
+
 const formatTimecode = (s: number) => {
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
@@ -273,6 +342,7 @@ const getComposition = (time: number) => {
         scaleY: clip.scale,
         opacity: clip.opacity,
         rotation: clip.rotation,
+        filter: buildFilter(clip),
       },
       zIndex: i,
     };
@@ -366,6 +436,15 @@ const loadSampleVideo = async () => {
       rotation: 0,
       x: 0,
       y: 0,
+      brightness: 1,
+      contrast: 1,
+      saturation: 1,
+      hue: 0,
+      blur: 0,
+      grayscale: 0,
+      sepia: 0,
+      invert: 0,
+      filterOpacity: 1,
     });
     updatePreview();
   } catch (e) {
@@ -426,6 +505,15 @@ const handleFileSelect = async (e: Event) => {
       rotation: 0,
       x: 0,
       y: 0,
+      brightness: 1,
+      contrast: 1,
+      saturation: 1,
+      hue: 0,
+      blur: 0,
+      grayscale: 0,
+      sepia: 0,
+      invert: 0,
+      filterOpacity: 1,
     });
     updatePreview();
   } catch (e) {
@@ -444,6 +532,15 @@ const resetTransform = () => {
   clip.rotation = 0;
   clip.x = 0;
   clip.y = 0;
+  clip.brightness = 1;
+  clip.contrast = 1;
+  clip.saturation = 1;
+  clip.hue = 0;
+  clip.blur = 0;
+  clip.grayscale = 0;
+  clip.sepia = 0;
+  clip.invert = 0;
+  clip.filterOpacity = 1;
   updatePreview();
 };
 
@@ -963,6 +1060,14 @@ onUnmounted(() => {
     height: 4px;
     -webkit-appearance: none;
     background: #444;
+}
+
+.inspector-title {
+    margin: 12px 0 8px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #777;
 }
 
 .inspector-row input[type="range"]::-webkit-slider-thumb {
