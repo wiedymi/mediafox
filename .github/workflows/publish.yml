@@ -12,7 +12,8 @@ on:
       - "v*.*.*"
 
 permissions:
-  contents: write  # allow committing and pushing version bumps
+  contents: write # allow committing and pushing version bumps
+  id-token: write # required for npm trusted publishing (OIDC)
 
 jobs:
   publish:
@@ -37,8 +38,11 @@ jobs:
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org/"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Upgrade npm for trusted publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
 
       - name: Configure Git
         run: |
@@ -86,17 +90,10 @@ jobs:
             fi
           done
 
-      - name: Check npm user authentication
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm whoami
-
       - name: Build MediaFox Packages
         run: bun run build
 
       - name: Publish all packages to NPM Registry
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for package_dir in packages/*/; do
             if [ -f "$package_dir/package.json" ]; then
