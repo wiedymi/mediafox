@@ -551,7 +551,6 @@ export class VideoRenderer {
     }
 
     this.renderingId++;
-    const currentRenderingId = this.renderingId;
 
     // Dispose current iterator
     if (this.frameIterator) {
@@ -563,40 +562,81 @@ export class VideoRenderer {
       this.frameIterator = null;
     }
 
-    // Create a new iterator starting from the timestamp
-    const iterator = this.canvasSink.canvases(timestamp);
-    this.frameIterator = iterator;
+    // Clear current frames to ensure we don't show stale data
+    this.currentFrame = null;
+    this.nextFrame = null;
 
     try {
-      // Get the first two frames
-      const firstResult = await iterator.next();
-      const secondResult = await iterator.next();
+      // Strategy: Look backwards from the seek time to find the frame that should be displayed
+      // Video frames are typically decoded from keyframes, so we need to find the frame
+      // whose timestamp is at or just before the seek time
+      let targetFrame: WrappedCanvas | null = null;
+      let nextFrame: WrappedCanvas | null = null;
 
-      if (currentRenderingId !== this.renderingId) {
-        return;
+      // First, try to get a frame slightly before the target to find the correct display frame
+      const lookbehindTime = Math.max(0, timestamp - 2);
+      const lookbehindIterator = this.canvasSink.canvases(lookbehindTime);
+
+      try {
+        // Iterate through frames until we find the one that should be displayed at target time
+        // This is the frame with timestamp <= target and next frame has timestamp > target
+        let previousFrame: WrappedCanvas | null = null;
+
+        for await (const frame of lookbehindIterator) {
+          if (frame.timestamp <= timestamp) {
+            // This frame is at or before the target - it's a candidate
+            previousFrame = frame;
+          } else {
+            // This frame is after the target, so the previous frame is the one we want
+            nextFrame = frame;
+            break;
+          }
+
+          // Safety limit - don't iterate too far
+          if (frame.timestamp > timestamp + 5) {
+            break;
+          }
+        }
+
+        targetFrame = previousFrame;
+      } catch {
+        // Iterator error
       }
 
-      const firstFrame = firstResult.value ?? null;
-      const secondFrame = secondResult.value ?? null;
-
-      // Store the frame first
-      if (firstFrame) {
-        this.currentFrame = firstFrame;
-
-        // Draw the first frame immediately if canvas has dimensions
-        if (firstFrame.canvas.width > 0 && firstFrame.canvas.height > 0) {
-          this.renderFrame(firstFrame);
-        } else {
-          this.retryUntilCanvasReady(firstFrame, () => this.renderFrame(firstFrame), 30);
+      // If we didn't find a frame looking backwards, try forward
+      if (!targetFrame) {
+        const forwardIterator = this.canvasSink.canvases(timestamp);
+        try {
+          const result = await forwardIterator.next();
+          if (result.value) {
+            targetFrame = result.value;
+          }
+        } catch {
+          // Iterator error
         }
       }
 
-      // Store the second frame for later
-      this.nextFrame = secondFrame;
+      // Set up the frame if we found one
+      if (targetFrame) {
+        this.currentFrame = targetFrame;
+        this.nextFrame = nextFrame;
 
-      // If we don't have a next frame yet, try to fetch one
-      if (!this.nextFrame) {
-        void this.fetchNextFrame();
+        // Draw the frame immediately if canvas has dimensions
+        if (targetFrame.canvas.width > 0 && targetFrame.canvas.height > 0) {
+          this.renderFrame(targetFrame);
+        } else {
+          this.retryUntilCanvasReady(targetFrame, () => this.renderFrame(targetFrame), 30);
+        }
+
+        // Set up iterator for continued playback from current frame position
+        this.frameIterator = this.canvasSink.canvases(targetFrame.timestamp);
+        // Advance past the current frame
+        await this.frameIterator.next();
+
+        // Get next frame if we don't have one
+        if (!this.nextFrame) {
+          void this.fetchNextFrame();
+        }
       }
     } catch {
       // Iterator was closed or disposed during seek
@@ -607,6 +647,16 @@ export class VideoRenderer {
     const result = this.updateFrameResult;
 
     if (this.disposed) {
+      result.frameUpdated = false;
+      result.isStarving = false;
+      return result;
+    }
+
+    // Special case: If we have a current frame but it's timestamp is far in the future,
+    // it means we seeked to a frame that's ahead of playback. Don't advance frames
+    // until currentTime catches up to the current frame's timestamp.
+    if (this.currentFrame && this.currentFrame.timestamp > currentTime + 0.1) {
+      // Current frame is in the future, don't update yet
       result.frameUpdated = false;
       result.isStarving = false;
       return result;
@@ -624,7 +674,9 @@ export class VideoRenderer {
     }
 
     // Check if the current playback time has caught up to the next frame
-    if (this.nextFrame.timestamp <= currentTime) {
+    // Use a small tolerance to handle timing precision issues
+    const FRAME_DISPLAY_TOLERANCE = 0.016; // ~1 frame at 60fps
+    if (this.nextFrame.timestamp <= currentTime + FRAME_DISPLAY_TOLERANCE) {
       // Store the frame first
       this.currentFrame = this.nextFrame;
       this.nextFrame = null;
