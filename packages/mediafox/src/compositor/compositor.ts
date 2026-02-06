@@ -673,6 +673,11 @@ export class Compositor {
       // Reset active audio tracking so sources restart after pause/seek.
       this.activeAudioSourceIds.clear();
       await this.audioManager.play(this.state.currentTime);
+
+      // Process audio layers immediately to start sources right away
+      // instead of waiting for render loop which might skip first frame
+      const frame = this.previewOptions.getComposition(this.state.currentTime);
+      this.processAudioLayers(frame.audio ?? [], this.state.currentTime);
     }
 
     // Start render loop
@@ -712,6 +717,8 @@ export class Compositor {
     // Seek audio
     if (this.audioManager) {
       await this.audioManager.seek(clampedTime);
+      // Clear tracking so sources are treated as new and restarted
+      this.activeAudioSourceIds.clear();
     }
 
     // Render frame at new time and process audio layers during seek

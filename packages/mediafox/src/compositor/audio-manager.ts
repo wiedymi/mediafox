@@ -113,7 +113,7 @@ export class CompositorAudioManager {
    * Updates which sources are playing and their parameters.
    */
   processAudioLayers(layers: AudioLayer[], mediaTime: number): void {
-    if (this.disposed || !this.playing) return;
+    if (this.disposed) return;
 
     // Track which sources are active in this frame
     const activeSourceIds = this.activeSourceIdsScratch;
