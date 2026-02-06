@@ -437,11 +437,7 @@ export class Compositor {
     const sourceWidth = layer.source.width ?? this.width;
     const sourceHeight = layer.source.height ?? this.height;
     const effectiveFitMode =
-      layer.fitMode === 'auto'
-        ? this.fitMode
-        : layer.fitMode === undefined || layer.fitMode === 'none'
-          ? 'none'
-          : layer.fitMode;
+      layer.fitMode === undefined || layer.fitMode === 'auto' ? this.fitMode : layer.fitMode;
 
     let fittedWidth = sourceWidth;
     let fittedHeight = sourceHeight;

@@ -41,8 +41,8 @@ export interface CompositorLayer {
   sourceTime?: number;
   transform?: LayerTransform;
   /**
-   * Fit mode override for this layer. Use 'none' (default) or leave undefined
-   * to render at the source's original size without fitting.
+   * Fit mode override for this layer. Use 'auto' or leave undefined to use the
+   * compositor's global fitMode, or 'none' to render at the source's original size.
    */
   fitMode?: LayerFitMode;
   visible?: boolean;
