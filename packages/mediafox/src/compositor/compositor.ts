@@ -436,8 +436,8 @@ export class Compositor {
     const transform = layer.transform;
     const sourceWidth = layer.source.width ?? this.width;
     const sourceHeight = layer.source.height ?? this.height;
-    const hasExplicitFitMode = layer.fitMode !== undefined && layer.fitMode !== 'auto';
-    const effectiveFitMode = hasExplicitFitMode ? layer.fitMode : this.fitMode;
+    const effectiveFitMode =
+      layer.fitMode === undefined || layer.fitMode === 'auto' ? this.fitMode : layer.fitMode;
 
     let fittedWidth = sourceWidth;
     let fittedHeight = sourceHeight;
@@ -447,6 +447,11 @@ export class Compositor {
     if (sourceWidth === 0 || sourceHeight === 0) {
       fittedWidth = this.width;
       fittedHeight = this.height;
+    } else if (effectiveFitMode === 'none') {
+      fittedWidth = sourceWidth;
+      fittedHeight = sourceHeight;
+      fittedX = (this.width - fittedWidth) / 2;
+      fittedY = (this.height - fittedHeight) / 2;
     } else {
       const sourceAspect = sourceWidth / sourceHeight;
       const canvasAspect = this.width / this.height;

@@ -139,6 +139,7 @@
                         <div class="inspector-row">
                             <label>Fit</label>
                             <select v-model="selectedClip.fitMode" @change="updatePreview" class="fit-select">
+                                <option value="none">None (Original)</option>
                                 <option value="auto">Auto (Global)</option>
                                 <option value="fill">Fill (Stretch)</option>
                                 <option value="contain">Contain (Fit)</option>
@@ -242,7 +243,7 @@ interface ClipData {
   sourceDuration: number;
   sourceOffset: number;
   volume: number;
-  fitMode: 'auto' | 'contain' | 'cover' | 'fill';
+  fitMode: 'none' | 'auto' | 'contain' | 'cover' | 'fill';
   opacity: number;
   scale: number;
   rotation: number;
