@@ -33,6 +33,8 @@ export class PlaybackController {
   private onEnded?: () => void;
   private onWaiting?: () => void;
   private onPlaying?: () => void;
+  private seekDebounceTimer: number | null = null;
+  private wasPlayingBeforeSeek = false;
 
   constructor(options: PlaybackControllerOptions = {}) {
     this.videoRenderer = new VideoRenderer({
@@ -158,6 +160,20 @@ export class PlaybackController {
 
   async seek(time: number): Promise<void> {
     const clampedTime = Math.max(0, Math.min(time, this.duration));
+
+    // If this is the first seek in a sequence and we're playing, remember state
+    const isFirstSeekInSequence = this.seekDebounceTimer === null && this.playing;
+    if (isFirstSeekInSequence) {
+      this.wasPlayingBeforeSeek = true;
+      this.pause();
+    }
+
+    // Clear any pending resume timer from previous seek
+    if (this.seekDebounceTimer !== null) {
+      window.clearTimeout(this.seekDebounceTimer);
+      this.seekDebounceTimer = null;
+    }
+
     this.currentTime = clampedTime;
 
     // Seek video - this will start a new iterator
@@ -169,6 +185,17 @@ export class PlaybackController {
     // Notify time update
     if (this.onTimeUpdate) {
       this.onTimeUpdate(this.currentTime);
+    }
+
+    // Schedule resume after 0.5s of no seeks
+    if (this.wasPlayingBeforeSeek) {
+      this.seekDebounceTimer = window.setTimeout(() => {
+        this.seekDebounceTimer = null;
+        this.wasPlayingBeforeSeek = false;
+        if (!this.playing) {
+          void this.play();
+        }
+      }, 500);
     }
   }
 

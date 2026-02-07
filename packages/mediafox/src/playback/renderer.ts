@@ -48,6 +48,7 @@ export class VideoRenderer {
   private nextFrame: WrappedCanvas | null = null;
   private disposed = false;
   private renderingId = 0;
+  private currentSeekId = 0;
   private renderer: IRenderer | null = null;
   private rendererType: RendererType = 'canvas2d';
   private onRendererChange?: (type: RendererType) => void;
@@ -553,6 +554,10 @@ export class VideoRenderer {
     this.renderingId++;
     const currentRenderingId = this.renderingId;
 
+    // Increment seek ID to cancel any in-progress seek
+    this.currentSeekId++;
+    const seekId = this.currentSeekId;
+
     // Dispose current iterator
     if (this.frameIterator) {
       try {
@@ -585,6 +590,11 @@ export class VideoRenderer {
         let previousFrame: WrappedCanvas | null = null;
 
         for await (const frame of lookbehindIterator) {
+          // Check if a new seek has been triggered - if so, abort this one
+          if (seekId !== this.currentSeekId) {
+            return;
+          }
+
           if (frame.timestamp <= timestamp) {
             // This frame is at or before the target - it's a candidate
             previousFrame = frame;
@@ -611,11 +621,20 @@ export class VideoRenderer {
         }
       }
 
+      // Check again if a new seek was triggered during iteration
+      if (seekId !== this.currentSeekId) {
+        return;
+      }
+
       // If we didn't find a frame looking backwards, try forward
       if (!targetFrame) {
         const forwardIterator = this.canvasSink.canvases(timestamp);
         try {
           const result = await forwardIterator.next();
+          // Check for cancellation
+          if (seekId !== this.currentSeekId) {
+            return;
+          }
           if (result.value) {
             targetFrame = result.value;
           }
@@ -631,6 +650,11 @@ export class VideoRenderer {
       }
 
       if (currentRenderingId !== this.renderingId || this.disposed) {
+        return;
+      }
+
+      // Final cancellation check before setting up the frame
+      if (seekId !== this.currentSeekId) {
         return;
       }
 
@@ -653,6 +677,18 @@ export class VideoRenderer {
         let firstFrameAfterRestart: WrappedCanvas | null = null;
         try {
           const first = await playbackIterator.next();
+          // Check for cancellation
+          if (seekId !== this.currentSeekId) {
+            try {
+              await playbackIterator.return();
+            } catch {
+              // Iterator may already be closed
+            }
+            if (this.frameIterator === playbackIterator) {
+              this.frameIterator = null;
+            }
+            return;
+          }
           firstFrameAfterRestart = first.value ?? null;
         } catch {
           // Iterator error
