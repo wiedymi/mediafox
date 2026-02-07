@@ -33,6 +33,9 @@ export class PlaybackController {
   private onEnded?: () => void;
   private onWaiting?: () => void;
   private onPlaying?: () => void;
+  private pendingSeekTime: number | null = null;
+  private isSeeking = false;
+  private seekRequestId = 0;
 
   constructor(options: PlaybackControllerOptions = {}) {
     this.videoRenderer = new VideoRenderer({
@@ -160,15 +163,47 @@ export class PlaybackController {
     const clampedTime = Math.max(0, Math.min(time, this.duration));
     this.currentTime = clampedTime;
 
-    // Seek video - this will start a new iterator
-    await this.videoRenderer.seek(clampedTime);
-
-    // Seek audio
-    await this.audioManager.seek(clampedTime);
-
-    // Notify time update
+    // Update UI immediately
     if (this.onTimeUpdate) {
       this.onTimeUpdate(this.currentTime);
+    }
+
+    // Latest-only seek behavior: keep only the newest target.
+    this.seekRequestId++;
+    this.pendingSeekTime = clampedTime;
+
+    if (!this.isSeeking) {
+      await this.processPendingSeeks();
+    }
+  }
+
+  private async processPendingSeeks(): Promise<void> {
+    if (this.isSeeking) return;
+    this.isSeeking = true;
+
+    try {
+      while (this.pendingSeekTime !== null) {
+        const targetTime = this.pendingSeekTime;
+        this.pendingSeekTime = null;
+        const requestIdAtStart = this.seekRequestId;
+
+        // Seek video first so frame display responds quickly.
+        await this.videoRenderer.seek(targetTime);
+
+        // If a newer seek arrived while video seek was running, skip this audio seek.
+        if (requestIdAtStart !== this.seekRequestId) {
+          continue;
+        }
+
+        await this.audioManager.seek(targetTime);
+      }
+    } finally {
+      this.isSeeking = false;
+    }
+
+    // Handle race where a seek arrived after loop exit but before isSeeking was reset.
+    if (this.pendingSeekTime !== null) {
+      await this.processPendingSeeks();
     }
   }
 
@@ -182,7 +217,9 @@ export class PlaybackController {
       if (!this.playing) return;
 
       // Get accurate time from audio manager if available
-      if (this.audioManager.isPlaying()) {
+      if (this.isSeeking) {
+        // Keep requested seek time stable while async seek operations settle.
+      } else if (this.audioManager.isPlaying()) {
         this.currentTime = this.audioManager.getCurrentTime();
       } else {
         // Fallback to manual time tracking
@@ -267,7 +304,7 @@ export class PlaybackController {
   }
 
   getCurrentTime(): number {
-    if (this.playing && this.audioManager.isPlaying()) {
+    if (this.playing && !this.isSeeking && this.audioManager.isPlaying()) {
       return this.audioManager.getCurrentTime();
     }
     return this.currentTime;
@@ -427,10 +464,16 @@ export class PlaybackController {
     // Reset playback rate to default
     this.playbackRate = 1;
     this.lastFrameTime = 0;
+    this.seekRequestId++;
+    this.pendingSeekTime = null;
+    this.isSeeking = false;
   }
 
   dispose(): void {
     this.pause();
+    this.seekRequestId++;
+    this.pendingSeekTime = null;
+    this.isSeeking = false;
     this.videoRenderer.dispose();
     this.audioManager.dispose();
     this.onTimeUpdate = undefined;
