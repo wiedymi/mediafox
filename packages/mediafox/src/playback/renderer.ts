@@ -40,6 +40,8 @@ export interface VideoRendererOptions {
 
 export class VideoRenderer {
   private canvas: HTMLCanvasElement | OffscreenCanvas | null = null;
+  private seekDebounceTimer: number | null = null;
+  private pendingSeekTime: number | null = null;
   private canvasSink: CanvasSink | null = null;
   private sampleSink: VideoSampleSink | null = null;
   private options: VideoRendererOptions;
@@ -726,7 +728,7 @@ export class VideoRenderer {
     }
   }
 
-  updateFrame(currentTime: number): { frameUpdated: boolean; isStarving: boolean } {
+  updateFrame(currentTime: number, isSeeking: boolean = false): { frameUpdated: boolean; isStarving: boolean } {
     const result = this.updateFrameResult;
 
     if (this.disposed) {
@@ -756,6 +758,26 @@ export class VideoRenderer {
       return result;
     }
 
+    // Check if we're way behind (>1 second) - trigger debounced seek to catch up
+    if (this.nextFrame.timestamp < currentTime - 1.0) {
+      // We're more than 1 second behind - need to seek to catch up
+      this.pendingSeekTime = currentTime;
+
+      if (!this.seekDebounceTimer && !isSeeking) {
+        this.seekDebounceTimer = window.setTimeout(() => {
+          if (this.pendingSeekTime !== null) {
+            void this.seek(this.pendingSeekTime);
+          }
+          this.seekDebounceTimer = null;
+          this.pendingSeekTime = null;
+        }, 100); // Wait 100ms before seeking to batch multiple "behind" detections
+      }
+
+      result.frameUpdated = false;
+      result.isStarving = false;
+      return result;
+    }
+
     // Check if the current playback time has caught up to the next frame
     // Use a small tolerance to handle timing precision issues
     const FRAME_DISPLAY_TOLERANCE = 0.016; // ~1 frame at 60fps
@@ -781,22 +803,37 @@ export class VideoRenderer {
     return result;
   }
 
-  private async fetchNextFrame(): Promise<void> {
+  private async fetchNextFrame(currentTime?: number): Promise<void> {
     const iterator = this.frameIterator;
     if (!iterator || this.disposed) return;
 
     const currentRenderingId = this.renderingId;
 
     try {
-      // Get the next frame from iterator
-      const result = await iterator.next();
-      const frame = result.value ?? null;
+      let frame: WrappedCanvas | null = null;
+      let result = await iterator.next();
+      frame = result.value ?? null;
 
       if (!frame || currentRenderingId !== this.renderingId || this.disposed) {
         return;
       }
 
-      // Store the frame for later use
+      // If we have currentTime and this frame is way behind, skip frames
+      if (currentTime !== undefined) {
+        const SKIP_THRESHOLD = 0.1; // Skip if more than 100ms behind
+
+        while (frame && frame.timestamp < currentTime - SKIP_THRESHOLD) {
+          result = await iterator.next();
+          const nextFrame = result.value ?? null;
+
+          if (!nextFrame || currentRenderingId !== this.renderingId || this.disposed) {
+            break;
+          }
+
+          frame = nextFrame;
+        }
+      }
+
       this.nextFrame = frame;
     } catch {
       // Iterator was closed or disposed during fetch
@@ -1306,6 +1343,11 @@ export class VideoRenderer {
     this.sampleSink = null;
     this.onRendererChange = undefined;
     this.onRendererFallback = undefined;
+    if (this.seekDebounceTimer) {
+      clearTimeout(this.seekDebounceTimer);
+      this.seekDebounceTimer = null;
+      this.pendingSeekTime = null;
+    }
     // Track reference cleared through dispose of iterators
   }
 }
