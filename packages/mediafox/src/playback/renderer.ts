@@ -549,6 +549,8 @@ export class VideoRenderer {
   }
 
   async seek(timestamp: number): Promise<void> {
+    this.cancelPendingDebouncedSeek();
+
     if (!this.canvasSink) {
       return;
     }
@@ -763,13 +765,15 @@ export class VideoRenderer {
       // We're more than 1 second behind - need to seek to catch up
       this.pendingSeekTime = currentTime;
 
-      if (!this.seekDebounceTimer && !isSeeking) {
+      if (this.seekDebounceTimer === null && !isSeeking) {
         this.seekDebounceTimer = window.setTimeout(() => {
-          if (this.pendingSeekTime !== null) {
-            void this.seek(this.pendingSeekTime);
-          }
+          const seekTime = this.pendingSeekTime;
           this.seekDebounceTimer = null;
           this.pendingSeekTime = null;
+
+          if (seekTime !== null && !this.disposed) {
+            void this.seek(seekTime);
+          }
         }, 100); // Wait 100ms before seeking to batch multiple "behind" detections
       }
 
@@ -1282,6 +1286,7 @@ export class VideoRenderer {
    */
   async clearIterators(): Promise<void> {
     this.renderingId++;
+    this.cancelPendingDebouncedSeek();
 
     if (this.frameIterator) {
       try {
@@ -1299,6 +1304,7 @@ export class VideoRenderer {
   private async disposeVideoResources(): Promise<void> {
     this.disposed = true;
     this.renderingId++;
+    this.cancelPendingDebouncedSeek();
 
     if (this.frameIterator) {
       try {
@@ -1319,6 +1325,7 @@ export class VideoRenderer {
   dispose(): void {
     this.disposed = true;
     this.renderingId++;
+    this.cancelPendingDebouncedSeek();
 
     if (this.frameIterator) {
       // fire-and-forget – safe cleanup without throwing
@@ -1343,11 +1350,15 @@ export class VideoRenderer {
     this.sampleSink = null;
     this.onRendererChange = undefined;
     this.onRendererFallback = undefined;
-    if (this.seekDebounceTimer) {
-      clearTimeout(this.seekDebounceTimer);
-      this.seekDebounceTimer = null;
-      this.pendingSeekTime = null;
-    }
     // Track reference cleared through dispose of iterators
+  }
+
+  private cancelPendingDebouncedSeek(): void {
+    if (this.seekDebounceTimer !== null) {
+      clearTimeout(this.seekDebounceTimer);
+    }
+
+    this.seekDebounceTimer = null;
+    this.pendingSeekTime = null;
   }
 }
