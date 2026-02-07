@@ -37,6 +37,7 @@ export class PlaybackController {
   private wasPlayingBeforeSeek = false;
   private pendingSeekTime: number | null = null;
   private isSeeking = false;
+  private suppressSeekResumeCancelOnPause = false;
 
   constructor(options: PlaybackControllerOptions = {}) {
     this.videoRenderer = new VideoRenderer({
@@ -138,6 +139,11 @@ export class PlaybackController {
   }
 
   pause(): void {
+    // Explicit pauses should cancel any pending auto-resume from seek debouncing.
+    if (!this.suppressSeekResumeCancelOnPause) {
+      this.cancelPendingSeekResume();
+    }
+
     if (!this.playing) return;
 
     this.playing = false;
@@ -167,7 +173,9 @@ export class PlaybackController {
     const isFirstSeekInSequence = this.seekDebounceTimer === null && this.playing;
     if (isFirstSeekInSequence) {
       this.wasPlayingBeforeSeek = true;
+      this.suppressSeekResumeCancelOnPause = true;
       this.pause();
+      this.suppressSeekResumeCancelOnPause = false;
     }
 
     // Clear any pending resume timer from previous seek
@@ -225,6 +233,14 @@ export class PlaybackController {
         await this.performSeek(nextSeekTime);
       }
     }
+  }
+
+  private cancelPendingSeekResume(): void {
+    if (this.seekDebounceTimer !== null) {
+      window.clearTimeout(this.seekDebounceTimer);
+      this.seekDebounceTimer = null;
+    }
+    this.wasPlayingBeforeSeek = false;
   }
 
   private startRenderLoop(): void {
@@ -482,10 +498,15 @@ export class PlaybackController {
     // Reset playback rate to default
     this.playbackRate = 1;
     this.lastFrameTime = 0;
+    this.pendingSeekTime = null;
+    this.isSeeking = false;
   }
 
   dispose(): void {
     this.pause();
+    this.cancelPendingSeekResume();
+    this.pendingSeekTime = null;
+    this.isSeeking = false;
     this.videoRenderer.dispose();
     this.audioManager.dispose();
     this.onTimeUpdate = undefined;
