@@ -35,6 +35,8 @@ export class PlaybackController {
   private onPlaying?: () => void;
   private seekDebounceTimer: number | null = null;
   private wasPlayingBeforeSeek = false;
+  private pendingSeekTime: number | null = null;
+  private isSeeking = false;
 
   constructor(options: PlaybackControllerOptions = {}) {
     this.videoRenderer = new VideoRenderer({
@@ -176,16 +178,20 @@ export class PlaybackController {
 
     this.currentTime = clampedTime;
 
-    // Seek video - this will start a new iterator
-    await this.videoRenderer.seek(clampedTime);
-
-    // Seek audio
-    await this.audioManager.seek(clampedTime);
-
-    // Notify time update
+    // Update UI immediately
     if (this.onTimeUpdate) {
       this.onTimeUpdate(this.currentTime);
     }
+
+    // If already seeking, just update the pending seek time and return
+    // This prevents queueing up seeks when holding a key
+    if (this.isSeeking) {
+      this.pendingSeekTime = clampedTime;
+      return;
+    }
+
+    // Perform the actual seek
+    await this.performSeek(clampedTime);
 
     // Schedule resume after 0.5s of no seeks
     if (this.wasPlayingBeforeSeek) {
@@ -196,6 +202,28 @@ export class PlaybackController {
           void this.play();
         }
       }, 500);
+    }
+  }
+
+  private async performSeek(time: number): Promise<void> {
+    this.isSeeking = true;
+    this.pendingSeekTime = null;
+
+    try {
+      // Seek video - this will start a new iterator
+      await this.videoRenderer.seek(time);
+
+      // Seek audio
+      await this.audioManager.seek(time);
+    } finally {
+      this.isSeeking = false;
+
+      // If a new seek was requested while we were seeking, process it now
+      if (this.pendingSeekTime !== null) {
+        const nextSeekTime = this.pendingSeekTime;
+        this.pendingSeekTime = null;
+        await this.performSeek(nextSeekTime);
+      }
     }
   }
 
