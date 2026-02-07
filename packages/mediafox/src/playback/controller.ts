@@ -236,7 +236,7 @@ export class PlaybackController {
       }
 
       // Update video frame synchronously
-      const { isStarving } = this.videoRenderer.updateFrame(this.currentTime);
+      const { isStarving } = this.videoRenderer.updateFrame(this.currentTime, this.isSeeking);
 
       // Handle buffering state changes
       if (isStarving && !this.isWaiting) {
