@@ -1,5 +1,13 @@
 import type { MediaSource } from '../types';
-import type { CompositorSourceOptions, FrameExportOptions, LayerFitMode, LayerTransform, SourceType } from './types';
+import type {
+  CompositorSourceOptions,
+  FrameExportOptions,
+  LayerFitMode,
+  LayerTransform,
+  SourceType,
+  TextSourceOptions,
+  TextSourceUpdate,
+} from './types';
 
 export interface CompositorWorkerLayer {
   sourceId: string;
@@ -66,4 +74,16 @@ export interface CompositorWorkerResizePayload {
 export interface CompositorWorkerExportPayload {
   frame: CompositorWorkerFrame;
   options?: FrameExportOptions;
+}
+
+export interface CompositorWorkerLoadTextPayload {
+  options: Omit<TextSourceOptions, 'canvasOverrides'>;
+  sourceOptions?: CompositorSourceOptions;
+}
+
+export interface CompositorWorkerUpdateTextPayload {
+  id: string;
+  changes: Omit<TextSourceUpdate, 'style'> & {
+    style?: Partial<Omit<TextSourceOptions, 'text' | 'canvasOverrides'>>;
+  };
 }
