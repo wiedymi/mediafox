@@ -25,6 +25,7 @@ export type {
   CompositorRendererType,
   CompositorSource,
   CompositorSourceOptions,
+  CompositorTextSource,
   CompositorWorkerOptions,
   FitMode,
   FrameExportOptions,
@@ -32,6 +33,11 @@ export type {
   LayerTransform,
   PreviewOptions,
   SourceType,
+  TextBackgroundOptions,
+  TextShadowOptions,
+  TextSourceOptions,
+  TextSourceUpdate,
+  TextStrokeOptions,
 } from './compositor';
 // Compositor
 export { Compositor, SourcePool } from './compositor';

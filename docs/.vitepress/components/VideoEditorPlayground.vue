@@ -6,6 +6,9 @@
                 <button @click="loadSampleVideo" class="tool-btn" :disabled="loading">
                     {{ loading ? 'Loading...' : '+ Add Sample' }}
                 </button>
+                <button @click="addTextClip" class="tool-btn">
+                    + Add Text
+                </button>
                 <button @click="openFileDialog" class="tool-btn" :disabled="loading">
                     Import
                 </button>
@@ -90,6 +93,81 @@
                             <input type="range" v-model.number="selectedClip.rotation" min="-180" max="180" step="1" @input="updatePreview" />
                             <span>{{ selectedClip.rotation }}°</span>
                         </div>
+                        <!-- Text editing -->
+                        <template v-if="selectedClip.type === 'text'">
+                            <div class="inspector-title">Text</div>
+                            <div class="inspector-row">
+                                <label>Content</label>
+                                <input type="text" v-model="selectedClip.textContent" @input="onTextPropertyChange" class="text-input" />
+                            </div>
+                            <div class="inspector-row">
+                                <label>Font</label>
+                                <select v-model="selectedClip.textFontFamily" @change="onTextPropertyChange" class="fit-select">
+                                    <option value="sans-serif">Sans Serif</option>
+                                    <option value="serif">Serif</option>
+                                    <option value="monospace">Monospace</option>
+                                    <option value="cursive">Cursive</option>
+                                </select>
+                            </div>
+                            <div class="inspector-row">
+                                <label>Size</label>
+                                <input type="range" v-model.number="selectedClip.textFontSize" min="12" max="200" step="1" @input="onTextPropertyChange" />
+                                <span>{{ selectedClip.textFontSize }}px</span>
+                            </div>
+                            <div class="inspector-row">
+                                <label>Weight</label>
+                                <select v-model="selectedClip.textFontWeight" @change="onTextPropertyChange" class="fit-select">
+                                    <option value="normal">Normal</option>
+                                    <option value="bold">Bold</option>
+                                    <option value="100">Thin</option>
+                                    <option value="300">Light</option>
+                                    <option value="500">Medium</option>
+                                    <option value="700">Bold 700</option>
+                                    <option value="900">Black</option>
+                                </select>
+                            </div>
+                            <div class="inspector-row">
+                                <label>Color</label>
+                                <input type="color" v-model="selectedClip.textColor" @input="onTextPropertyChange" />
+                            </div>
+                            <div class="inspector-row">
+                                <label>Align</label>
+                                <select v-model="selectedClip.textAlign" @change="onTextPropertyChange" class="fit-select">
+                                    <option value="left">Left</option>
+                                    <option value="center">Center</option>
+                                    <option value="right">Right</option>
+                                </select>
+                            </div>
+                            <div class="inspector-row">
+                                <label>Shadow</label>
+                                <input type="checkbox" v-model="selectedClip.textShadow" @change="onTextPropertyChange" />
+                            </div>
+                            <div class="inspector-row">
+                                <label>Stroke</label>
+                                <input type="checkbox" v-model="selectedClip.textStroke" @change="onTextPropertyChange" />
+                            </div>
+                            <template v-if="selectedClip.textStroke">
+                                <div class="inspector-row">
+                                    <label>Stroke W</label>
+                                    <input type="range" v-model.number="selectedClip.textStrokeWidth" min="1" max="10" step="0.5" @input="onTextPropertyChange" />
+                                    <span>{{ selectedClip.textStrokeWidth }}px</span>
+                                </div>
+                                <div class="inspector-row">
+                                    <label>Stroke C</label>
+                                    <input type="color" v-model="selectedClip.textStrokeColor" @input="onTextPropertyChange" />
+                                </div>
+                            </template>
+                            <div class="inspector-row">
+                                <label>BG</label>
+                                <input type="checkbox" v-model="selectedClip.textBackground" @change="onTextPropertyChange" />
+                            </div>
+                            <template v-if="selectedClip.textBackground">
+                                <div class="inspector-row">
+                                    <label>BG Color</label>
+                                    <input type="color" v-model="selectedClip.textBgColor" @input="onTextPropertyChange" />
+                                </div>
+                            </template>
+                        </template>
                         <div class="inspector-title">Effects</div>
                         <div class="inspector-row">
                             <label>Brightness</label>
@@ -199,6 +277,28 @@
                         </div>
                     </div>
                 </div>
+                <!-- Text Track -->
+                <div class="track text-track">
+                    <div class="track-label text-label">T1</div>
+                    <div class="track-content">
+                        <div
+                            v-for="clip in getClipsOnTrack(5)"
+                            :key="clip.id"
+                            class="clip text-clip"
+                            :class="{ selected: selectedClipId === clip.id }"
+                            :style="{
+                                left: clip.startTime * PX_PER_SEC + 'px',
+                                width: clip.duration * PX_PER_SEC + 'px'
+                            }"
+                            @mousedown.stop="onClipMouseDown($event, clip)"
+                            @contextmenu.prevent="onClipRightClick($event, clip)"
+                        >
+                            <div class="clip-trim-left" @mousedown.stop="onTrimMouseDown($event, clip, 'left')"></div>
+                            <div class="clip-body">T {{ clip.name }}</div>
+                            <div class="clip-trim-right" @mousedown.stop="onTrimMouseDown($event, clip, 'right')"></div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Audio Tracks -->
                 <div v-for="trackIdx in 2" :key="'a' + trackIdx" class="track audio-track">
                     <div class="track-label audio-label">A{{ trackIdx }}</div>
@@ -228,7 +328,7 @@
 </template>
 
 <script setup lang="ts">
-import { Compositor, type CompositorSource } from '@mediafox/core';
+import { Compositor, type CompositorSource, type CompositorTextSource } from '@mediafox/core';
 import CompositorWorkerUrl from '@mediafox/core/compositor-worker?worker&url';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
@@ -236,7 +336,7 @@ interface ClipData {
   id: string;
   name: string;
   source: CompositorSource;
-  type: 'video' | 'image' | 'audio';
+  type: 'video' | 'image' | 'audio' | 'text';
   track: number;
   startTime: number;
   duration: number;
@@ -258,6 +358,19 @@ interface ClipData {
   sepia: number;
   invert: number;
   filterOpacity: number;
+  // Text-specific properties
+  textContent?: string;
+  textFontFamily?: string;
+  textFontSize?: number;
+  textFontWeight?: string;
+  textColor?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  textShadow?: boolean;
+  textStroke?: boolean;
+  textStrokeWidth?: number;
+  textStrokeColor?: string;
+  textBackground?: boolean;
+  textBgColor?: string;
 }
 
 const PX_PER_SEC = 60;
@@ -327,15 +440,37 @@ const getComposition = (time: number) => {
   const activeClips = clips.value.filter((c) => time >= c.startTime && time < c.startTime + c.duration);
 
   // Video/image layers (tracks 0-2)
-  const videoClips = activeClips.filter((c) => c.type !== 'audio').sort((a, b) => b.track - a.track);
+  const videoClips = activeClips
+    .filter((c) => c.type !== 'audio' && c.type !== 'text')
+    .sort((a, b) => b.track - a.track);
 
-  const layers = videoClips.map((clip, i) => {
-    const localTime = time - clip.startTime + clip.sourceOffset;
-    const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
-    return {
+  // Text layers (track 5) - rendered on top of video
+  const textClips = activeClips.filter((c) => c.type === 'text');
+
+  const layers = [
+    ...videoClips.map((clip, i) => {
+      const localTime = time - clip.startTime + clip.sourceOffset;
+      const srcTime = clip.sourceDuration > 0 ? localTime % clip.sourceDuration : 0;
+      return {
+        source: clip.source,
+        sourceTime: Math.max(0, srcTime),
+        fitMode: clip.fitMode,
+        transform: {
+          x: clip.x,
+          y: clip.y,
+          scaleX: clip.scale,
+          scaleY: clip.scale,
+          opacity: clip.opacity,
+          rotation: clip.rotation,
+          filter: buildFilter(clip),
+        },
+        zIndex: i,
+      };
+    }),
+    ...textClips.map((clip, i) => ({
       source: clip.source,
-      sourceTime: Math.max(0, srcTime),
-      fitMode: clip.fitMode,
+      sourceTime: 0,
+      fitMode: clip.fitMode as 'none' | 'auto' | 'contain' | 'cover' | 'fill',
       transform: {
         x: clip.x,
         y: clip.y,
@@ -345,9 +480,9 @@ const getComposition = (time: number) => {
         rotation: clip.rotation,
         filter: buildFilter(clip),
       },
-      zIndex: i,
-    };
-  });
+      zIndex: videoClips.length + i,
+    })),
+  ];
 
   // Audio layers - include audio from video clips and audio-only clips
   const audio = activeClips
@@ -417,7 +552,7 @@ const loadSampleVideo = async () => {
     const source = await compositor.value.loadSource(
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
     );
-    const videoClipCount = clips.value.filter((c) => c.type !== 'audio').length;
+    const videoClipCount = clips.value.filter((c) => c.type !== 'audio' && c.type !== 'text').length;
     const track = videoClipCount % 3;
     const lastEnd = Math.max(0, ...getClipsOnTrack(track).map((c) => c.startTime + c.duration), 0);
     clips.value.push({
@@ -456,6 +591,83 @@ const loadSampleVideo = async () => {
   }
 };
 
+const addTextClip = () => {
+  if (!compositor.value) return;
+  const textContent = 'Hello World';
+  const textSource = compositor.value.loadText({
+    text: textContent,
+    fontSize: 64,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    align: 'center',
+    shadow: { color: 'rgba(0,0,0,0.6)', blur: 4, offsetX: 2, offsetY: 2 },
+  });
+  const lastEnd = Math.max(0, ...getClipsOnTrack(5).map((c) => c.startTime + c.duration), 0);
+  clips.value.push({
+    id: `clip_${clipIdCounter++}`,
+    name: textContent.slice(0, 16),
+    source: textSource,
+    type: 'text',
+    track: 5,
+    startTime: lastEnd,
+    duration: 5,
+    sourceDuration: Infinity,
+    sourceOffset: 0,
+    volume: 0,
+    fitMode: 'none',
+    opacity: 1,
+    scale: 1,
+    rotation: 0,
+    x: 0,
+    y: 0,
+    brightness: 1,
+    contrast: 1,
+    saturation: 1,
+    hue: 0,
+    blur: 0,
+    grayscale: 0,
+    sepia: 0,
+    invert: 0,
+    filterOpacity: 1,
+    textContent,
+    textFontFamily: 'sans-serif',
+    textFontSize: 64,
+    textFontWeight: 'bold',
+    textColor: '#ffffff',
+    textAlign: 'center',
+    textShadow: true,
+    textStroke: false,
+    textStrokeWidth: 2,
+    textStrokeColor: '#000000',
+    textBackground: false,
+    textBgColor: '#000000',
+  });
+  updatePreview();
+};
+
+const onTextPropertyChange = () => {
+  const clip = selectedClip.value;
+  if (!clip || clip.type !== 'text') return;
+  const textSource = clip.source as CompositorTextSource;
+  textSource.update({
+    text: clip.textContent,
+    style: {
+      fontFamily: clip.textFontFamily,
+      fontSize: clip.textFontSize,
+      fontWeight: clip.textFontWeight,
+      color: clip.textColor,
+      align: clip.textAlign,
+      shadow: clip.textShadow ? { color: 'rgba(0,0,0,0.6)', blur: 4, offsetX: 2, offsetY: 2 } : undefined,
+      stroke: clip.textStroke ? { color: clip.textStrokeColor, width: clip.textStrokeWidth } : undefined,
+      background: clip.textBackground
+        ? { color: clip.textBgColor, paddingX: 12, paddingY: 6, borderRadius: 4 }
+        : undefined,
+    },
+  });
+  clip.name = (clip.textContent ?? '').slice(0, 16);
+  updatePreview();
+};
+
 const openFileDialog = () => fileInput.value?.click();
 
 const handleFileSelect = async (e: Event) => {
@@ -478,12 +690,12 @@ const handleFileSelect = async (e: Event) => {
     } else if (isImage) {
       source = await compositor.value.loadImage(file);
       clipType = 'image';
-      const videoClipCount = clips.value.filter((c) => c.type !== 'audio').length;
+      const videoClipCount = clips.value.filter((c) => c.type !== 'audio' && c.type !== 'text').length;
       track = videoClipCount % 3;
     } else {
       source = await compositor.value.loadSource(file);
       clipType = 'video';
-      const videoClipCount = clips.value.filter((c) => c.type !== 'audio').length;
+      const videoClipCount = clips.value.filter((c) => c.type !== 'audio' && c.type !== 'text').length;
       track = videoClipCount % 3;
     }
 
@@ -1017,6 +1229,9 @@ onUnmounted(() => {
     width: 220px;
     background: #1a1a1a;
     border-left: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .inspector-header {
@@ -1031,6 +1246,8 @@ onUnmounted(() => {
 
 .inspector-section {
     padding: 12px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .inspector-row {
@@ -1114,7 +1331,7 @@ onUnmounted(() => {
 }
 
 .timeline-wrapper {
-    height: 290px;
+    height: 345px;
     background: #181818;
     border-top: 1px solid #333;
     display: flex;
@@ -1218,6 +1435,39 @@ onUnmounted(() => {
 .audio-clip.selected {
     border-color: #8a5aba !important;
     background: #5a3a7a !important;
+}
+
+/* Text track styling */
+.text-track .track-label {
+    background: #1a201a;
+}
+
+.text-label {
+    color: #7aaa7a !important;
+}
+
+.text-clip {
+    background: #2a4a2a !important;
+    border-color: #3a7a3a !important;
+}
+
+.text-clip:hover {
+    background: #3a5a3a !important;
+}
+
+.text-clip.selected {
+    border-color: #5aba5a !important;
+    background: #3a7a3a !important;
+}
+
+.text-input {
+    flex: 1;
+    height: 24px;
+    background: #222;
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 0 6px;
+    font-size: 12px;
 }
 
 .clip-trim-left,

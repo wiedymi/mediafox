@@ -14,7 +14,14 @@ import {
   type WrappedCanvas,
 } from 'mediabunny';
 import type { MediaSource } from '../types';
-import type { CompositorSource, CompositorSourceOptions, SourceType } from './types';
+import type {
+  CompositorSource,
+  CompositorSourceOptions,
+  CompositorTextSource,
+  SourceType,
+  TextSourceOptions,
+  TextSourceUpdate,
+} from './types';
 
 interface VideoSourceData {
   input: Input<Source>;
@@ -263,17 +270,272 @@ class AudioOnlySource implements CompositorSource {
   }
 }
 
+// ── Text rendering helpers ──────────────────────────────────────────────
+
+/** Resolve effective values from TextSourceOptions with sensible defaults. */
+function resolveTextStyle(opts: TextSourceOptions) {
+  return {
+    text: opts.text,
+    fontFamily: opts.fontFamily ?? 'sans-serif',
+    fontSize: opts.fontSize ?? 48,
+    fontWeight: opts.fontWeight ?? 'normal',
+    fontStyle: opts.fontStyle ?? 'normal',
+    color: opts.color ?? '#ffffff',
+    align: opts.align ?? 'left',
+    lineHeight: opts.lineHeight ?? 1.2,
+    letterSpacing: opts.letterSpacing ?? 0,
+    shadow: opts.shadow,
+    stroke: opts.stroke,
+    background: opts.background,
+    maxWidth: opts.maxWidth,
+    padding: opts.padding ?? 8,
+    canvasOverrides: opts.canvasOverrides,
+  };
+}
+
+type ResolvedTextStyle = ReturnType<typeof resolveTextStyle>;
+
+function buildFont(style: ResolvedTextStyle): string {
+  return `${style.fontStyle} ${style.fontWeight} ${style.fontSize}px ${style.fontFamily}`;
+}
+
+/**
+ * Word-wrap `text` to fit within `maxWidth` using the given context.
+ * Each explicit newline is honoured; long words are broken if needed.
+ */
+function wrapLines(ctx: OffscreenCanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const paragraphs = text.split('\n');
+  const result: string[] = [];
+
+  for (const paragraph of paragraphs) {
+    if (paragraph === '') {
+      result.push('');
+      continue;
+    }
+    const words = paragraph.split(/\s+/);
+    let currentLine = '';
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine) {
+        result.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) result.push(currentLine);
+  }
+
+  return result;
+}
+
+/**
+ * Render text options into an OffscreenCanvas and return it along with its
+ * dimensions. The canvas is sized exactly to fit the rendered text plus padding.
+ */
+function renderTextBitmap(opts: TextSourceOptions): {
+  canvas: OffscreenCanvas;
+  width: number;
+  height: number;
+} {
+  const style = resolveTextStyle(opts);
+  const padding = style.padding;
+  const lineHeightPx = style.fontSize * style.lineHeight;
+
+  // Measurement pass – use a temporary 1x1 canvas.
+  const measure = new OffscreenCanvas(1, 1);
+  const mCtx = measure.getContext('2d') as OffscreenCanvasRenderingContext2D;
+  mCtx.font = buildFont(style);
+
+  // Split into lines (word-wrap if maxWidth is set).
+  const rawLines = style.text.split('\n');
+  let lines: string[];
+  if (style.maxWidth && style.maxWidth > 0) {
+    lines = wrapLines(mCtx, style.text, style.maxWidth);
+  } else {
+    lines = rawLines;
+  }
+
+  // Measure each line to find bounding box.
+  let maxLineWidth = 0;
+  for (const line of lines) {
+    const m = mCtx.measureText(line);
+    if (m.width > maxLineWidth) maxLineWidth = m.width;
+  }
+
+  // Account for stroke width in sizing.
+  const strokeExtra = style.stroke ? (style.stroke.width ?? 1) : 0;
+  // Account for shadow offset/blur in sizing.
+  const shadowExtraX = style.shadow ? Math.abs(style.shadow.offsetX ?? 0) + (style.shadow.blur ?? 0) : 0;
+  const shadowExtraY = style.shadow ? Math.abs(style.shadow.offsetY ?? 0) + (style.shadow.blur ?? 0) : 0;
+
+  const extraX = Math.max(strokeExtra, shadowExtraX);
+  const extraY = Math.max(strokeExtra, shadowExtraY);
+
+  const bgPadX = style.background?.paddingX ?? 0;
+  const bgPadY = style.background?.paddingY ?? 0;
+
+  const canvasWidth = Math.ceil(
+    maxLineWidth +
+      padding * 2 +
+      extraX * 2 +
+      bgPadX * 2 +
+      style.letterSpacing * Math.max(0, (lines[0]?.length ?? 1) - 1)
+  );
+  const canvasHeight = Math.ceil(lines.length * lineHeightPx + padding * 2 + extraY * 2 + bgPadY * 2);
+
+  // Drawing pass.
+  const canvas = new OffscreenCanvas(Math.max(1, canvasWidth), Math.max(1, canvasHeight));
+  const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+
+  // Background.
+  if (style.background) {
+    const bg = style.background;
+    const r = bg.borderRadius ?? 0;
+    ctx.fillStyle = bg.color ?? 'rgba(0,0,0,0.5)';
+    if (r > 0) {
+      ctx.beginPath();
+      ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+      ctx.fill();
+    } else {
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  // Configure text style.
+  ctx.font = buildFont(style);
+  ctx.textBaseline = 'top';
+
+  // Alignment.
+  let alignOffset: (lineWidth: number) => number;
+  const contentWidth = canvasWidth - padding * 2 - extraX * 2 - bgPadX * 2;
+  switch (style.align) {
+    case 'center':
+      alignOffset = (lw: number) => (contentWidth - lw) / 2;
+      break;
+    case 'right':
+      alignOffset = (lw: number) => contentWidth - lw;
+      break;
+    default:
+      alignOffset = () => 0;
+  }
+
+  // Shadow.
+  if (style.shadow) {
+    ctx.shadowColor = style.shadow.color ?? 'rgba(0,0,0,0.5)';
+    ctx.shadowOffsetX = style.shadow.offsetX ?? 2;
+    ctx.shadowOffsetY = style.shadow.offsetY ?? 2;
+    ctx.shadowBlur = style.shadow.blur ?? 4;
+  }
+
+  // Apply user overrides.
+  if (style.canvasOverrides) {
+    style.canvasOverrides(ctx);
+  }
+
+  const startX = padding + extraX + bgPadX;
+  const startY = padding + extraY + bgPadY;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineMetrics = ctx.measureText(line);
+    const x = startX + alignOffset(lineMetrics.width);
+    const y = startY + i * lineHeightPx;
+
+    if (style.letterSpacing > 0) {
+      // Render character-by-character for letter spacing.
+      let cx = x;
+      for (const char of line) {
+        if (style.stroke) {
+          ctx.strokeStyle = style.stroke.color ?? '#000000';
+          ctx.lineWidth = style.stroke.width ?? 1;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(char, cx, y);
+        }
+        ctx.fillStyle = style.color;
+        ctx.fillText(char, cx, y);
+        cx += ctx.measureText(char).width + style.letterSpacing;
+      }
+    } else {
+      // Stroke first so fill renders on top.
+      if (style.stroke) {
+        ctx.strokeStyle = style.stroke.color ?? '#000000';
+        ctx.lineWidth = style.stroke.width ?? 1;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(line, x, y);
+      }
+      ctx.fillStyle = style.color;
+      ctx.fillText(line, x, y);
+    }
+  }
+
+  return { canvas, width: canvas.width, height: canvas.height };
+}
+
+class TextSource implements CompositorTextSource {
+  readonly id: string;
+  readonly type = 'text' as const;
+  readonly duration = Infinity;
+  width: number;
+  height: number;
+  private options: TextSourceOptions;
+  private bitmap: OffscreenCanvas;
+  private disposed = false;
+
+  constructor(id: string, options: TextSourceOptions) {
+    this.id = id;
+    this.options = { ...options };
+    const { canvas, width, height } = renderTextBitmap(this.options);
+    this.bitmap = canvas;
+    this.width = width;
+    this.height = height;
+  }
+
+  async getFrameAt(_time: number): Promise<CanvasImageSource | null> {
+    if (this.disposed) return null;
+    return this.bitmap;
+  }
+
+  update(changes: TextSourceUpdate): void {
+    if (this.disposed) return;
+    if (changes.text !== undefined) {
+      this.options.text = changes.text;
+    }
+    if (changes.style) {
+      const { canvasOverrides, ...rest } = changes.style;
+      Object.assign(this.options, rest);
+      if (canvasOverrides !== undefined) {
+        this.options.canvasOverrides = canvasOverrides;
+      }
+    }
+    const { canvas, width, height } = renderTextBitmap(this.options);
+    this.bitmap = canvas;
+    this.width = width;
+    this.height = height;
+  }
+
+  getOptions(): TextSourceOptions {
+    return { ...this.options };
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+  }
+}
+
 export class SourcePool {
   private sources = new Map<string, CompositorSource>();
   private audioContext: AudioContext | null = null;
-  private nextId = 0;
 
   constructor(audioContext?: AudioContext) {
     this.audioContext = audioContext ?? null;
   }
 
   private generateId(): string {
-    return `source_${this.nextId++}`;
+    return `source_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
   }
 
   async loadVideo(source: MediaSource, options: CompositorSourceOptions = {}): Promise<CompositorSource> {
@@ -422,6 +684,13 @@ export class SourcePool {
 
     this.sources.set(id, audioSource);
     return audioSource;
+  }
+
+  loadText(options: TextSourceOptions, sourceOptions: CompositorSourceOptions = {}): CompositorTextSource {
+    const id = sourceOptions.id ?? this.generateId();
+    const textSource = new TextSource(id, options);
+    this.sources.set(id, textSource);
+    return textSource;
   }
 
   private createInput(source: MediaSource): Input<Source> {

@@ -131,6 +131,45 @@ async loadImage(source: string | Blob | File): Promise<CompositorSource>
 const image = await compositor.loadImage('https://example.com/overlay.png');
 ```
 
+### `loadText(options, sourceOptions?)`
+
+Creates a text source and adds it to the compositor's source pool. Text sources behave like image layers but are dynamically rendered.
+
+<div class="method-signature">
+
+```typescript
+loadText(
+  options: TextSourceOptions,
+  sourceOptions?: CompositorSourceOptions
+): CompositorTextSource
+```
+
+</div>
+
+**Parameters:**
+- `options`: Text content and styling configuration
+- `sourceOptions`: Optional source ID and duration
+
+**Returns:** The loaded text source (can be updated later)
+
+**Example:**
+
+```typescript
+const title = compositor.loadText({
+  text: 'Hello World',
+  fontSize: 64,
+  color: '#ffffff',
+  fontWeight: 'bold',
+  shadow: { color: 'rgba(0,0,0,0.5)', blur: 4, offsetY: 2 }
+});
+
+// Update text later
+title.update({
+  text: 'New Text',
+  style: { color: '#ff0000' }
+});
+```
+
 ### `loadAudio(source, options?)`
 
 Loads an audio source into the compositor's source pool.
@@ -621,11 +660,73 @@ A loaded media source.
 ```typescript
 interface CompositorSource {
   id: string;
-  type: 'video' | 'image' | 'audio';
+  type: 'video' | 'image' | 'audio' | 'text';
   duration: number;
   width?: number;
   height?: number;
   getFrameAt(time: number): Promise<CanvasImageSource | null>;
+}
+```
+
+### CompositorTextSource
+
+A specialized source for text content.
+
+```typescript
+interface CompositorTextSource extends CompositorSource {
+  readonly type: 'text';
+  update(changes: TextSourceUpdate): void;
+  getOptions(): TextSourceOptions;
+}
+```
+
+### TextSourceOptions
+
+Configuration for text sources.
+
+```typescript
+interface TextSourceOptions {
+  text: string;              // Content to render
+  fontFamily?: string;       // Default: 'sans-serif'
+  fontSize?: number;         // Default: 48
+  fontWeight?: string;       // 'normal', 'bold', etc.
+  fontStyle?: string;        // 'normal', 'italic'
+  color?: string;            // Fill color (default: '#ffffff')
+  align?: 'left' | 'center' | 'right';
+  lineHeight?: number;       // Default: 1.2
+  letterSpacing?: number;    // Default: 0
+  maxWidth?: number;         // Wrap width
+  padding?: number;          // Padding around text (default: 8)
+
+  shadow?: {
+    color?: string;
+    offsetX?: number;
+    offsetY?: number;
+    blur?: number;
+  };
+
+  stroke?: {
+    color?: string;
+    width?: number;
+  };
+
+  background?: {
+    color?: string;
+    paddingX?: number;
+    paddingY?: number;
+    borderRadius?: number;
+  };
+}
+```
+
+### TextSourceUpdate
+
+Options for updating an existing text source.
+
+```typescript
+interface TextSourceUpdate {
+  text?: string;
+  style?: Partial<Omit<TextSourceOptions, 'text'>>;
 }
 ```
 

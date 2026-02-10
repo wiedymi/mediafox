@@ -1,15 +1,23 @@
 import type { MediaSource } from '../types';
-import type { CompositorSourceOptions, CompositorWorkerOptions, FrameExportOptions } from './types';
+import type {
+  CompositorSourceOptions,
+  CompositorWorkerOptions,
+  FrameExportOptions,
+  TextSourceOptions,
+  TextSourceUpdate,
+} from './types';
 import type {
   CompositorWorkerExportPayload,
   CompositorWorkerFrame,
   CompositorWorkerInitPayload,
   CompositorWorkerLoadPayload,
+  CompositorWorkerLoadTextPayload,
   CompositorWorkerRenderPayload,
   CompositorWorkerResizePayload,
   CompositorWorkerResponse,
   CompositorWorkerSourceInfo,
   CompositorWorkerUnloadPayload,
+  CompositorWorkerUpdateTextPayload,
 } from './worker-types';
 
 interface CompositorWorkerClientOptions {
@@ -95,6 +103,31 @@ export class CompositorWorkerClient {
     await this.ready;
     const payload: CompositorWorkerLoadPayload = { source, options };
     return this.call<CompositorWorkerSourceInfo>('loadAudio', payload);
+  }
+
+  async loadText(
+    options: TextSourceOptions,
+    sourceOptions?: CompositorSourceOptions
+  ): Promise<CompositorWorkerSourceInfo> {
+    await this.ready;
+    // Strip non-serialisable `canvasOverrides` callback before sending to worker.
+    const { canvasOverrides: _, ...serializableOptions } = options;
+    const payload: CompositorWorkerLoadTextPayload = { options: serializableOptions, sourceOptions };
+    return this.call<CompositorWorkerSourceInfo>('loadText', payload);
+  }
+
+  async updateText(id: string, changes: TextSourceUpdate): Promise<boolean> {
+    await this.ready;
+    // Strip non-serialisable callback from style overrides.
+    const serializableChanges: CompositorWorkerUpdateTextPayload['changes'] = {
+      text: changes.text,
+    };
+    if (changes.style) {
+      const { canvasOverrides: _, ...rest } = changes.style;
+      serializableChanges.style = rest;
+    }
+    const payload: CompositorWorkerUpdateTextPayload = { id, changes: serializableChanges };
+    return this.call<boolean>('updateText', payload);
   }
 
   async unloadSource(id: string): Promise<boolean> {

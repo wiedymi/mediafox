@@ -11,9 +11,12 @@ import type {
   CompositorOptions,
   CompositorSource,
   CompositorSourceOptions,
+  CompositorTextSource,
   FitMode,
   FrameExportOptions,
   PreviewOptions,
+  TextSourceOptions,
+  TextSourceUpdate,
 } from './types';
 import { CompositorWorkerClient } from './worker-client';
 import type { CompositorWorkerFrame, CompositorWorkerSourceInfo } from './worker-types';
@@ -241,6 +244,85 @@ export class Compositor {
   }
 
   /**
+   * Creates a text source and adds it to the compositor's source pool.
+   * Text sources render to an offscreen canvas and behave like image layers
+   * (infinite duration, positionable, scalable, rotatable).
+   *
+   * @param options - Text content and styling configuration
+   * @param sourceOptions - Optional source ID
+   * @returns The text source, which can be updated after creation
+   *
+   * @example
+   * ```ts
+   * const title = compositor.loadText({
+   *   text: 'Hello World',
+   *   fontSize: 64,
+   *   color: '#ffffff',
+   *   fontWeight: 'bold',
+   *   shadow: { color: 'rgba(0,0,0,0.5)', blur: 4, offsetY: 2 },
+   * });
+   *
+   * // Use in composition like any other source
+   * getComposition: (time) => ({
+   *   time,
+   *   layers: [
+   *     { source: title, transform: { x: 100, y: 50, opacity: 1 } }
+   *   ]
+   * });
+   *
+   * // Update text content or style at any time
+   * title.update({ text: 'Updated!', style: { color: '#ff0000' } });
+   * ```
+   */
+  loadText(options: TextSourceOptions, sourceOptions?: CompositorSourceOptions): CompositorTextSource {
+    this.checkDisposed();
+
+    if (this.workerClient) {
+      // Text sources are lightweight (no media decoding) so we create them
+      // on both main thread and worker. The main-thread copy is the "source
+      // of truth" and the worker gets a serialisable snapshot.
+      const loaded = this.sourcePool.loadText(options, sourceOptions);
+
+      // Create a proxy that also notifies the worker.
+      // Pass the generated ID to the worker to ensure synchronization
+      const info = this.workerClient.loadText(options, { ...sourceOptions, id: loaded.id });
+      void info; // fire-and-forget; worker will have the source when next frame renders
+
+      const proxy: CompositorTextSource = {
+        id: loaded.id,
+        type: 'text',
+        duration: Infinity,
+        width: loaded.width,
+        height: loaded.height,
+        async getFrameAt(time: number): Promise<CanvasImageSource | null> {
+          return loaded.getFrameAt(time);
+        },
+        dispose(): void {
+          loaded.dispose();
+        },
+        update: (changes: TextSourceUpdate): void => {
+          loaded.update(changes);
+          proxy.width = loaded.width;
+          proxy.height = loaded.height;
+          // Propagate to worker (fire-and-forget).
+          void this.workerClient?.updateText(loaded.id, changes);
+        },
+        getOptions(): TextSourceOptions {
+          return loaded.getOptions();
+        },
+      };
+
+      this.workerSources.set(proxy.id, proxy);
+      this.emitter.emit('sourceloaded', { id: proxy.id, source: proxy });
+      return proxy;
+    }
+
+    const loaded = this.sourcePool.loadText(options, sourceOptions);
+    this.emitter.emit('sourceloaded', { id: loaded.id, source: loaded });
+    return loaded;
+  }
+
+  /**
    * Unloads a source from the compositor's source pool.
    * @param id - The source ID to unload
    * @returns True if the source was found and unloaded
@@ -436,7 +518,12 @@ export class Compositor {
     const transform = layer.transform;
     const sourceWidth = layer.source.width ?? this.width;
     const sourceHeight = layer.source.height ?? this.height;
-    const effectiveFitMode = layer.fitMode === undefined || layer.fitMode === 'auto' ? this.fitMode : layer.fitMode;
+    const effectiveFitMode =
+      (layer.fitMode === undefined || layer.fitMode === 'auto') && layer.source.type === 'text'
+        ? 'none'
+        : layer.fitMode === undefined || layer.fitMode === 'auto'
+          ? this.fitMode
+          : layer.fitMode;
 
     let fittedWidth = sourceWidth;
     let fittedHeight = sourceHeight;

@@ -1,16 +1,18 @@
 import { Compositor } from './compositor';
-import type { CompositionFrame, CompositorLayer, CompositorSource } from './types';
+import type { CompositionFrame, CompositorLayer, CompositorSource, CompositorTextSource } from './types';
 import type {
   CompositorWorkerExportPayload,
   CompositorWorkerFrame,
   CompositorWorkerInitPayload,
   CompositorWorkerLoadPayload,
+  CompositorWorkerLoadTextPayload,
   CompositorWorkerRenderPayload,
   CompositorWorkerRequest,
   CompositorWorkerResizePayload,
   CompositorWorkerResponse,
   CompositorWorkerSourceInfo,
   CompositorWorkerUnloadPayload,
+  CompositorWorkerUpdateTextPayload,
 } from './worker-types';
 
 type WorkerScope = {
@@ -98,6 +100,24 @@ workerScope.onmessage = async (event: MessageEvent<CompositorWorkerRequest>) => 
         if (!compositor) throw new Error('Compositor not initialized');
         const loaded = await compositor.loadAudio(source, options);
         postResponse({ id, ok: true, result: buildSourceInfo(loaded) });
+        return;
+      }
+      case 'loadText': {
+        const { options: textOpts, sourceOptions } = payload as CompositorWorkerLoadTextPayload;
+        if (!compositor) throw new Error('Compositor not initialized');
+        const loaded = compositor.loadText(textOpts, sourceOptions);
+        postResponse({ id, ok: true, result: buildSourceInfo(loaded) });
+        return;
+      }
+      case 'updateText': {
+        const { id: sourceId, changes } = payload as CompositorWorkerUpdateTextPayload;
+        if (!compositor) throw new Error('Compositor not initialized');
+        const source = compositor.getSource(sourceId);
+        if (!source || source.type !== 'text') {
+          throw new Error(`Text source not found: ${sourceId}`);
+        }
+        (source as CompositorTextSource).update(changes);
+        postResponse({ id, ok: true, result: true });
         return;
       }
       case 'unloadSource': {
