@@ -45,6 +45,16 @@ const music = await compositor.loadAudio('soundtrack.mp3');
 
 // Load from file input
 const fileVideo = await compositor.loadSource(fileInput.files[0]);
+
+// Create a text source
+const title = compositor.loadText({
+  text: 'My Video',
+  fontSize: 120,
+  fontFamily: 'Inter',
+  fontWeight: 'bold',
+  color: '#ffffff',
+  shadow: { color: 'black', blur: 10, offsetY: 5 }
+});
 ```
 
 ## Rendering Frames
